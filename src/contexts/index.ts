@@ -3,12 +3,19 @@ export { useWallet } from './WalletContext';
 export { useWallet as useWalletContext } from './WalletContext';
 export type { WalletContextType } from './WalletContext';
 
-// Market Context
+// 保留原有的 PredictionMarketContext（钱包依赖它！）
+export {
+    PredictionMarketProvider,
+    usePredictionMarket,
+    useMarkets,
+    useUserPortfolio,
+    useMarketOperations
+} from './PredictionMarketContext';
+export { PredictionMarketContext } from './PredictionMarketContext';
+export type { PredictionMarketContextType } from './PredictionMarketContext';
+
+// 新的 Market Context（用于新 API 集成）
 export { MarketProvider, useMarket } from './MarketContext';
 
 // Sound Context
 export { SoundProvider, useSound } from './SoundContext';
-
-// 兼容旧的导出
-export { MarketProvider as PredictionMarketProvider } from './MarketContext';
-export { useMarket as usePredictionMarket } from './MarketContext';

@@ -4,7 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { DelphinusReactProvider } from 'zkwasm-minirollup-browser';
-import { MarketProvider, SoundProvider } from './contexts';
+import { PredictionMarketProvider, MarketProvider, SoundProvider } from './contexts';
 import ErrorBoundary from "./components/ErrorBoundary";
 import Index from "./pages/Index";
 import MarketDetail from "./pages/MarketDetail";
@@ -18,16 +18,23 @@ import TradingViewDemo from "./pages/TradingViewDemo";
 
 const queryClient = new QueryClient();
 
+// 配置保留以兼容 PredictionMarketProvider
+const predictionMarketConfig = {
+  serverUrl: process.env.REACT_APP_URL || "http://localhost:3000",
+  privkey: undefined
+};
+
 const App = () => (
   <DelphinusReactProvider appName="Socrates Prediction Market">
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <SoundProvider>
-          <MarketProvider>
-            <TooltipProvider>
-              <Toaster />
-              <Sonner />
-              <ErrorBoundary>
+    <PredictionMarketProvider config={predictionMarketConfig}>
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <SoundProvider>
+            <MarketProvider>
+              <TooltipProvider>
+                <Toaster />
+                <Sonner />
+                <ErrorBoundary>
                 <Routes>
                   <Route path="/" element={<Index />} />
                   <Route path="/market/:id" element={<MarketDetail />} />
@@ -46,6 +53,7 @@ const App = () => (
         </SoundProvider>
       </BrowserRouter>
     </QueryClientProvider>
+    </PredictionMarketProvider>
   </DelphinusReactProvider>
 );
 

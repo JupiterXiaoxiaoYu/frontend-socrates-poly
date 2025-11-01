@@ -369,3 +369,10 @@ export function createAdminClient(privateKey: string, rpcUrl?: string): Exchange
 export function createAPIClient(baseUrl?: string): ExchangeAPI {
   return new ExchangeAPI(baseUrl || API_BASE_URL);
 }
+
+// ==================== 兼容旧的导出名称 ====================
+
+// 为了兼容 PredictionMarketContext，添加旧的导出名称
+export const createPredictionMarketAPI = createPlayerClient;
+export const createRESTAPI = createAPIClient;
+export { ExchangePlayer as PredictionMarketAPI };
