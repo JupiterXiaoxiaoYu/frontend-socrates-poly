@@ -9,18 +9,4 @@ export const useWallet = useWalletContext;
 // 导出类型定义
 export type { WalletContextType };
 
-// 创建一个简单的 WalletContext Provider（虽然主要由 DelphinusReactProvider 处理）
-import React, { createContext, useContext } from 'react';
-
-export const WalletContext = createContext<WalletContextType | null>(null);
-
-export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const wallet = useWallet();
-  return (
-    <WalletContext.Provider value={wallet}>
-      {children}
-    </WalletContext.Provider>
-  );
-};
-
-// 注意：主要钱包功能由 DelphinusReactProvider 提供
+// 注意：不需要 WalletProvider，因为 DelphinusReactProvider 已经提供了所有必要的 context

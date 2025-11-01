@@ -1,118 +1,155 @@
-// Prediction Market API Service
-// Following the exact patterns from reference projects
-// Extends PlayerConvention from zkwasm-minirollup-rpc
+// zkWASM API 客户端
+// 参考: backend/socrates-prediction-mkt/ts/src/api.ts
 
-import { createCommand, createWithdrawCommand, PlayerConvention, ZKWasmAppRpc, LeHexBN } from "zkwasm-minirollup-rpc";
-import { PrivateKey, bnToHexLe } from "delphinus-curves/src/altjubjub";
+import { PlayerConvention, ZKWasmAppRpc, createCommand } from 'zkwasm-minirollup-rpc';
+import type {
+  ApiResponse,
+  Market,
+  Order,
+  Trade,
+  Position,
+  FinancialActivity,
+  GlobalState,
+  PlaceOrderParams,
+  CreateMarketParams,
+  PlayerId,
+} from '../types/api';
 
-// Backend command constants (match backend exactly)
-const INSTALL_PLAYER = 1;
-const DEPOSIT = 2;
-const WITHDRAW = 3;
-const PLACE_ORDER = 4;
-const CANCEL_ORDER = 5;
-const CLAIM = 6;
-const CREATE_MARKET = 7;
-const CLOSE_MARKET = 8;
-const EXECUTE_TRADE = 9;
-const RESOLVE_MARKET = 10;
-const SET_FEE_EXEMPT = 11;
+// API Base URL
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000';
+// 命令常量（与后端对应）
+const CMD_TICK = 0;
+const CMD_REGISTER = 1;
+const CMD_DEPOSIT = 2;
+const CMD_WITHDRAW = 3;
+const CMD_PLACE_ORDER = 4;
+const CMD_CANCEL_ORDER = 5;
+const CMD_CLAIM = 6;
+const CMD_CREATE_MARKET = 7;
+const CMD_CLOSE_MARKET = 8;
+const CMD_EXECUTE_TRADE = 9;
+const CMD_RESOLVE_MARKET = 10;
+const CMD_SET_FEE_EXEMPT = 11;
 
-export interface ApiResponse<T> {
-  success: boolean;
-  data?: T;
-  error?: string;
-  message?: string;
+// 辅助函数：编码 i64 为两个 u32
+function encodeI64(value: bigint): [bigint, bigint] {
+  const signed = BigInt.asIntN(64, value);
+  const high = (signed >> 32n) & 0xffffffffn;
+  const low = signed & 0xffffffffn;
+  return [high, low];
 }
 
-// Main API class extending PlayerConvention
-export class PredictionMarketAPI extends PlayerConvention {
-  private privkey: string;
-  private rpc: ZKWasmAppRpc;
+// ==================== 玩家客户端 ====================
 
-  constructor(config: { serverUrl: string; privkey: string }) {
-    const rpc = new ZKWasmAppRpc(config.serverUrl);
-    super(config.privkey, rpc, BigInt(DEPOSIT), BigInt(WITHDRAW));
-    this.privkey = config.privkey;
+export class ExchangePlayer extends PlayerConvention {
+  public rpc: ZKWasmAppRpc;
+
+  constructor(privateKey: string, rpc: ZKWasmAppRpc) {
+    super(privateKey, rpc, BigInt(CMD_DEPOSIT), BigInt(CMD_WITHDRAW));
     this.rpc = rpc;
-    this.processingKey = config.privkey;
   }
 
   protected async sendTransactionWithCommand(cmd: BigUint64Array) {
     try {
-      let result = await this.rpc.sendTransaction(cmd, this.processingKey);
-      return result;
-    } catch (e) {
-      if (e instanceof Error) {
-        console.log(e.message);
+      return await this.rpc.sendTransaction(cmd, this.processingKey);
+    } catch (error) {
+      if (error instanceof Error) {
+        console.error('Transaction error:', error.message);
       }
-      throw e;
+      throw error;
     }
   }
 
-  // Player Registration
-  async installPlayer() {
+  // 注册玩家（幂等操作）
+  async register(): Promise<any> {
     try {
-      let cmd = createCommand(0n, BigInt(INSTALL_PLAYER), []);
+      const cmd = createCommand(0n, BigInt(CMD_REGISTER), []);
       return await this.sendTransactionWithCommand(cmd);
     } catch (e) {
-      if (e instanceof Error && e.message === "PlayerAlreadyExist") {
-        console.log("Player already exists, skipping installation");
+      if (e instanceof Error && e.message === 'PlayerAlreadyExists') {
+        console.log('Player already exists, skipping registration');
         return null;
       }
       throw e;
     }
   }
 
-  // Deposit to target player (admin operation)
-  async depositTo(targetProcessingKey: string, amount: bigint) {
-    let nonce = await this.getNonce();
+  // Admin 给目标玩家充值
+  async depositTo(targetProcessingKey: string, amount: bigint): Promise<any> {
+    const nonce = await this.getNonce();
     const targetPid = this.resolvePidFromProcessingKey(targetProcessingKey);
-    let cmd = createCommand(nonce, BigInt(DEPOSIT), [targetPid[0], targetPid[1], amount]);
+    const cmd = createCommand(nonce, BigInt(CMD_DEPOSIT), [targetPid[0], targetPid[1], amount]);
     return await this.sendTransactionWithCommand(cmd);
   }
 
-  // Withdraw tokens
-  async withdrawTokens(tokenId: bigint, amount: bigint, address: string) {
-    let nonce = await this.getNonce();
-    const cmd = createWithdrawCommand(nonce, BigInt(WITHDRAW), address, tokenId, amount);
+  // 提现
+  async withdraw(amount: bigint): Promise<any> {
+    const nonce = await this.getNonce();
+    const cmd = createCommand(nonce, BigInt(CMD_WITHDRAW), [amount]);
     return await this.sendTransactionWithCommand(cmd);
   }
 
-  // Place order (all types)
-  async placeOrder(marketId: bigint, orderType: number, price: bigint, amount: bigint) {
-    let nonce = await this.getNonce();
-    let cmd = createCommand(nonce, BigInt(PLACE_ORDER), [marketId, BigInt(orderType), price, amount]);
+  // 下单
+  async placeOrder(params: PlaceOrderParams): Promise<any> {
+    const nonce = await this.getNonce();
+    
+    const typeValue =
+      params.orderType === 'limit_buy' ? 0n :
+      params.orderType === 'limit_sell' ? 1n :
+      params.orderType === 'market_buy' ? 2n : 3n;
+    
+    const directionValue = params.direction === 'UP' ? 1n : 0n;
+
+    const cmd = createCommand(nonce, BigInt(CMD_PLACE_ORDER), [
+      params.marketId,
+      directionValue,
+      typeValue,
+      params.price,
+      params.amount,
+    ]);
+    
     return await this.sendTransactionWithCommand(cmd);
   }
 
-  // Cancel order
-  async cancelOrder(orderId: bigint) {
-    let nonce = await this.getNonce();
-    let cmd = createCommand(nonce, BigInt(CANCEL_ORDER), [orderId]);
+  // 撤单
+  async cancelOrder(orderId: bigint): Promise<any> {
+    const nonce = await this.getNonce();
+    const cmd = createCommand(nonce, BigInt(CMD_CANCEL_ORDER), [orderId]);
     return await this.sendTransactionWithCommand(cmd);
   }
 
-  // Claim winnings
-  async claim(marketId: bigint) {
-    let nonce = await this.getNonce();
-    let cmd = createCommand(nonce, BigInt(CLAIM), [marketId]);
+  // Claim 收益
+  async claim(marketId: bigint): Promise<any> {
+    const nonce = await this.getNonce();
+    const cmd = createCommand(nonce, BigInt(CMD_CLAIM), [marketId]);
     return await this.sendTransactionWithCommand(cmd);
   }
 
-  // Admin: Create market pair
-  async createMarketPair(params: {
-    assetId: bigint;
-    startTick: bigint;
-    endTick: bigint;
-    oracleStartTime: bigint;
-    oracleStartPrice: bigint;
-  }) {
-    let nonce = await this.getNonce();
-    const pricePair = this.encodeI64(params.oracleStartPrice);
-    let cmd = createCommand(nonce, BigInt(CREATE_MARKET), [
+  // 从 processingKey 解析 Player ID
+  protected resolvePidFromProcessingKey(processingKey: string): [bigint, bigint] {
+    // Note: 这个方法在前端可能不需要使用
+    // Player ID 应该从 L2 account 的 pubkey 生成
+    // 参考 MarketContext 中的 generatePlayerIdFromL2 方法
+    throw new Error('resolvePidFromProcessingKey should not be called in frontend. Use generatePlayerIdFromL2 instead.');
+  }
+}
+
+// ==================== 管理员客户端 ====================
+
+export class ExchangeAdmin extends ExchangePlayer {
+  // 推进时间
+  async tick(): Promise<any> {
+    const nonce = await this.getNonce();
+    const cmd = createCommand(nonce, BigInt(CMD_TICK), []);
+    return await this.sendTransactionWithCommand(cmd);
+  }
+
+  // 创建市场
+  async createMarket(params: CreateMarketParams): Promise<any> {
+    const nonce = await this.getNonce();
+    const pricePair = encodeI64(params.oracleStartPrice);
+    const cmd = createCommand(nonce, BigInt(CMD_CREATE_MARKET), [
       params.assetId,
       params.startTick,
       params.endTick,
@@ -123,25 +160,39 @@ export class PredictionMarketAPI extends PlayerConvention {
     return await this.sendTransactionWithCommand(cmd);
   }
 
-  // Admin: Close market
-  async closeMarket(marketId: bigint) {
-    let nonce = await this.getNonce();
-    let cmd = createCommand(nonce, BigInt(CLOSE_MARKET), [marketId]);
+  // 关闭市场
+  async closeMarket(marketId: bigint): Promise<any> {
+    const nonce = await this.getNonce();
+    const cmd = createCommand(nonce, BigInt(CMD_CLOSE_MARKET), [marketId]);
     return await this.sendTransactionWithCommand(cmd);
   }
 
-  // Admin: Resolve market
-  async resolveMarket(marketId: bigint, oracleEndTime: bigint, oracleEndPrice: bigint) {
-    let nonce = await this.getNonce();
-    const pricePair = this.encodeI64(oracleEndPrice);
-    let cmd = createCommand(nonce, BigInt(RESOLVE_MARKET), [marketId, oracleEndTime, pricePair[0], pricePair[1]]);
+  // 解析市场
+  async resolveMarket(
+    marketId: bigint,
+    oracleEndTime: bigint,
+    oracleEndPrice: bigint
+  ): Promise<any> {
+    const nonce = await this.getNonce();
+    const pricePair = encodeI64(oracleEndPrice);
+    const cmd = createCommand(nonce, BigInt(CMD_RESOLVE_MARKET), [
+      marketId,
+      oracleEndTime,
+      pricePair[0],
+      pricePair[1],
+    ]);
     return await this.sendTransactionWithCommand(cmd);
   }
 
-  // Admin: Execute trade
-  async executeTrade(params: { buyOrderId: bigint; sellOrderId: bigint; price: bigint; amount: bigint }) {
-    let nonce = await this.getNonce();
-    let cmd = createCommand(nonce, BigInt(EXECUTE_TRADE), [
+  // 执行撮合
+  async executeTrade(params: {
+    buyOrderId: bigint;
+    sellOrderId: bigint;
+    price: bigint;
+    amount: bigint;
+  }): Promise<any> {
+    const nonce = await this.getNonce();
+    const cmd = createCommand(nonce, BigInt(CMD_EXECUTE_TRADE), [
       params.buyOrderId,
       params.sellOrderId,
       params.price,
@@ -150,204 +201,171 @@ export class PredictionMarketAPI extends PlayerConvention {
     return await this.sendTransactionWithCommand(cmd);
   }
 
-  // Admin: Set fee exempt
-  async setFeeExempt(targetProcessingKey: string, enabled: boolean) {
-    let nonce = await this.getNonce();
+  // 设置费用豁免
+  async setFeeExempt(targetProcessingKey: string, enabled: boolean): Promise<any> {
+    const nonce = await this.getNonce();
     const targetPid = this.resolvePidFromProcessingKey(targetProcessingKey);
-    let cmd = createCommand(nonce, BigInt(SET_FEE_EXEMPT), [targetPid[0], targetPid[1], enabled ? 1n : 0n]);
+    const cmd = createCommand(nonce, BigInt(CMD_SET_FEE_EXEMPT), [
+      targetPid[0],
+      targetPid[1],
+      enabled ? 1n : 0n,
+    ]);
     return await this.sendTransactionWithCommand(cmd);
-  }
-
-  // Query methods
-  async queryState(): Promise<any> {
-    const response = await this.rpc.queryState(this.privkey);
-    return response?.data ? JSON.parse(response.data) : null;
-  }
-
-  async queryData(endpoint: string): Promise<any> {
-    return await this.rpc.queryData(endpoint);
-  }
-
-  // Market data methods
-  async getAllMarkets(): Promise<any[]> {
-    try {
-      const marketsData = await this.rpc.queryData('/data/markets');
-      return marketsData || [];
-    } catch (error) {
-      console.error('Failed to fetch markets:', error);
-      return [];
-    }
-  }
-
-  async getMarket(marketId: string): Promise<any> {
-    try {
-      return await this.rpc.queryData(`/data/market/${marketId}`);
-    } catch (error) {
-      console.error('Failed to fetch market:', error);
-      return null;
-    }
-  }
-
-  async getMarketOrders(marketId: string): Promise<any[]> {
-    try {
-      const ordersData = await this.rpc.queryData(`/data/market/${marketId}/orders`);
-      return ordersData || [];
-    } catch (error) {
-      console.error('Failed to fetch market orders:', error);
-      return [];
-    }
-  }
-
-  async getMarketTrades(marketId: string): Promise<any[]> {
-    try {
-      const tradesData = await this.rpc.queryData(`/data/market/${marketId}/trades`);
-      return tradesData || [];
-    } catch (error) {
-      console.error('Failed to fetch market trades:', error);
-      return [];
-    }
-  }
-
-  async getUserPositions(pid1: string, pid2: string): Promise<any[]> {
-    try {
-      const positionsData = await this.rpc.queryData(`/data/player/${pid1}/${pid2}/positions`);
-      return positionsData || [];
-    } catch (error) {
-      console.error('Failed to fetch user positions:', error);
-      return [];
-    }
-  }
-
-  async getUserStats(pid1: string, pid2: string): Promise<any> {
-    try {
-      return await this.rpc.queryData(`/data/player/${pid1}/${pid2}/stats`);
-    } catch (error) {
-      console.error('Failed to fetch user stats:', error);
-      return null;
-    }
-  }
-
-  async getUserTransactionHistory(pid1: string, pid2: string): Promise<any[]> {
-    try {
-      const historyData = await this.rpc.queryData(`/data/player/${pid1}/${pid2}/history`);
-      return historyData || [];
-    } catch (error) {
-      console.error('Failed to fetch transaction history:', error);
-      return [];
-    }
-  }
-
-  async getGlobalState(): Promise<any> {
-    try {
-      return await this.rpc.queryData('/data/state');
-    } catch (error) {
-      console.error('Failed to fetch global state:', error);
-      return null;
-    }
-  }
-
-  // Helper methods
-  protected resolvePidFromProcessingKey(processingKey: string): [bigint, bigint] {
-    try {
-      // Extract public key from private key using delphinus-curves
-      const pkey = PrivateKey.fromString(processingKey);
-      const pubkey = pkey.publicKey.key.x.v;
-
-      // Convert to little-endian hex format
-      const leHexBN = new LeHexBN(bnToHexLe(pubkey));
-      const pkeyArray = leHexBN.toU64Array();
-
-      if (pkeyArray.length < 3) {
-        throw new Error("Invalid processing key - insufficient data");
-      }
-
-      // Use indices [1] and [2] (NOT [0] and [1])
-      // This matches the zkWasm backend convention
-      return [BigInt(pkeyArray[1]), BigInt(pkeyArray[2])];
-    } catch (error) {
-      console.error("Error resolving PID from processing key:", error);
-      throw new Error("Invalid processing key");
-    }
-  }
-
-  private encodeI64(value: bigint): [bigint, bigint] {
-    const signed = BigInt.asIntN(64, value);
-    const high = (signed >> 32n) & 0xffffffffn;
-    const low = signed & 0xffffffffn;
-    return [high, low];
   }
 }
 
-// REST API for querying data (separate from blockchain operations)
-export class PredictionMarketRESTAPI {
+// ==================== REST API 客户端 ====================
+
+export class ExchangeAPI {
   private baseUrl: string;
 
   constructor(baseUrl: string = API_BASE_URL) {
     this.baseUrl = baseUrl;
   }
 
-  private async request<T>(endpoint: string, options: RequestInit = {}): Promise<ApiResponse<T>> {
-    try {
-      const response = await fetch(`${this.baseUrl}${endpoint}`, {
-        headers: {
-          'Content-Type': 'application/json',
-          ...options.headers,
-        },
-        ...options,
-      });
+  // ========== 市场相关 ==========
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      return data;
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      };
+  async getMarkets(): Promise<Market[]> {
+    const response = await fetch(`${this.baseUrl}/data/markets`);
+    const body: ApiResponse<Market[]> = await response.json();
+    if (!body.success) {
+      throw new Error(body.error || 'Failed to fetch markets');
     }
+    return body.data || [];
   }
 
-  async getMarkets(): Promise<ApiResponse<any[]>> {
-    return this.request('/data/markets');
+  async getMarket(marketId: string): Promise<Market> {
+    const response = await fetch(`${this.baseUrl}/data/market/${marketId}`);
+    const body: ApiResponse<Market> = await response.json();
+    if (!body.success) {
+      throw new Error(body.error || 'Failed to fetch market');
+    }
+    if (!body.data) {
+      throw new Error('Market not found');
+    }
+    return body.data;
   }
 
-  async getMarket(marketId: string): Promise<ApiResponse<any>> {
-    return this.request(`/data/market/${marketId}`);
+  // ========== 订单相关 ==========
+
+  async getOrders(marketId: string): Promise<Order[]> {
+    const response = await fetch(`${this.baseUrl}/data/market/${marketId}/orders`);
+    const body: ApiResponse<Order[]> = await response.json();
+    if (!body.success) {
+      throw new Error(body.error || 'Failed to fetch orders');
+    }
+    return body.data || [];
   }
 
-  async getOrders(marketId: string): Promise<ApiResponse<any[]>> {
-    return this.request(`/data/market/${marketId}/orders`);
+  // ========== 成交相关 ==========
+
+  async getTrades(marketId: string): Promise<Trade[]> {
+    const response = await fetch(`${this.baseUrl}/data/market/${marketId}/trades`);
+    const body: ApiResponse<Trade[]> = await response.json();
+    if (!body.success) {
+      throw new Error(body.error || 'Failed to fetch trades');
+    }
+    return body.data || [];
   }
 
-  async getTrades(marketId: string): Promise<ApiResponse<any[]>> {
-    return this.request(`/data/market/${marketId}/trades`);
+  async getTradeHistory(marketId: string): Promise<Trade[]> {
+    const response = await fetch(`${this.baseUrl}/data/market/${marketId}/trade-history`);
+    const body: ApiResponse<Trade[]> = await response.json();
+    if (!body.success) {
+      throw new Error(body.error || 'Failed to fetch trade history');
+    }
+    return body.data || [];
   }
 
-  async getTradeHistory(marketId: string): Promise<ApiResponse<any[]>> {
-    return this.request(`/data/market/${marketId}/trade-history`);
+  // ========== 持仓相关 ==========
+
+  async getPositions(pid: PlayerId): Promise<Position[]> {
+    const [pid1, pid2] = pid.map((v: string) => v.toString());
+    const response = await fetch(`${this.baseUrl}/data/player/${pid1}/${pid2}/positions`);
+    const body: ApiResponse<Position[]> = await response.json();
+    if (!body.success) {
+      throw new Error(body.error || 'Failed to fetch positions');
+    }
+    return body.data || [];
   }
 
-  async getPositions(pid1: string, pid2: string): Promise<ApiResponse<any[]>> {
-    return this.request(`/data/player/${pid1}/${pid2}/positions`);
+  // ========== 财务活动 ==========
+
+  async getFinancialActivity(pid: PlayerId, limit = 100): Promise<FinancialActivity[]> {
+    const [pid1, pid2] = pid.map((v: string) => v.toString());
+    const response = await fetch(
+      `${this.baseUrl}/data/player/${pid1}/${pid2}/financial-activity?limit=${limit}`
+    );
+    const body: ApiResponse<FinancialActivity[]> = await response.json();
+    if (!body.success) {
+      throw new Error(body.error || 'Failed to fetch financial activity');
+    }
+    return body.data || [];
   }
 
-  async getState(): Promise<ApiResponse<any>> {
-    return this.request('/data/state');
+  async getDeposits(pid: PlayerId, limit = 50): Promise<any[]> {
+    const [pid1, pid2] = pid.map((v: string) => v.toString());
+    const response = await fetch(
+      `${this.baseUrl}/data/player/${pid1}/${pid2}/deposits?limit=${limit}`
+    );
+    const body: ApiResponse<any[]> = await response.json();
+    if (!body.success) {
+      throw new Error(body.error || 'Failed to fetch deposits');
+    }
+    return body.data || [];
+  }
+
+  async getWithdrawals(pid: PlayerId, limit = 50): Promise<any[]> {
+    const [pid1, pid2] = pid.map((v: string) => v.toString());
+    const response = await fetch(
+      `${this.baseUrl}/data/player/${pid1}/${pid2}/withdrawals?limit=${limit}`
+    );
+    const body: ApiResponse<any[]> = await response.json();
+    if (!body.success) {
+      throw new Error(body.error || 'Failed to fetch withdrawals');
+    }
+    return body.data || [];
+  }
+
+  async getClaims(pid: PlayerId, limit = 50): Promise<any[]> {
+    const [pid1, pid2] = pid.map((v: string) => v.toString());
+    const response = await fetch(
+      `${this.baseUrl}/data/player/${pid1}/${pid2}/claims?limit=${limit}`
+    );
+    const body: ApiResponse<any[]> = await response.json();
+    if (!body.success) {
+      throw new Error(body.error || 'Failed to fetch claims');
+    }
+    return body.data || [];
+  }
+
+  // ========== 全局状态 ==========
+
+  async getGlobalState(): Promise<GlobalState> {
+    const response = await fetch(`${this.baseUrl}/data/state`);
+    const body: ApiResponse<GlobalState> = await response.json();
+    if (!body.success) {
+      throw new Error(body.error || 'Failed to fetch global state');
+    }
+    if (!body.data) {
+      throw new Error('Global state not found');
+    }
+    return body.data;
   }
 }
 
-// Factory function
-export function createPredictionMarketAPI(config: { serverUrl: string; privkey: string }) {
-  return new PredictionMarketAPI(config);
+// ==================== 工厂函数 ====================
+
+export function createPlayerClient(privateKey: string, rpcUrl?: string): ExchangePlayer {
+  const rpc = new ZKWasmAppRpc(rpcUrl || API_BASE_URL);
+  return new ExchangePlayer(privateKey, rpc);
 }
 
-export function createRESTAPI(baseUrl?: string) {
-  return new PredictionMarketRESTAPI(baseUrl);
+export function createAdminClient(privateKey: string, rpcUrl?: string): ExchangeAdmin {
+  const rpc = new ZKWasmAppRpc(rpcUrl || API_BASE_URL);
+  return new ExchangeAdmin(privateKey, rpc);
 }
 
-// Export types
-export type { PredictionMarketAPI };
-export { PredictionMarketRESTAPI as RESTAPI };
+export function createAPIClient(baseUrl?: string): ExchangeAPI {
+  return new ExchangeAPI(baseUrl || API_BASE_URL);
+}

@@ -1,84 +1,87 @@
-import Header from "@/components/Header";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import Header from "../components/Header";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Bookmark } from "lucide-react";
+import { useMarket } from "../contexts";
+import { 
+  calculateProbabilities, 
+  fromUSDCPrecision, 
+  fromPricePrecision,
+  formatCompactNumber,
+  getMarketStatusLabel 
+} from "../lib/calculations";
 
-// Mock data - replace with actual API
-const currentTick = 1000;
-const mockMarkets = [
-  {
-    marketId: 1,
-    title: "Will BTC be above $119,500 at 23:15?",
-    status: 'active' as const,
-    targetPrice: 119500,
-    currentPrice: 119756,
-    currentTick: currentTick,
-    targetTick: currentTick + 54, // ~4.5 minutes
-    yesChance: 67,
-    volume: 125000,
-    traders: 342,
-    isUp: true,
-  },
-  {
-    marketId: 2,
-    title: "Will BTC be above $119,800 at 23:20?",
-    status: 'active' as const,
-    targetPrice: 119800,
-    currentPrice: 119756,
-    currentTick: currentTick,
-    targetTick: currentTick + 114, // ~9.5 minutes
-    yesChance: 45,
-    volume: 85000,
-    traders: 218,
-    isUp: false,
-  },
-  {
-    marketId: 3,
-    title: "Will BTC be above $119,600 at 23:25?",
-    status: 'pending' as const,
-    targetPrice: 119600,
-    currentPrice: 119756,
-    currentTick: currentTick,
-    targetTick: currentTick + 174, // ~14.5 minutes
-    yesChance: 50,
-    volume: 0,
-    traders: 0,
-    isUp: true,
-  },
-  {
-    marketId: 4,
-    title: "Will BTC be above $119,400 at 23:30?",
-    status: 'active' as const,
-    targetPrice: 119400,
-    currentPrice: 119756,
-    currentTick: currentTick,
-    targetTick: currentTick + 234, // ~19.5 minutes
-    yesChance: 78,
-    volume: 156000,
-    traders: 445,
-    isUp: true,
-  },
-  {
-    marketId: 5,
-    title: "Will BTC be above $120,000 at 23:35?",
-    status: 'closed' as const,
-    targetPrice: 120000,
-    currentPrice: 119756,
-    currentTick: currentTick,
-    targetTick: currentTick - 12, // Already passed
-    yesChance: 42,
-    volume: 98000,
-    traders: 287,
-    isUp: false,
-  },
-];
+interface DisplayMarket {
+  marketId: string;
+  title: string;
+  status: string;
+  targetPrice: number;
+  yesChance: number;
+  noChance: number;
+  volume: number;
+  windowMinutes: number;
+}
 
 const Index = () => {
   const navigate = useNavigate();
+  const { markets, globalState, isLoading } = useMarket();
   const [selectedToken, setSelectedToken] = useState("BTC");
-  const [selectedDuration, setSelectedDuration] = useState("1");
+  const [selectedDuration, setSelectedDuration] = useState("all");
+
+  // 转换 API 数据为显示格式
+  const displayMarkets = useMemo(() => {
+    return markets.map((market: any) => {
+      // 计算概率
+      const upVolume = BigInt(market.upMarket?.volume || '0');
+      const downVolume = BigInt(market.downMarket?.volume || '0');
+      const { yesChance, noChance } = calculateProbabilities(upVolume, downVolume);
+      
+      // 计算总成交量
+      const totalVolume = fromUSDCPrecision(market.upMarket?.volume || '0') + 
+                         fromUSDCPrecision(market.downMarket?.volume || '0');
+      
+      // 生成标题（使用当地时区，英文格式，24小时制）
+      const asset = market.assetId === '1' ? 'BTC' : 'ETH';
+      const targetPrice = fromPricePrecision(market.oracleStartPrice);
+      const time = new Date(parseInt(market.oracleStartTime) * 1000).toLocaleString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        month: 'short',
+        day: 'numeric',
+        hour12: false
+      });
+      const title = `Will ${asset} be above $${targetPrice.toLocaleString()} at ${time}?`;
+      
+      return {
+        marketId: market.marketId,
+        title,
+        status: getMarketStatusLabel(market.status),
+        targetPrice,
+        yesChance: Math.round(yesChance),
+        noChance: Math.round(noChance),
+        volume: totalVolume,
+        windowMinutes: market.windowMinutes,
+      } as DisplayMarket;
+    });
+  }, [markets]);
+
+  // 过滤和排序市场
+  const filteredMarkets = useMemo(() => {
+    let filtered = displayMarkets;
+    
+    // 按时长过滤
+    if (selectedDuration !== "all") {
+      const duration = parseInt(selectedDuration);
+      filtered = filtered.filter((m: DisplayMarket) => m.windowMinutes === duration);
+    }
+    
+    // 可以添加更多过滤条件（如按 token）
+    
+    // 倒序排列（最新的市场在前）
+    return filtered.sort((a, b) => parseInt(b.marketId) - parseInt(a.marketId));
+  }, [displayMarkets, selectedDuration]);
 
   return (
     <div className="min-h-screen bg-white">
@@ -126,6 +129,7 @@ const Index = () => {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
                   <SelectItem value="1">1m</SelectItem>
                   <SelectItem value="3">3m</SelectItem>
                   <SelectItem value="5">5m</SelectItem>
@@ -135,8 +139,18 @@ const Index = () => {
           </div>
 
           <TabsContent value="trending" className="space-y-3 mt-4">
-            <div className="space-y-3">
-              {mockMarkets.map((market) => (
+            {isLoading && filteredMarkets.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                <p>Loading markets...</p>
+              </div>
+            ) : filteredMarkets.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                <p>No markets found</p>
+                <p className="text-xs mt-2">Try changing the filters or wait for new markets to be created</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {filteredMarkets.map((market: DisplayMarket) => (
                 <div
                   key={market.marketId}
                   onClick={() => navigate(`/market/${market.marketId}`)}
@@ -163,14 +177,20 @@ const Index = () => {
                   </div>
 
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">
-                      Vol. ${(market.volume / 1000000).toFixed(1)}M
-                    </span>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs text-muted-foreground">
+                        Vol. ${formatCompactNumber(market.volume)}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {market.windowMinutes}m
+                      </span>
+                    </div>
                     <Bookmark className="w-4 h-4 text-muted-foreground" />
                   </div>
                 </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="favorites" className="mt-4">

@@ -6,7 +6,7 @@ import './index.css'
 
 // Configure the provider before app initialization - must be called before DelphinusReactProvider
 setProviderConfig({ type: 'rainbow' });
-setRpcUrl();
+setRpcUrl(); // Will use VITE_ZKWASM_RPC_URL from .env or default
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

@@ -146,6 +146,7 @@ export const TradingViewChart: React.FC<TradingViewChartProps> = ({
         secondsVisible: false,
       },
       localization: {
+        locale: 'en-US',
         priceFormatter: (price: number) => {
           return new Intl.NumberFormat('en-US', {
             style: 'currency',
@@ -153,6 +154,16 @@ export const TradingViewChart: React.FC<TradingViewChartProps> = ({
             minimumFractionDigits: 2,
             maximumFractionDigits: 2,
           }).format(price);
+        },
+        timeFormatter: (time: any) => {
+          // 将 Unix 时间戳转换为当地时区，英文格式，24小时制
+          const date = new Date(time * 1000);
+          return date.toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false
+          });
         },
       },
     });

@@ -1,74 +1,181 @@
 import { useParams } from "react-router-dom";
-import { useState } from "react";
-import Header from "@/components/Header";
-import PriceChart from "@/components/PriceChart";
-import OrderBook from "@/components/OrderBook";
-import TradingPanel from "@/components/TradingPanel";
-import PositionTabs from "@/components/PositionTabs";
-import CountdownTimer from "@/components/CountdownTimer";
-import StatusBadge from "@/components/StatusBadge";
-import RecentTrades from "@/components/RecentTrades";
-import { AppSidebar } from "@/components/AppSidebar";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useState, useEffect, useMemo } from "react";
+import Header from "../components/Header";
+import PriceChart from "../components/PriceChart";
+import OrderBook from "../components/OrderBook";
+import TradingPanel from "../components/TradingPanel";
+import PositionTabs from "../components/PositionTabs";
+import CountdownTimer from "../components/CountdownTimer";
+import StatusBadge from "../components/StatusBadge";
+import RecentTrades from "../components/RecentTrades";
+import { AppSidebar } from "../components/AppSidebar";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
+import { Button } from "../components/ui/button";
 import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
   SheetTrigger,
-} from "@/components/ui/sheet";
+} from "../components/ui/sheet";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "../components/ui/dialog";
 import {
   ResizablePanelGroup,
   ResizablePanel,
   ResizableHandle,
-} from "@/components/ui/resizable";
-import { TrendingUp, Users, DollarSign, ArrowUpDown } from "lucide-react";
-
-// Mock data - replace with actual API call
-const mockMarket = {
-  marketId: 1,
-  title: "Will BTC be above $119,500 at 23:15?",
-  status: 'active' as const,
-  targetPrice: 119500,
-  currentPrice: 119756,
-  currentTick: 100,
-  endTick: 200,
-  yesChance: 67,
-  volume: 125000,
-  traders: 342,
-  liquidity: 50000,
-  // Add missing properties that TradingPanel expects
-  yesOrders: [],
-  noOrders: [],
-  recentTrades: [],
-  description: "Bitcoin price prediction market",
-  endTime: "2025-11-01T23:15:00Z",
-  creatorFee: "0.02",
-  resolvedOutcome: null,
-  // Additional properties needed by TradingPanel
-  assetId: 1,
-  outcomeType: 1,
-  timeRemaining: 3600000, // 1 hour in milliseconds
-  winningOutcome: undefined,
-};
+} from "../components/ui/resizable";
+import { TrendingUp, Users, DollarSign, Wallet } from "lucide-react";
+import { useMarket } from "../contexts";
+import { useWallet } from "../contexts";
+import { 
+  calculateProbabilities, 
+  fromUSDCPrecision, 
+  fromPricePrecision,
+  generateMarketTitle,
+  getMarketStatusLabel
+} from "../lib/calculations";
+import { MarketStatus } from "../types/api";
 
 const MarketDetail = () => {
   const { id } = useParams();
-  const market = mockMarket; // In real app: fetch market by id
+  const { 
+    currentMarket, 
+    globalState, 
+    positions, 
+    setCurrentMarketId, 
+    isLoading 
+  } = useMarket();
+  const { l1Account, l2Account } = useWallet();
   const [isTradingOpen, setIsTradingOpen] = useState(false);
+  const [showLoginDialog, setShowLoginDialog] = useState(false);
+
+  // 设置当前市场 ID
+  useEffect(() => {
+    if (id) {
+      setCurrentMarketId(id);
+    }
+    return () => {
+      setCurrentMarketId(null);
+    };
+  }, [id, setCurrentMarketId]);
+
+  // 计算显示数据并转换为 TradingPanel 所需的 Market 格式
+  const marketData = useMemo(() => {
+    if (!currentMarket) return null;
+
+    // 计算概率
+    const upVolume = BigInt(currentMarket.upMarket?.volume || '0');
+    const downVolume = BigInt(currentMarket.downMarket?.volume || '0');
+    const { yesChance, noChance } = calculateProbabilities(upVolume, downVolume);
+
+    // 计算总成交量
+    const totalVolume = fromUSDCPrecision(currentMarket.upMarket?.volume || '0') + 
+                       fromUSDCPrecision(currentMarket.downMarket?.volume || '0');
+
+    // 生成标题
+    const asset = currentMarket.assetId === '1' ? 'BTC' : 'ETH';
+    const targetPrice = fromPricePrecision(currentMarket.oracleStartPrice);
+    const title = generateMarketTitle(
+      asset as 'BTC' | 'ETH',
+      targetPrice,
+      parseInt(currentMarket.oracleStartTime)
+    );
+
+    // 转换为 TradingPanel 所需的格式
+    return {
+      id: parseInt(currentMarket.marketId),
+      marketId: parseInt(currentMarket.marketId),
+      title,
+      status: getMarketStatusLabel(currentMarket.status),
+      statusValue: currentMarket.status,
+      targetPrice,
+      currentPrice: targetPrice, // TODO: 从 Oracle 获取实时价格
+      yesChance: Math.round(yesChance),
+      noChance: Math.round(noChance),
+      totalVolume,
+      windowMinutes: currentMarket.windowMinutes,
+      startTick: parseInt(currentMarket.startTick),
+      endTick: parseInt(currentMarket.endTick),
+      // TradingPanel 需要的字段
+      yesOrders: [],
+      noOrders: [],
+      recentTrades: [],
+      description: title,
+      endTime: new Date(parseInt(currentMarket.oracleStartTime) * 1000 + currentMarket.windowMinutes * 60 * 1000).toISOString(),
+      creatorFee: "0.02",
+      resolvedOutcome: currentMarket.status === MarketStatus.Resolved ? (currentMarket.winningOutcome === 1 ? true : false) : null,
+      assetId: parseInt(currentMarket.assetId),
+      outcomeType: 1,
+      timeRemaining: 0,
+      winningOutcome: currentMarket.status === MarketStatus.Resolved ? currentMarket.winningOutcome : undefined,
+    };
+  }, [currentMarket]);
+
+  // 计算用户余额
+  const userBalance = useMemo(() => {
+    if (!positions.length) return 0;
+    const usdcPosition = positions.find(p => p.tokenIdx === '0');
+    return usdcPosition ? fromUSDCPrecision(usdcPosition.balance) : 0;
+  }, [positions]);
+
+  // 检查是否已连接钱包
+  const isWalletConnected = !!l1Account && !!l2Account;
+
+  // 处理交易按钮点击
+  const handleTradingClick = () => {
+    if (!isWalletConnected) {
+      setShowLoginDialog(true);
+    } else {
+      setIsTradingOpen(true);
+    }
+  };
+
+  // 加载中状态
+  if (isLoading && !currentMarket) {
+    return (
+      <div className="min-h-screen bg-white flex flex-col">
+        <Header />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <p className="text-muted-foreground">Loading market...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 市场不存在
+  if (!currentMarket && !isLoading) {
+    return (
+      <div className="min-h-screen bg-white flex flex-col">
+        <Header />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <p className="text-muted-foreground">Market not found</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!marketData) return null;
 
   return (
     <div className="min-h-screen bg-white flex flex-col w-full">
       <Header />
       
       <div className="flex items-center gap-2 px-4 py-3 border-b border-border bg-white">
-        <h1 className="text-sm font-medium text-foreground flex-1">{market.title}</h1>
-        <StatusBadge status={market.status} />
+        <h1 className="text-sm font-medium text-foreground flex-1">{marketData.title}</h1>
+        <StatusBadge status={marketData.statusValue} />
         <CountdownTimer
-          targetTick={market.endTick}
-          currentTick={market.currentTick}
+          targetTick={marketData.endTick}
+          currentTick={globalState ? parseInt(globalState.counter) : marketData.startTick}
           format="compact"
         />
       </div>
@@ -79,30 +186,24 @@ const MarketDetail = () => {
           <div className="flex items-center justify-between text-xs">
             <div className="hidden md:flex items-center gap-3">
               <div className="text-muted-foreground">
-                Current Price: <span className="text-foreground font-semibold">${market.currentPrice.toLocaleString()}</span>
+                Current Price: <span className="text-foreground font-semibold">${marketData.currentPrice.toLocaleString()}</span>
               </div>
               <div className="text-muted-foreground">
-                Price to Beat: <span className="text-foreground font-semibold">${market.targetPrice.toLocaleString()}</span>
+                Price to Beat: <span className="text-foreground font-semibold">${marketData.targetPrice.toLocaleString()}</span>
               </div>
-              <div className={market.currentPrice > market.targetPrice ? "text-success" : "text-danger"}>
-                Probability: <span className="font-semibold">{market.yesChance}%</span>
+              <div className={marketData.currentPrice > marketData.targetPrice ? "text-success" : "text-danger"}>
+                Probability: <span className="font-semibold">{marketData.yesChance}%</span>
               </div>
             </div>
 
             <div className="flex items-center gap-4 text-muted-foreground">
               <div className="flex items-center gap-1">
                 <DollarSign className="w-3 h-3" />
-                <span>Liquidity ${(market.liquidity / 1000).toFixed(1)}K</span>
+                <span>Volume ${(marketData.totalVolume / 1000).toFixed(1)}K</span>
               </div>
               <span>/</span>
               <div className="flex items-center gap-1">
-                <Users className="w-3 h-3" />
-                <span>Traders {market.traders}</span>
-              </div>
-              <span>/</span>
-              <div className="flex items-center gap-1">
-                <TrendingUp className="w-3 h-3" />
-                <span>Volume ${(market.volume / 1000).toFixed(1)}K</span>
+                <span>{marketData.windowMinutes}m Window</span>
               </div>
             </div>
           </div>
@@ -153,8 +254,8 @@ const MarketDetail = () => {
                     <TabsContent value="chart" className="flex-1 p-0 m-0 h-full">
                       <div className="h-full p-4">
                         <PriceChart
-                          targetPrice={market.targetPrice}
-                          currentPrice={market.currentPrice}
+                          targetPrice={marketData.targetPrice}
+                          currentPrice={marketData.currentPrice}
                         />
                       </div>
                     </TabsContent>
@@ -162,20 +263,24 @@ const MarketDetail = () => {
                     <TabsContent value="orderbook" className="flex-1 p-0 m-0 h-full overflow-hidden">
                       <div className="h-full flex flex-col">
                         <div className="flex-1 overflow-auto">
-                          <OrderBook marketId={market.marketId} />
+                          <OrderBook marketId={marketData.marketId} />
                         </div>
                         <div className="h-[200px] border-t border-border flex-shrink-0">
-                          <RecentTrades marketId={market.marketId} />
+                          <RecentTrades marketId={marketData.marketId} />
                         </div>
                       </div>
                     </TabsContent>
 
                     <TabsContent value="rules" className="flex-1 p-4 m-0 overflow-auto">
                       <div className="space-y-2 text-sm text-muted-foreground">
-                        <p>• Market resolves YES if BTC &gt; ${market.targetPrice.toLocaleString()}</p>
-                        <p>• Oracle: Binance API</p>
-                        <p>• Each share pays $1.00 if correct</p>
-                        <p>• Fee: 2% (waived for makers)</p>
+                        <p>• Market resolves UP if BTC price &gt; ${marketData.targetPrice.toLocaleString()}</p>
+                        <p>• Market resolves DOWN if BTC price &lt; ${marketData.targetPrice.toLocaleString()}</p>
+                        <p>• Market resolves TIE if BTC price = ${marketData.targetPrice.toLocaleString()}</p>
+                        <p>• Oracle: Binance API (submitted by Oracle at market end)</p>
+                        <p>• Each winning share pays $1.00 USDC</p>
+                        <p>• Protocol Fee: 2% (waived for designated market makers)</p>
+                        <p>• Window: {marketData.windowMinutes} minute(s)</p>
+                        <p>• Grace Period: 1 minute after market end for Oracle resolution</p>
                       </div>
                     </TabsContent>
                   </Tabs>
@@ -203,11 +308,30 @@ const MarketDetail = () => {
             className="hidden lg:block"
           >
             <div className="border-l border-border bg-white h-full">
-              <TradingPanel
-                marketId={market.marketId}
-                userBalance={1000}
-                isFeeExempt={false}
-              />
+              {isWalletConnected ? (
+                <TradingPanel
+                  market={marketData as any}
+                  userBalance={userBalance}
+                  isFeeExempt={false}
+                />
+              ) : (
+                <div className="h-full flex items-center justify-center p-6">
+                  <div className="text-center space-y-4">
+                    <Wallet className="w-12 h-12 mx-auto text-muted-foreground" />
+                    <div>
+                      <p className="text-sm font-medium text-foreground mb-1">
+                        Connect Wallet to Trade
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Connect your wallet to start trading
+                      </p>
+                    </div>
+                    <Button onClick={() => setShowLoginDialog(true)}>
+                      Connect Wallet
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           </ResizablePanel>
         </ResizablePanelGroup>
@@ -216,48 +340,76 @@ const MarketDetail = () => {
         <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-border shadow-lg z-50">
           <div className="px-4 py-3">
             <div className="flex gap-3">
-              <Sheet open={isTradingOpen} onOpenChange={setIsTradingOpen}>
-                <SheetTrigger asChild>
+              {isWalletConnected ? (
+                <>
+                  <Sheet open={isTradingOpen} onOpenChange={setIsTradingOpen}>
+                    <SheetTrigger asChild>
+                      <Button
+                        size="lg"
+                        className="flex-1 h-12 bg-success hover:bg-success/90 text-white font-semibold text-base rounded-full"
+                        onClick={handleTradingClick}
+                      >
+                        Up
+                      </Button>
+                    </SheetTrigger>
+                    <SheetContent side="bottom" className="h-[90vh] p-0">
+                      <SheetHeader className="px-6 py-4 border-b border-border">
+                        <SheetTitle>Buy Up Shares</SheetTitle>
+                      </SheetHeader>
+                      <div className="h-[calc(90vh-73px)] overflow-auto">
+                        <TradingPanel
+                          market={marketData as any}
+                          userBalance={userBalance}
+                          isFeeExempt={false}
+                        />
+                      </div>
+                    </SheetContent>
+                  </Sheet>
+
                   <Button
                     size="lg"
-                    className="flex-1 h-12 bg-success hover:bg-success/90 text-white font-semibold text-base rounded-full"
-                    onClick={() => setIsTradingOpen(true)}
+                    className="flex-1 h-12 bg-danger hover:bg-danger/90 text-white font-semibold text-base rounded-full"
+                    onClick={handleTradingClick}
                   >
-                    Up
+                    Down
                   </Button>
-                </SheetTrigger>
-                <SheetContent side="bottom" className="h-[90vh] p-0">
-                  <SheetHeader className="px-6 py-4 border-b border-border">
-                    <SheetTitle>Buy Up Shares</SheetTitle>
-                  </SheetHeader>
-                  <div className="h-[calc(90vh-73px)] overflow-auto">
-                    <TradingPanel
-                      marketId={market.marketId}
-                      userBalance={1000}
-                      isFeeExempt={false}
-                    />
-                  </div>
-                </SheetContent>
-              </Sheet>
-
-              <Button
-                size="lg"
-                className="flex-1 h-12 bg-danger hover:bg-danger/90 text-white font-semibold text-base rounded-full"
-                onClick={() => setIsTradingOpen(true)}
-              >
-                Down
-              </Button>
-            </div>
-            
-            {/* Unrealized P&L */}
-            <div className="mt-2 text-center">
-              <span className="text-xs text-muted-foreground">
-                Unrealized P&L:{" "}
-                <span className="font-semibold text-success">+$20,000.53</span>
-              </span>
+                </>
+              ) : (
+                <Button
+                  size="lg"
+                  className="flex-1 h-12 bg-primary hover:bg-primary/90 text-white font-semibold text-base rounded-full"
+                  onClick={() => setShowLoginDialog(true)}
+                >
+                  <Wallet className="w-5 h-5 mr-2" />
+                  Connect Wallet to Trade
+                </Button>
+              )}
             </div>
           </div>
         </div>
+
+        {/* Login Dialog */}
+        <Dialog open={showLoginDialog} onOpenChange={setShowLoginDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Connect Wallet Required</DialogTitle>
+              <DialogDescription>
+                You need to connect your wallet to trade in this market.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <p className="text-sm text-muted-foreground">
+                Please use the wallet button in the header to connect your wallet.
+              </p>
+              <Button 
+                className="w-full" 
+                onClick={() => setShowLoginDialog(false)}
+              >
+                OK
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Bottom padding for mobile to prevent content being hidden behind bottom bar */}
         <div className="lg:hidden h-24" />

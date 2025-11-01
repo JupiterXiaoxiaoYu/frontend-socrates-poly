@@ -1,9 +1,13 @@
 // Service exports for prediction market integration
 export {
-    PredictionMarketAPI,
-    createPredictionMarketAPI
+    ExchangePlayer,
+    ExchangeAdmin,
+    ExchangeAPI,
+    createPlayerClient,
+    createAdminClient,
+    createAPIClient,
+    API_BASE_URL
 } from './api';
-export type { PredictionMarketAPI as IPredictionMarketAPI } from '../types/prediction-market';
 
 // Oracle API exports
 export {

@@ -1,0 +1,466 @@
+// Market Context - 市场数据管理和轮询
+// 参考: reference/frontend-prediction/src/contexts/MarketContext.tsx
+
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { bnToHexLe } from 'delphinus-curves/src/altjubjub';
+import { LeHexBN, ZKWasmAppRpc } from 'zkwasm-minirollup-rpc';
+import { useWallet } from './WalletContext';
+import { useToast } from '../hooks/use-toast';
+import {
+  ExchangePlayer,
+  ExchangeAPI,
+  API_BASE_URL,
+} from '../services/api';
+import type {
+  Market,
+  Order,
+  Trade,
+  Position,
+  GlobalState,
+  PlaceOrderParams,
+  PlayerId,
+} from '../types/api';
+
+// ==================== Context 类型定义 ====================
+
+interface MarketContextType {
+  // 数据
+  markets: Market[];
+  currentMarket: Market | null;
+  orders: Order[];
+  trades: Trade[];
+  positions: Position[];
+  globalState: GlobalState | null;
+  playerId: PlayerId | null;
+  
+  // 状态
+  isLoading: boolean;
+  isPlayerInstalled: boolean;
+  
+  // API 实例
+  playerClient: ExchangePlayer | null;
+  apiClient: ExchangeAPI;
+  
+  // 方法
+  setCurrentMarketId: (marketId: string | null) => void;
+  refreshData: () => Promise<void>;
+  installPlayer: () => Promise<void>;
+  
+  // 交易操作
+  placeOrder: (params: PlaceOrderParams) => Promise<void>;
+  cancelOrder: (orderId: bigint) => Promise<void>;
+  claim: (marketId: bigint) => Promise<void>;
+}
+
+const MarketContext = createContext<MarketContextType | undefined>(undefined);
+
+export const useMarket = () => {
+  const context = useContext(MarketContext);
+  if (!context) {
+    throw new Error('useMarket must be used within a MarketProvider');
+  }
+  return context;
+};
+
+// ==================== Provider 组件 ====================
+
+export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  // Wallet state
+  const { l1Account, l2Account } = useWallet();
+  const { toast } = useToast();
+  
+  // Data state
+  const [markets, setMarkets] = useState<Market[]>([]);
+  const [currentMarketId, setCurrentMarketId] = useState<string | null>(null);
+  const [currentMarket, setCurrentMarket] = useState<Market | null>(null);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [trades, setTrades] = useState<Trade[]>([]);
+  const [positions, setPositions] = useState<Position[]>([]);
+  const [globalState, setGlobalState] = useState<GlobalState | null>(null);
+  const [playerId, setPlayerId] = useState<PlayerId | null>(null);
+  
+  // Status state
+  const [isLoading, setIsLoading] = useState(false);
+  const [isPlayerInstalled, setIsPlayerInstalled] = useState(false);
+  const [apiInitializing, setApiInitializing] = useState(false);
+  
+  // API clients
+  const [playerClient, setPlayerClient] = useState<ExchangePlayer | null>(null);
+  const apiClient = new ExchangeAPI(API_BASE_URL);
+
+  // ==================== 初始化 API ====================
+
+  useEffect(() => {
+    if (l2Account?.getPrivateKey && !playerClient && !apiInitializing) {
+      initializeAPI();
+    }
+  }, [l2Account, playerClient, apiInitializing]);
+
+  const initializeAPI = () => {
+    if (!l2Account?.getPrivateKey()) {
+      console.warn('No L2 account private key available');
+      return;
+    }
+
+    if (apiInitializing || playerClient) {
+      console.log('API already initializing or initialized');
+      return;
+    }
+
+    setApiInitializing(true);
+    console.log('Initializing player API client...');
+
+    try {
+      const rpc = new ZKWasmAppRpc(API_BASE_URL);
+      const client = new ExchangePlayer(l2Account.getPrivateKey(), rpc);
+      setPlayerClient(client);
+      console.log('Player API client initialized');
+    } catch (error) {
+      console.error('Failed to initialize API:', error);
+      toast({
+        title: 'Initialization Failed',
+        description: 'Failed to initialize API client',
+        variant: 'destructive',
+      });
+    } finally {
+      setApiInitializing(false);
+    }
+  };
+
+  // ==================== 钱包断开时重置状态 ====================
+  // 注意：不依赖 l1Account，因为 SDK 可能不提供这个字段
+
+  useEffect(() => {
+    // 只在 l2Account 断开时重置用户相关状态
+    if (!l2Account && playerClient) {
+      console.log('L2 disconnected, resetting user state...');
+      setPlayerClient(null);
+      setPlayerId(null);
+      setIsPlayerInstalled(false);
+      setApiInitializing(false);
+      setPositions([]);
+    }
+  }, [l2Account, playerClient]);
+
+  // ==================== 自动安装玩家 ====================
+
+  useEffect(() => {
+    if (l2Account && !isPlayerInstalled && playerClient) {
+      console.log('Auto-installing player...');
+      autoInstallPlayer();
+    }
+  }, [l2Account, isPlayerInstalled, playerClient]);
+
+  const autoInstallPlayer = async () => {
+    if (!l2Account || !playerClient) return;
+
+    setIsLoading(true);
+    try {
+      console.log('Registering player...');
+      const response = await playerClient.register();
+      console.log('Registration response:', response);
+
+      // 生成 Player ID
+      const generatedPlayerId = generatePlayerIdFromL2();
+      if (generatedPlayerId) {
+        setPlayerId(generatedPlayerId);
+        console.log('Player ID set:', generatedPlayerId);
+      }
+
+      setIsPlayerInstalled(true);
+
+      if (response === null) {
+        toast({
+          title: 'Player Connected',
+          description: 'Successfully connected to existing player account!',
+        });
+      } else {
+        toast({
+          title: 'Player Installed',
+          description: 'Successfully created new player account!',
+        });
+      }
+    } catch (error) {
+      console.error('Auto-install failed:', error);
+      toast({
+        title: 'Connection Failed',
+        description: 'Failed to auto-connect player',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const generatePlayerIdFromL2 = (): PlayerId | null => {
+    try {
+      if (!l2Account?.pubkey) return null;
+      
+      const pubkey = l2Account.pubkey;
+      const leHexBN = new LeHexBN(bnToHexLe(pubkey));
+      const pkeyArray = leHexBN.toU64Array();
+      const playerId: PlayerId = [pkeyArray[1].toString(), pkeyArray[2].toString()];
+      
+      console.log('Generated player ID from L2:', playerId);
+      return playerId;
+    } catch (error) {
+      console.error('Failed to generate player ID:', error);
+      return null;
+    }
+  };
+
+  // ==================== 手动安装玩家 ====================
+
+  const installPlayer = useCallback(async () => {
+    if (!playerClient) {
+      throw new Error('API not ready');
+    }
+
+    setIsLoading(true);
+    try {
+      console.log('Installing player...');
+      const response = await playerClient.register();
+      console.log('Registration response:', response);
+
+      const generatedPlayerId = generatePlayerIdFromL2();
+      if (generatedPlayerId) {
+        setPlayerId(generatedPlayerId);
+      } else {
+        throw new Error('Failed to generate player ID');
+      }
+
+      setIsPlayerInstalled(true);
+
+      toast({
+        title: response === null ? 'Player Connected' : 'Player Installed',
+        description: response === null 
+          ? 'Successfully connected to existing player!'
+          : 'Successfully created new player!',
+      });
+    } catch (error) {
+      console.error('Install player failed:', error);
+      toast({
+        title: 'Installation Failed',
+        description: 'Failed to install player',
+        variant: 'destructive',
+      });
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [playerClient, l2Account, toast]);
+
+  // ==================== 定时轮询 ====================
+
+  useEffect(() => {
+    // 立即加载市场列表（不需要登录）
+    loadInitialData();
+
+    // 设置定时轮询（每 5 秒）
+    const interval = setInterval(() => {
+      refreshData();
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [currentMarketId]);
+
+  // 单独轮询用户数据（需要登录）
+  useEffect(() => {
+    if (!playerId) return;
+
+    const interval = setInterval(() => {
+      loadUserData();
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [playerId]);
+
+  // ==================== 数据加载 ====================
+
+  const loadInitialData = async () => {
+    console.log('Loading initial data...');
+    setIsLoading(true);
+    try {
+      await refreshData();
+    } catch (error) {
+      console.error('Failed to load initial data:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const refreshData = useCallback(async () => {
+    try {
+      // 1. 获取所有市场（公开数据，不需要登录）
+      const marketsData = await apiClient.getMarkets();
+      setMarkets(marketsData);
+      console.log('Loaded markets:', marketsData.length);
+
+      // 2. 获取全局状态
+      try {
+        const stateData = await apiClient.getGlobalState();
+        setGlobalState(stateData);
+        console.log('Loaded global state, counter:', stateData.counter);
+      } catch (error) {
+        console.warn('Failed to load global state:', error);
+      }
+
+      // 3. 如果有当前市场，获取订单和成交
+      if (currentMarketId) {
+        const [marketData, ordersData, tradesData] = await Promise.all([
+          apiClient.getMarket(currentMarketId),
+          apiClient.getOrders(currentMarketId),
+          apiClient.getTrades(currentMarketId),
+        ]);
+        
+        setCurrentMarket(marketData);
+        setOrders(ordersData);
+        setTrades(tradesData);
+        console.log('Loaded market detail:', currentMarketId);
+      }
+    } catch (error) {
+      console.error('Failed to refresh market data:', error);
+      
+      // 只在初次加载失败时显示错误
+      if (!markets.length) {
+        toast({
+          title: 'Connection Error',
+          description: 'Failed to load markets. Please check if backend is running.',
+          variant: 'destructive',
+        });
+      }
+    }
+  }, [currentMarketId, toast]);
+
+  // 加载用户数据（需要登录）
+  const loadUserData = useCallback(async () => {
+    if (!playerId) return;
+
+    try {
+      const positionsData = await apiClient.getPositions(playerId);
+      setPositions(positionsData);
+      console.log('Loaded user positions:', positionsData.length);
+    } catch (error) {
+      console.error('Failed to load user data:', error);
+    }
+  }, [playerId]);
+
+  // ==================== 交易操作 ====================
+
+  const placeOrder = useCallback(async (params: PlaceOrderParams) => {
+    if (!playerClient) {
+      throw new Error('API not ready');
+    }
+
+    setIsLoading(true);
+    try {
+      console.log('Placing order:', params);
+      await playerClient.placeOrder(params);
+      
+      toast({
+        title: 'Order Placed',
+        description: `Successfully placed ${params.direction} order`,
+      });
+
+      // 刷新数据
+      await refreshData();
+    } catch (error) {
+      console.error('Place order failed:', error);
+      toast({
+        title: 'Order Failed',
+        description: 'Failed to place order',
+        variant: 'destructive',
+      });
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [playerClient, refreshData, toast]);
+
+  const cancelOrder = useCallback(async (orderId: bigint) => {
+    if (!playerClient) {
+      throw new Error('API not ready');
+    }
+
+    setIsLoading(true);
+    try {
+      console.log('Cancelling order:', orderId);
+      await playerClient.cancelOrder(orderId);
+      
+      toast({
+        title: 'Order Cancelled',
+        description: 'Successfully cancelled order',
+      });
+
+      await refreshData();
+    } catch (error) {
+      console.error('Cancel order failed:', error);
+      toast({
+        title: 'Cancel Failed',
+        description: 'Failed to cancel order',
+        variant: 'destructive',
+      });
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [playerClient, refreshData, toast]);
+
+  const claim = useCallback(async (marketId: bigint) => {
+    if (!playerClient) {
+      throw new Error('API not ready');
+    }
+
+    setIsLoading(true);
+    try {
+      console.log('Claiming from market:', marketId);
+      await playerClient.claim(marketId);
+      
+      toast({
+        title: 'Claim Successful',
+        description: 'Successfully claimed winnings!',
+      });
+
+      await refreshData();
+    } catch (error) {
+      console.error('Claim failed:', error);
+      toast({
+        title: 'Claim Failed',
+        description: 'Failed to claim winnings',
+        variant: 'destructive',
+      });
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [playerClient, refreshData, toast]);
+
+  // ==================== Context Value ====================
+
+  const value: MarketContextType = {
+    markets,
+    currentMarket,
+    orders,
+    trades,
+    positions,
+    globalState,
+    playerId,
+    isLoading,
+    isPlayerInstalled,
+    playerClient,
+    apiClient,
+    setCurrentMarketId,
+    refreshData,
+    installPlayer,
+    placeOrder,
+    cancelOrder,
+    claim,
+  };
+
+  return (
+    <MarketContext.Provider value={value}>
+      {children}
+    </MarketContext.Provider>
+  );
+};
+

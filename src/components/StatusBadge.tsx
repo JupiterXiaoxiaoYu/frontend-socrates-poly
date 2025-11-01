@@ -1,7 +1,8 @@
 import { cn } from "@/lib/utils";
+import { MarketStatus } from "../types/api";
 
 interface StatusBadgeProps {
-  status: 'pending' | 'active' | 'closed' | 'resolved';
+  status: MarketStatus | 'pending' | 'active' | 'closed' | 'resolved';
   size?: 'sm' | 'md' | 'lg';
 }
 
@@ -11,6 +12,11 @@ const StatusBadge = ({ status, size = 'sm' }: StatusBadgeProps) => {
     md: 'h-6 px-3 text-xs',
     lg: 'h-7 px-4 text-sm',
   };
+
+  // 处理数字类型的 MarketStatus
+  const normalizedStatus = typeof status === 'number' 
+    ? (['pending', 'active', 'resolved', 'closed'][status] as 'pending' | 'active' | 'resolved' | 'closed')
+    : status;
 
   const statusConfig = {
     pending: {
@@ -31,7 +37,7 @@ const StatusBadge = ({ status, size = 'sm' }: StatusBadgeProps) => {
     },
   };
 
-  const config = statusConfig[status];
+  const config = statusConfig[normalizedStatus] || statusConfig.pending;
 
   return (
     <span

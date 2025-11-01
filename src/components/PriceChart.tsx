@@ -28,7 +28,7 @@ const PriceChart = ({ targetPrice, currentPrice }: PriceChartProps) => {
     let unsubscribe: (() => void) | null = null;
 
     const initializeChart = async () => {
-      // Create chart
+      // Create chart with Chinese localization
       const chart = createChart(chartContainerRef.current, {
         layout: {
           background: { type: ColorType.Solid, color: '#ffffff' },
@@ -47,6 +47,27 @@ const PriceChart = ({ targetPrice, currentPrice }: PriceChartProps) => {
         },
         rightPriceScale: {
           borderColor: '#e0e0e0',
+        },
+        localization: {
+          locale: 'en-US',
+          priceFormatter: (price: number) => {
+            return new Intl.NumberFormat('en-US', {
+              style: 'currency',
+              currency: 'USD',
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            }).format(price);
+          },
+          timeFormatter: (time: any) => {
+            // 将 Unix 时间戳转换为当地时区，英文格式，24小时制
+            const date = new Date(time * 1000);
+            return date.toLocaleTimeString('en-US', {
+              hour: '2-digit',
+              minute: '2-digit',
+              second: '2-digit',
+              hour12: false
+            });
+          },
         },
       });
 

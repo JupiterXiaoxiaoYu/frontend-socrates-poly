@@ -1,12 +1,19 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Menu } from "lucide-react";
+import { Menu, Volume2, VolumeX } from "lucide-react";
 import { WalletButton } from "@/components/WalletButton";
 import MobileNav from "@/components/MobileNav";
+import { useSound } from "../contexts";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const Header = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { isEnabled, toggleSound } = useSound();
 
   return (
     <>
@@ -45,6 +52,27 @@ const Header = () => {
         </nav>
 
           <div className="flex items-center gap-3">
+            {/* Sound Toggle Button */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={toggleSound}
+                  className="text-white hover:bg-white/10 p-2"
+                >
+                  {isEnabled ? (
+                    <Volume2 className="w-5 h-5" />
+                  ) : (
+                    <VolumeX className="w-5 h-5" />
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{isEnabled ? 'Mute new market alerts' : 'Enable new market alerts'}</p>
+              </TooltipContent>
+            </Tooltip>
+
             <WalletButton />
           </div>
         </div>
