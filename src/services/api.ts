@@ -289,6 +289,38 @@ export class ExchangeAPI {
     return body.data || [];
   }
 
+  // 查询玩家订单
+  async getPlayerOrders(
+    pid: PlayerId,
+    options?: {
+      status?: 0 | 1 | 2;
+      marketId?: string;
+      limit?: number;
+    }
+  ): Promise<Order[]> {
+    const [pid1, pid2] = pid.map((v: string) => v.toString());
+    const params = new URLSearchParams();
+    
+    if (options?.status !== undefined) {
+      params.append('status', options.status.toString());
+    }
+    if (options?.marketId) {
+      params.append('marketId', options.marketId);
+    }
+    if (options?.limit) {
+      params.append('limit', options.limit.toString());
+    }
+
+    const url = `${this.baseUrl}/data/player/${pid1}/${pid2}/orders?${params}`;
+    const response = await fetch(url);
+    const body: ApiResponse<Order[]> = await response.json();
+    
+    if (!body.success) {
+      throw new Error(body.error || 'Failed to fetch player orders');
+    }
+    return body.data || [];
+  }
+
   // ========== 财务活动 ==========
 
   async getFinancialActivity(pid: PlayerId, limit = 100): Promise<FinancialActivity[]> {

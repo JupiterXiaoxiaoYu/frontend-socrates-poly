@@ -30,7 +30,7 @@ const Index = () => {
   const [selectedToken, setSelectedToken] = useState("BTC");
   const [selectedDuration, setSelectedDuration] = useState("all");
 
-  // 转换 API 数据为显示格式
+  // 转换 API 数据为显示格式 - 优化依赖避免闪烁
   const displayMarkets = useMemo(() => {
     return markets.map((market: any) => {
       // 计算概率
@@ -65,7 +65,7 @@ const Index = () => {
         windowMinutes: market.windowMinutes,
       } as DisplayMarket;
     });
-  }, [markets]);
+  }, [markets.length]); // 只在市场数量变化时更新
 
   // 过滤和排序市场
   const filteredMarkets = useMemo(() => {

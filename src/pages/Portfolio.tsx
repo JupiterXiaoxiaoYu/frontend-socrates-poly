@@ -9,12 +9,15 @@ import PortfolioPnLChart from "@/components/PortfolioPnLChart";
 import { useMarket } from "../contexts";
 import { fromUSDCPrecision, parseTokenIdx, formatCurrency, generateMarketTitle, fromPricePrecision } from "../lib/calculations";
 import { MarketStatus } from "../types/api";
+import { useToast } from "../hooks/use-toast";
 
 const Portfolio = () => {
   const navigate = useNavigate();
-  const { positions, markets, orders } = useMarket();
+  const { positions = [], markets = [], userAllOrders = [], cancelOrder } = useMarket();
+  const { toast } = useToast();
   const [timePeriod, setTimePeriod] = useState("1D");
   const [positionFilter, setPositionFilter] = useState("All");
+  const [cancellingOrderId, setCancellingOrderId] = useState<string | null>(null);
 
   // 计算 USDC 余额
   const usdcBalance = useMemo(() => {
@@ -60,12 +63,12 @@ const Portfolio = () => {
         };
       })
       .filter(Boolean);
-  }, [positions, markets]);
+  }, [positions.length, markets.length]); // 只在数量变化时更新
 
-  // 计算活跃订单
+  // 计算活跃订单（用户的所有订单）
   const activeOrders = useMemo(() => {
-    return orders.filter(o => o.status === 0);
-  }, [orders]);
+    return (userAllOrders || []).filter(o => o.status === 0);
+  }, [userAllOrders?.length]); // 只在订单数量变化时更新
 
   // 计算可 Claim 金额
   const claimableAmount = useMemo(() => {
@@ -73,6 +76,27 @@ const Portfolio = () => {
       .filter((p: any) => p.canClaim)
       .reduce((sum: number, p: any) => sum + p.shares, 0);
   }, [displayPositions]);
+
+  // 处理取消订单
+  const handleCancelOrder = async (orderId: string) => {
+    setCancellingOrderId(orderId);
+    try {
+      await cancelOrder(BigInt(orderId));
+      toast({
+        title: 'Order Cancelled',
+        description: 'Successfully cancelled order',
+      });
+    } catch (error) {
+      console.error('Cancel order failed:', error);
+      toast({
+        title: 'Cancel Failed',
+        description: error instanceof Error ? error.message : 'Failed to cancel order',
+        variant: 'destructive',
+      });
+    } finally {
+      setCancellingOrderId(null);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-white">
@@ -276,13 +300,14 @@ const Portfolio = () => {
                   <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Price</th>
                   <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Shares</th>
                   <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Filled</th>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Action</th>
+                  <th className="text-right px-4 py-3 text-xs font-medium text-muted-foreground">Action</th>
+                  <th className="text-right px-4 py-3 text-xs font-medium text-muted-foreground"></th>
                 </tr>
               </thead>
               <tbody>
                 {activeOrders.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="py-12 text-center text-muted-foreground">
+                    <td colSpan={8} className="py-12 text-center text-muted-foreground">
                       No open orders
                     </td>
                   </tr>
@@ -311,11 +336,22 @@ const Portfolio = () => {
                       <td className="px-4 py-3 text-sm">
                         {fromUSDCPrecision(order.filledAmount).toFixed(0)}/{fromUSDCPrecision(order.totalAmount).toFixed(0)}
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3 text-right">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-danger hover:text-danger/70 h-8"
+                          onClick={() => handleCancelOrder(order.orderId)}
+                          disabled={cancellingOrderId === order.orderId}
+                        >
+                          {cancellingOrderId === order.orderId ? 'Cancelling...' : 'Cancel'}
+                        </Button>
+                      </td>
+                      <td className="px-4 py-3 text-right">
                         <Button
                           variant="link"
                           size="sm"
-                          className="text-danger h-auto p-0 text-sm"
+                          className="text-primary h-auto p-0 text-sm"
                           onClick={() => navigate(`/market/${order.marketId}`)}
                         >
                           View

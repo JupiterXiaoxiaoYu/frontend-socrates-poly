@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Eye, EyeOff, Download, Upload, FileText, ChevronLeft, ChevronRight, Copy, Check } from "lucide-react";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useMarket } from "../contexts";
 import { fromUSDCPrecision, formatCurrency } from "../lib/calculations";
 import { useToast } from "../hooks/use-toast";
@@ -118,12 +118,13 @@ const mockTransactions: Transaction[] = [
 ];
 
 const Wallet = () => {
-  const { positions, playerId } = useMarket();
+  const { positions = [], playerId, apiClient } = useMarket();
   const { toast } = useToast();
   const [hideBalance, setHideBalance] = useState(false);
   const [hideSmallBalances, setHideSmallBalances] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [copiedPid, setCopiedPid] = useState(false);
+  const [transactions, setTransactions] = useState<any[]>([]);
   const itemsPerPage = 6;
 
   // 计算 USDC 余额
@@ -145,11 +146,67 @@ const Wallet = () => {
     setTimeout(() => setCopiedPid(false), 2000);
   };
 
+  // 加载财务活动
+  useEffect(() => {
+    if (!playerId || !apiClient) return;
+
+    const loadTransactions = async () => {
+      try {
+        const data = await apiClient.getFinancialActivity(playerId, 50);
+        setTransactions(data);
+      } catch (error) {
+        console.error('Failed to load transactions:', error);
+      }
+    };
+
+    loadTransactions();
+
+    // 每 10 秒刷新一次
+    const interval = setInterval(loadTransactions, 10000);
+    return () => clearInterval(interval);
+  }, [playerId, apiClient]);
+
+  // 转换交易数据
+  const displayTransactions = useMemo(() => {
+    return transactions.map(tx => {
+      let type = '';
+      let amount = '';
+      let status: "Completed" | "Failed" | "Pending" = "Completed";
+
+      if (tx.type === 'deposit') {
+        type = 'Deposit USDC';
+        amount = `+${fromUSDCPrecision(tx.amount).toFixed(4)} USDC`;
+      } else if (tx.type === 'withdrawal') {
+        type = 'Withdraw USDC';
+        amount = `-${fromUSDCPrecision(tx.amount).toFixed(4)} USDC`;
+      } else if (tx.type === 'claim') {
+        type = `Claim from Market #${tx.marketId}`;
+        amount = `+${fromUSDCPrecision(tx.totalClaimed).toFixed(4)} USDC`;
+      }
+
+      return {
+        id: tx.timestamp,
+        type,
+        amount,
+        date: new Date(tx.timestamp).toLocaleString('en-US', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: false
+        }),
+        status,
+      };
+    });
+  }, [transactions]);
+
   // Pagination logic
-  const totalPages = Math.ceil(mockTransactions.length / itemsPerPage);
+  const totalPages = Math.ceil(displayTransactions.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const currentTransactions = mockTransactions.slice(startIndex, endIndex);
+  const currentTransactions = displayTransactions.slice(startIndex, endIndex);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -260,7 +317,14 @@ const Wallet = () => {
                 </tr>
               </thead>
               <tbody>
-                {currentTransactions.map((transaction) => (
+                {currentTransactions.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="py-12 text-center text-muted-foreground">
+                      No transaction history
+                    </td>
+                  </tr>
+                ) : (
+                  currentTransactions.map((transaction) => (
                   <tr key={transaction.id} className="border-b border-border hover:bg-muted/20">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
@@ -297,7 +361,8 @@ const Wallet = () => {
                       </Badge>
                     </td>
                   </tr>
-                ))}
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -307,7 +372,7 @@ const Wallet = () => {
             <div className="p-4 border-t border-border">
               <div className="flex items-center justify-between">
                 <div className="text-sm text-muted-foreground">
-                  Showing {startIndex + 1} to {Math.min(endIndex, mockTransactions.length)} of {mockTransactions.length} transactions
+                  Showing {startIndex + 1} to {Math.min(endIndex, displayTransactions.length)} of {displayTransactions.length} transactions
                 </div>
                 <div className="flex items-center gap-2">
                   <Button

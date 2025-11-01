@@ -76,7 +76,9 @@ const MarketDetail = () => {
     const buyOrders = activeOrders.filter(o => o.orderType === 0 || o.orderType === 2).sort((a, b) => parseInt(b.price) - parseInt(a.price));
     const sellOrders = activeOrders.filter(o => o.orderType === 1 || o.orderType === 3).sort((a, b) => parseInt(a.price) - parseInt(b.price));
 
-    const bestBid = buyOrders[0] ? parseInt(buyOrders[0].price) / 100 : null; // BPS to percent
+    // 后端使用 BPS：10000 = 100%
+    // 除以 100 得到百分比值（0-100）
+    const bestBid = buyOrders[0] ? parseInt(buyOrders[0].price) / 100 : null;
     const bestAsk = sellOrders[0] ? parseInt(sellOrders[0].price) / 100 : null;
 
     if (bestBid && bestAsk) {
@@ -146,7 +148,7 @@ const MarketDetail = () => {
       timeRemaining: 0,
       winningOutcome: currentMarket.status === MarketStatus.Resolved ? currentMarket.winningOutcome : undefined,
     };
-  }, [currentMarket]);
+  }, [currentMarket?.marketId, currentMarket?.status, marketCurrentPrice]); // 只在关键字段变化时更新
 
   // 计算用户余额
   const userBalance = useMemo(() => {
@@ -170,12 +172,15 @@ const MarketDetail = () => {
         order.orderType === 1 ? 'limit_sell' :
         order.orderType === 2 ? 'market_buy' : 'market_sell';
 
+      // TradingPanel 传过来的参数：
+      // - price: 已经是 BPS (0-10000)，例如 5000 = 50%
+      // - amount: 已经是 2位精度 (100 = 1.0)，例如 1000 = 10.00
       await placeOrder({
         marketId: BigInt(order.marketId),
         direction,
         orderType: orderTypeStr as any,
-        price: BigInt(order.price), // 已经是 BPS 格式，不需要再转换
-        amount: BigInt(order.amount), // 已经是正确的精度，不需要再转换
+        price: BigInt(order.price), // 直接使用，已经是 BPS
+        amount: BigInt(order.amount), // 直接使用，已经是 2位精度
       });
 
       toast({

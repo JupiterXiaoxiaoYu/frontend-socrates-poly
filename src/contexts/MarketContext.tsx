@@ -27,7 +27,8 @@ interface MarketContextType {
   // 数据
   markets: Market[];
   currentMarket: Market | null;
-  orders: Order[];
+  orders: Order[]; // 当前市场的订单
+  userAllOrders: Order[]; // 用户所有订单（用于 Portfolio）
   trades: Trade[];
   positions: Position[];
   globalState: GlobalState | null;
@@ -73,7 +74,8 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [markets, setMarkets] = useState<Market[]>([]);
   const [currentMarketId, setCurrentMarketId] = useState<string | null>(null);
   const [currentMarket, setCurrentMarket] = useState<Market | null>(null);
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]); // 当前市场的订单
+  const [userAllOrders, setUserAllOrders] = useState<Order[]>([]); // 用户所有订单
   const [trades, setTrades] = useState<Trade[]>([]);
   const [positions, setPositions] = useState<Position[]>([]);
   const [globalState, setGlobalState] = useState<GlobalState | null>(null);
@@ -305,18 +307,22 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         console.warn('Failed to load global state:', error);
       }
 
-      // 3. 如果有当前市场，获取订单和成交
+      // 3. 如果有当前市场，获取订单和成交（只获取当前市场的）
       if (currentMarketId) {
         const [marketData, ordersData, tradesData] = await Promise.all([
           apiClient.getMarket(currentMarketId),
-          apiClient.getOrders(currentMarketId),
+          apiClient.getOrders(currentMarketId), // 获取当前市场的所有订单
           apiClient.getTrades(currentMarketId),
         ]);
         
         setCurrentMarket(marketData);
-        setOrders(ordersData);
+        setOrders(ordersData); // 只包含当前市场的订单
         setTrades(tradesData);
         console.log('Loaded market detail:', currentMarketId);
+      } else {
+        // 如果没有选中市场，清空订单和成交
+        setOrders([]);
+        setTrades([]);
       }
     } catch (error) {
       console.error('Failed to refresh market data:', error);
@@ -337,9 +343,16 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (!playerId) return;
 
     try {
-      const positionsData = await apiClient.getPositions(playerId);
+      // 加载用户持仓和所有订单（用于 Portfolio 页面）
+      const [positionsData, userOrdersData] = await Promise.all([
+        apiClient.getPositions(playerId),
+        apiClient.getPlayerOrders(playerId, { limit: 100 })
+      ]);
+      
       setPositions(positionsData);
+      setUserAllOrders(userOrdersData); // 保存用户所有订单
       console.log('Loaded user positions:', positionsData.length);
+      console.log('Loaded user all orders:', userOrdersData.length);
     } catch (error) {
       console.error('Failed to load user data:', error);
     }
@@ -362,8 +375,11 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         description: `Successfully placed ${params.direction} order`,
       });
 
-      // 刷新数据
-      await refreshData();
+      // 立即刷新数据
+      await Promise.all([
+        refreshData(),
+        playerId ? loadUserData() : Promise.resolve() // 同时刷新用户所有订单
+      ]);
     } catch (error) {
       console.error('Place order failed:', error);
       toast({
@@ -375,7 +391,7 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     } finally {
       setIsLoading(false);
     }
-  }, [playerClient, refreshData, toast]);
+  }, [playerClient, refreshData, loadUserData, playerId, toast]);
 
   const cancelOrder = useCallback(async (orderId: bigint) => {
     if (!playerClient) {
@@ -387,12 +403,23 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       console.log('Cancelling order:', orderId);
       await playerClient.cancelOrder(orderId);
       
+      // 乐观更新：立即从本地状态中移除订单
+      const orderIdStr = orderId.toString();
+      setOrders(prev => prev.filter(o => o.orderId !== orderIdStr));
+      setUserAllOrders(prev => prev.filter(o => o.orderId !== orderIdStr));
+      
       toast({
         title: 'Order Cancelled',
         description: 'Successfully cancelled order',
       });
 
-      await refreshData();
+      // 后台刷新数据确保同步
+      setTimeout(() => {
+        Promise.all([
+          refreshData(),
+          playerId ? loadUserData() : Promise.resolve()
+        ]).catch(console.error);
+      }, 1000);
     } catch (error) {
       console.error('Cancel order failed:', error);
       toast({
@@ -404,7 +431,7 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     } finally {
       setIsLoading(false);
     }
-  }, [playerClient, refreshData, toast]);
+  }, [playerClient, refreshData, loadUserData, playerId, toast]);
 
   const claim = useCallback(async (marketId: bigint) => {
     if (!playerClient) {
@@ -441,6 +468,7 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     markets,
     currentMarket,
     orders,
+    userAllOrders,
     trades,
     positions,
     globalState,

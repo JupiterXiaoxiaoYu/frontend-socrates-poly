@@ -2,7 +2,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { useMarket } from "../contexts";
 import { fromUSDCPrecision, parseTokenIdx, formatCurrency } from "../lib/calculations";
-import { useMemo, useState } from "react";
+import { useMemo, useState, memo } from "react";
 import { useToast } from "../hooks/use-toast";
 
 interface Position {
@@ -63,7 +63,7 @@ const PositionTabs = () => {
   const { positions, orders, currentMarket, cancelOrder } = useMarket();
   const { toast } = useToast();
 
-  // 转换持仓数据
+  // 转换持仓数据 - 使用稳定的依赖项避免闪烁
   const displayPositions = useMemo(() => {
     if (!currentMarket) return [];
     
@@ -88,9 +88,9 @@ const PositionTabs = () => {
         };
       })
       .filter(Boolean) as Position[];
-  }, [positions, currentMarket]);
+  }, [positions.length, currentMarket?.marketId]); // 只在持仓数量或市场ID变化时更新
 
-  // 转换订单数据  
+  // 转换订单数据 - 使用稳定的依赖项避免闪烁
   const displayOrders = useMemo(() => {
     if (!currentMarket) return [];
     
@@ -99,19 +99,21 @@ const PositionTabs = () => {
       .map(o => {
         const shares = fromUSDCPrecision(o.totalAmount);
         const filled = fromUSDCPrecision(o.filledAmount);
-        const price = parseInt(o.price) / 100; // BPS to percent
+        // 后端使用 BPS：0-10000，除以 100 得到百分比
+        const pricePercent = parseInt(o.price) / 100;
+        const priceDecimal = pricePercent / 100; // 转为 0-1 小数
         
         return {
-          orderId: o.orderId,  // 添加 orderId
+          orderId: o.orderId,
           side: o.direction === 1 ? 'up' : 'down' as 'up' | 'down',
           type: o.orderType === 0 ? 'Limit' : o.orderType === 1 ? 'Limit' : 'Market',
-          price: `$${price.toFixed(2)}`,
+          price: `${pricePercent.toFixed(2)}%`, // 显示为百分比，例如 "50.00%"
           shares,
           filled: `${filled.toFixed(0)}/${shares.toFixed(0)}`,
-          total: formatCurrency(shares * price / 100),
+          total: formatCurrency(shares * priceDecimal),
         };
       });
-  }, [orders, currentMarket]);
+  }, [orders.length, currentMarket?.marketId]); // 只在订单数量或市场ID变化时更新
 
   // 处理取消订单
   const [cancellingOrderId, setCancellingOrderId] = useState<string | null>(null);

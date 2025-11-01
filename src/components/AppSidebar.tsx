@@ -69,7 +69,7 @@ export function AppSidebar() {
         windowMinutes: market.windowMinutes,
       } as DisplayMarket;
     });
-  }, [markets]);
+  }, [markets.length]); // 只在市场数量变化时更新，避免闪烁
 
   // 过滤和排序市场
   const filteredMarkets = useMemo(() => {

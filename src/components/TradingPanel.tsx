@@ -78,8 +78,10 @@ const TradingPanel = ({
   }, [market?.marketId]);
 
   useEffect(() => {
-    if (market?.currentPrice) {
-      setLimitPrice(market.currentPrice);
+    if (market?.currentPrice !== undefined && market?.currentPrice !== null) {
+      // market.currentPrice 是百分比（0-100），需要转为小数（0-1）
+      const priceDecimal = market.currentPrice / 100;
+      setLimitPrice(priceDecimal);
     }
   }, [market?.currentPrice]);
 
@@ -124,30 +126,17 @@ const TradingPanel = ({
   // 价格计算
   const price = orderType === 'market' ? (market?.currentPrice || 0.5) : limitPrice;
   
-  // 使用新的份额计算工具（与后端逻辑一致）
-  let shareCalc;
-  try {
-    shareCalc = amount > 0 ? calculateSharesFromUSDC({
-      price,
-      usdcAmount: amount,
-      orderType: side === 'up' ? 'BUY' : 'SELL',
-      isFeeExempt,
-    }) : null;
-  } catch {
-    shareCalc = null;
-  }
-  
-  const estimatedShares = shareCalc?.shareAmount || 0;
-  const actualCost = shareCalc?.actualCost || 0;
-  const tradingFee = shareCalc?.feeAmount || 0;
-  const totalCost = shareCalc?.totalCost || 0;
-  const effectivePrice = shareCalc?.effectivePrice || 0;
+  // 简化的份额计算（用户输入的是本金，不含手续费）
+  const estimatedShares = amount > 0 ? amount / price : 0;
+  const actualCost = amount; // 用户输入的就是本金
+  const tradingFee = isFeeExempt ? 0 : amount * FEE_RATE;
+  const totalCost = actualCost + tradingFee;
   const totalFees = tradingFee;
   
   // P&L calculations
   const maxWin = estimatedShares * 1.0; // $1 per share if win
   const maxLoss = totalCost; // 最大损失就是总成本（含手续费）
-  const breakeven = effectivePrice; // 有效价格（含手续费）
+  const breakeven = price * (1 + FEE_RATE); // 盈亏平衡点（含手续费）
   const roi = totalCost > 0 ? ((maxWin - totalCost) / totalCost * 100) : 0;
 
   // Order validation
@@ -171,11 +160,16 @@ const TradingPanel = ({
         ? (orderType === 'market' ? OrderType.MARKET_BUY : OrderType.LIMIT_BUY)
         : (orderType === 'market' ? OrderType.MARKET_SELL : OrderType.LIMIT_SELL);
 
+      // 后端期望：
+      // - price: BPS 格式 (0-10000)，例如 5000 = 50%
+      // - amount: 份额数量（精度2位）
+      //   用户输入 10 USDC @ 0.5 → 份额 20 → 传 2000
+      //   后端锁定：20 × 0.5 × 1.02 = 10.2 USDC
       await onPlaceOrder({
         marketId: market.marketId,
         orderType: orderTypeValue,
-        price: Math.round(limitPrice * 10000), // Convert to BPS (10000 = 100%)
-        amount: Math.round(amount * 100), // Convert to shares (精度2位: 100=1.0)
+        price: Math.round(limitPrice * 10000), // 0.5 → 5000 BPS
+        amount: Math.round(estimatedShares * 100), // 20.0 → 2000 (份额)
       });
 
       // Reset form
@@ -589,11 +583,6 @@ const TradingPanel = ({
             </div>
           )}
 
-          {/* Mining Reward */}
-          <div className="flex items-center gap-2 text-xs text-muted-foreground justify-center">
-            <Sparkles className="w-3 h-3 text-accent" />
-            <span>Est. reward 10 SOC, final based on settlement</span>
-          </div>
         </TabsContent>
       </Tabs>
 
