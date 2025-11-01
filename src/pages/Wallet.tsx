@@ -214,7 +214,7 @@ const Wallet = () => {
                 </button>
               </div>
               <div className="text-3xl font-bold text-foreground">
-                {hideBalance ? "****" : formatCurrency(usdcBalance, 4)}
+                {hideBalance ? "****" : formatCurrency(usdcBalance, 2)}
               </div>
             </div>
 
@@ -240,68 +240,6 @@ const Wallet = () => {
                 <span className="text-xs">History</span>
               </Button>
             </div>
-          </div>
-        </Card>
-
-        {/* My Assets */}
-        <Card className="border border-border mb-6">
-          <div className="p-4 border-b border-border">
-            <div className="flex items-center justify-between">
-              <h2 className="text-base font-semibold text-foreground">My assets</h2>
-              <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={hideSmallBalances}
-                  onChange={(e) => setHideSmallBalances(e.target.checked)}
-                  className="rounded"
-                />
-                Hide small balances
-              </label>
-            </div>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="border-b border-border bg-muted/30">
-                <tr>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Token</th>
-                  <th className="text-right px-4 py-3 text-xs font-medium text-muted-foreground">Amount</th>
-                  <th className="text-right px-4 py-3 text-xs font-medium text-muted-foreground">Operate</th>
-                </tr>
-              </thead>
-              <tbody>
-                {mockAssets.map((asset) => (
-                  <tr key={asset.id} className="border-b border-border hover:bg-muted/20">
-                    <td className="px-4 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-lg">
-                          {asset.icon}
-                        </div>
-                        <div>
-                          <div className="text-sm font-medium text-foreground">{asset.name}</div>
-                          <div className="text-xs text-muted-foreground">{asset.amount.toLocaleString('en-US', { minimumFractionDigits: 4 })} {asset.symbol}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-4 text-right">
-                      <div className="text-sm font-semibold text-foreground">
-                        ${asset.usdAmount.toLocaleString('en-US', { minimumFractionDigits: 4 })}
-                      </div>
-                    </td>
-                    <td className="px-4 py-4 text-right">
-                      <div className="flex gap-2 justify-end">
-                        <Button variant="link" className="text-foreground h-auto p-0 text-sm">
-                          Deposit
-                        </Button>
-                        <Button variant="link" className="text-foreground h-auto p-0 text-sm">
-                          Withdraw
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
           </div>
         </Card>
 

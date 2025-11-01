@@ -7,7 +7,7 @@ export const TICK_SECONDS = 5;              // 5 秒 = 1 tick
 export const GRACE_PERIOD_TICKS = 12;       // 1 分钟
 export const PROTOCOL_FEE_BPS = 200;        // 2%
 export const PRICE_PRECISION = 10000;       // BPS 精度
-export const AMOUNT_PRECISION = 1000000;    // USDC/份额精度 (1e6)
+export const AMOUNT_PRECISION = 100;        // USDC/份额精度（2位小数: 100=1.00）
 
 // 市场窗口（tick）
 export const MARKET_WINDOWS = {
@@ -28,13 +28,13 @@ export function percentToBps(percent: number): number {
   return Math.round(percent * 100);
 }
 
-// USDC 数量转换（链上 -> 显示）(1000000 -> 1)
+// USDC 数量转换（链上 -> 显示）(100 -> 1.00)
 export function fromUSDCPrecision(amount: string | number): number {
   const num = typeof amount === 'string' ? parseInt(amount) : amount;
   return num / AMOUNT_PRECISION;
 }
 
-// USDC 数量转换（显示 -> 链上）(1 -> 1000000)
+// USDC 数量转换（显示 -> 链上）(1.00 -> 100)
 export function toUSDCPrecision(amount: number): bigint {
   return BigInt(Math.floor(amount * AMOUNT_PRECISION));
 }

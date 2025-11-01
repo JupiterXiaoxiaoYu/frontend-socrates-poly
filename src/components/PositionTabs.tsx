@@ -2,7 +2,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { useMarket } from "../contexts";
 import { fromUSDCPrecision, parseTokenIdx, formatCurrency } from "../lib/calculations";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { useToast } from "../hooks/use-toast";
 
 interface Position {
   side: 'up' | 'down';
@@ -59,7 +60,8 @@ const mockOpenOrders: OpenOrder[] = [
 ];
 
 const PositionTabs = () => {
-  const { positions, orders, currentMarket, markets } = useMarket();
+  const { positions, orders, currentMarket, cancelOrder } = useMarket();
+  const { toast } = useToast();
 
   // 转换持仓数据
   const displayPositions = useMemo(() => {
@@ -100,6 +102,7 @@ const PositionTabs = () => {
         const price = parseInt(o.price) / 100; // BPS to percent
         
         return {
+          orderId: o.orderId,  // 添加 orderId
           side: o.direction === 1 ? 'up' : 'down' as 'up' | 'down',
           type: o.orderType === 0 ? 'Limit' : o.orderType === 1 ? 'Limit' : 'Market',
           price: `$${price.toFixed(2)}`,
@@ -109,6 +112,29 @@ const PositionTabs = () => {
         };
       });
   }, [orders, currentMarket]);
+
+  // 处理取消订单
+  const [cancellingOrderId, setCancellingOrderId] = useState<string | null>(null);
+  
+  const handleCancelOrder = async (orderId: string) => {
+    setCancellingOrderId(orderId);
+    try {
+      await cancelOrder(BigInt(orderId));
+      toast({
+        title: 'Order Cancelled',
+        description: 'Successfully cancelled order',
+      });
+    } catch (error) {
+      console.error('Cancel order failed:', error);
+      toast({
+        title: 'Cancel Failed',
+        description: error instanceof Error ? error.message : 'Failed to cancel order',
+        variant: 'destructive',
+      });
+    } finally {
+      setCancellingOrderId(null);
+    }
+  };
 
   return (
     <div className="border-t border-border bg-white">
@@ -239,15 +265,17 @@ const PositionTabs = () => {
                     <td className="text-right py-3">{order.shares}</td>
                     <td className="text-right py-3">{order.filled}</td>
                     <td className="text-right py-3">{order.total}</td>
-                    <td className="text-right py-3">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-danger hover:text-danger/70 h-8"
-                      >
-                        Cancel
-                      </Button>
-                    </td>
+                      <td className="text-right py-3">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-danger hover:text-danger/70 h-8"
+                          onClick={() => handleCancelOrder(order.orderId)}
+                          disabled={cancellingOrderId === order.orderId}
+                        >
+                          {cancellingOrderId === order.orderId ? 'Cancelling...' : 'Cancel'}
+                        </Button>
+                      </td>
                   </tr>
                 ))
                 )}

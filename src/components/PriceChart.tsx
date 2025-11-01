@@ -7,11 +7,19 @@ import { socratesOracleService, PriceData, PriceHistoryData } from '@/services/s
 interface PriceChartProps {
   targetPrice: number;
   currentPrice?: number;
+  onPriceUpdate?: (price: number) => void;  // 新增：价格更新回调
 }
 
-const PriceChart = ({ targetPrice, currentPrice }: PriceChartProps) => {
+const PriceChart = ({ targetPrice, currentPrice, onPriceUpdate }: PriceChartProps) => {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const [latestPrice, setLatestPrice] = useState<number | null>(currentPrice || null);
+  
+  // 当价格更新时通知父组件
+  useEffect(() => {
+    if (latestPrice !== null && onPriceUpdate) {
+      onPriceUpdate(latestPrice);
+    }
+  }, [latestPrice, onPriceUpdate]);
   const [isLoading, setIsLoading] = useState(true);
   const chartRef = useRef<any>(null);
   const lineSeriesRef = useRef<any>(null);

@@ -42,8 +42,11 @@ const MarketDetail = () => {
   const { 
     currentMarket, 
     globalState, 
-    positions, 
-    setCurrentMarketId, 
+    positions,
+    orders,
+    setCurrentMarketId,
+    placeOrder,
+    claim,
     isLoading 
   } = useMarket();
   const { l1Account, l2Account, isConnected, isL2Connected, connectL2 } = useWallet();
@@ -60,6 +63,32 @@ const MarketDetail = () => {
       setCurrentMarketId(null);
     };
   }, [id, setCurrentMarketId]);
+
+  // 计算市场当前价格（从订单簿）
+  const marketCurrentPrice = useMemo(() => {
+    if (!orders || orders.length === 0) return null;
+
+    // 获取活跃的买单和卖单
+    const activeOrders = orders.filter(o => o.status === 0);
+    if (activeOrders.length === 0) return null;
+
+    // 计算中间价（买一价 + 卖一价）/ 2
+    const buyOrders = activeOrders.filter(o => o.orderType === 0 || o.orderType === 2).sort((a, b) => parseInt(b.price) - parseInt(a.price));
+    const sellOrders = activeOrders.filter(o => o.orderType === 1 || o.orderType === 3).sort((a, b) => parseInt(a.price) - parseInt(b.price));
+
+    const bestBid = buyOrders[0] ? parseInt(buyOrders[0].price) / 100 : null; // BPS to percent
+    const bestAsk = sellOrders[0] ? parseInt(sellOrders[0].price) / 100 : null;
+
+    if (bestBid && bestAsk) {
+      return (bestBid + bestAsk) / 2;
+    } else if (bestBid) {
+      return bestBid;
+    } else if (bestAsk) {
+      return bestAsk;
+    }
+
+    return null;
+  }, [orders]);
 
   // 计算显示数据并转换为 TradingPanel 所需的 Market 格式
   const marketData = useMemo(() => {
@@ -91,7 +120,8 @@ const MarketDetail = () => {
       status: currentMarket.status,  // 保持数字类型（MarketStatus 枚举）
       statusLabel: getMarketStatusLabel(currentMarket.status),
       targetPrice,
-      currentPrice: targetPrice, // TODO: 从 Oracle 获取实时价格
+      currentPrice: marketCurrentPrice, // 从订单簿计算的价格
+      hasOrders: marketCurrentPrice !== null,
       yesChance: Math.round(yesChance),
       noChance: Math.round(noChance),
       totalVolume,
@@ -100,6 +130,9 @@ const MarketDetail = () => {
       endTick: parseInt(currentMarket.endTick),
       // 计算结束时间戳
       endTimestamp: parseInt(currentMarket.oracleStartTime) + (currentMarket.windowMinutes * 60),
+      // Oracle 价格
+      oracleStartPrice: parseInt(currentMarket.oracleStartPrice),
+      oracleEndPrice: parseInt(currentMarket.oracleEndPrice || '0'),
       // TradingPanel 需要的字段
       yesOrders: [],
       noOrders: [],
@@ -121,6 +154,61 @@ const MarketDetail = () => {
     const usdcPosition = positions.find(p => p.tokenIdx === '0');
     return usdcPosition ? fromUSDCPrecision(usdcPosition.balance) : 0;
   }, [positions]);
+
+  // 处理下单
+  const handlePlaceOrder = async (order: {
+    marketId: number;
+    orderType: any;
+    price: number;
+    amount: number;
+  }) => {
+    try {
+      // 转换参数格式
+      const direction = order.orderType === 0 || order.orderType === 2 ? 'UP' : 'DOWN';
+      const orderTypeStr = 
+        order.orderType === 0 ? 'limit_buy' :
+        order.orderType === 1 ? 'limit_sell' :
+        order.orderType === 2 ? 'market_buy' : 'market_sell';
+
+      await placeOrder({
+        marketId: BigInt(order.marketId),
+        direction,
+        orderType: orderTypeStr as any,
+        price: BigInt(order.price), // 已经是 BPS 格式，不需要再转换
+        amount: BigInt(order.amount), // 已经是正确的精度，不需要再转换
+      });
+
+      toast({
+        title: 'Order Placed',
+        description: `Successfully placed ${direction} ${orderTypeStr} order`,
+      });
+    } catch (error) {
+      console.error('Place order failed:', error);
+      toast({
+        title: 'Order Failed',
+        description: error instanceof Error ? error.message : 'Failed to place order',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  // 处理 Claim
+  const handleClaim = async (marketId: number) => {
+    try {
+      await claim(BigInt(marketId));
+      toast({
+        title: 'Claim Successful',
+        description: 'Successfully claimed winnings!',
+      });
+    } catch (error) {
+      console.error('Claim failed:', error);
+      toast({
+        title: 'Claim Failed',
+        description: error instanceof Error ? error.message : 'Failed to claim',
+        variant: 'destructive',
+      });
+    }
+  };
 
   // 检查是否已完全连接（L1 + L2）
   const isWalletConnected = isConnected && (isL2Connected || !!l2Account);
@@ -213,13 +301,22 @@ const MarketDetail = () => {
           <div className="flex items-center justify-between text-xs">
             <div className="hidden md:flex items-center gap-3">
               <div className="text-muted-foreground">
-                Current Price: <span className="text-foreground font-semibold">${marketData.currentPrice.toLocaleString()}</span>
+                Market Price: {marketData.hasOrders ? (
+                  <span className="font-semibold text-foreground">
+                    {marketData.currentPrice?.toFixed(2)}%
+                  </span>
+                ) : (
+                  <span className="text-muted-foreground text-xs">No orders</span>
+                )}
               </div>
               <div className="text-muted-foreground">
-                Price to Beat: <span className="text-foreground font-semibold">${marketData.targetPrice.toLocaleString()}</span>
+                Target: <span className="text-foreground font-semibold">${marketData.targetPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
-              <div className={marketData.currentPrice > marketData.targetPrice ? "text-success" : "text-danger"}>
-                Probability: <span className="font-semibold">{marketData.yesChance}%</span>
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground">Probability:</span>
+                <span className="text-success font-semibold">{marketData.yesChance}% UP</span>
+                <span className="text-muted-foreground">/</span>
+                <span className="text-danger font-semibold">{marketData.noChance}% DOWN</span>
               </div>
             </div>
 
@@ -282,7 +379,7 @@ const MarketDetail = () => {
                       <div className="h-full p-4">
                         <PriceChart
                           targetPrice={marketData.targetPrice}
-                          currentPrice={marketData.currentPrice}
+                          currentPrice={marketData.currentPrice || undefined}
                         />
                       </div>
                     </TabsContent>
@@ -340,6 +437,8 @@ const MarketDetail = () => {
                   market={marketData as any}
                   userBalance={userBalance}
                   isFeeExempt={false}
+                  onPlaceOrder={handlePlaceOrder}
+                  onClaim={handleClaim}
                 />
               ) : (
                 <div className="h-full flex items-center justify-center p-6">
@@ -388,6 +487,8 @@ const MarketDetail = () => {
                           market={marketData as any}
                           userBalance={userBalance}
                           isFeeExempt={false}
+                          onPlaceOrder={handlePlaceOrder}
+                          onClaim={handleClaim}
                         />
                       </div>
                     </SheetContent>

@@ -3,27 +3,76 @@ import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import PortfolioPnLChart from "@/components/PortfolioPnLChart";
-
-// Mock positions data
-const mockPositions = Array(5).fill(null).map((_, i) => ({
-  id: i + 1,
-  market: "Ethereum above $4,500 on December 31?",
-  side: "UP" as const,
-  shares: 24,
-  avg: 50,
-  now: 50,
-  cost: "$10.00",
-  estValue: "$100.00",
-  unrealizedPnL: "+$128.00(+41%)",
-}));
+import { useMarket } from "../contexts";
+import { fromUSDCPrecision, parseTokenIdx, formatCurrency, generateMarketTitle, fromPricePrecision } from "../lib/calculations";
+import { MarketStatus } from "../types/api";
 
 const Portfolio = () => {
   const navigate = useNavigate();
+  const { positions, markets, orders } = useMarket();
   const [timePeriod, setTimePeriod] = useState("1D");
   const [positionFilter, setPositionFilter] = useState("All");
+
+  // 计算 USDC 余额
+  const usdcBalance = useMemo(() => {
+    const usdcPosition = positions.find(p => p.tokenIdx === '0');
+    return usdcPosition ? fromUSDCPrecision(usdcPosition.balance) : 0;
+  }, [positions]);
+
+  // 转换持仓数据
+  const displayPositions = useMemo(() => {
+    return positions
+      .filter(p => p.tokenIdx !== '0') // 排除 USDC
+      .map(p => {
+        const tokenInfo = parseTokenIdx(parseInt(p.tokenIdx));
+        if (!tokenInfo) return null;
+        
+        const shares = fromUSDCPrecision(p.balance);
+        const marketId = tokenInfo.marketId;
+        const market = markets.find(m => m.marketId === marketId.toString());
+        
+        // 生成市场标题
+        let marketTitle = `Market #${marketId}`;
+        if (market) {
+          const asset = market.assetId === '1' ? 'BTC' : 'ETH';
+          const targetPrice = fromPricePrecision(market.oracleStartPrice);
+          marketTitle = generateMarketTitle(asset as any, targetPrice, parseInt(market.oracleStartTime));
+        }
+        
+        return {
+          id: p.tokenIdx,
+          marketId,
+          market: marketTitle,
+          side: tokenInfo.direction,
+          shares,
+          avg: 50, // TODO: 从历史计算
+          now: 50,
+          cost: formatCurrency(shares * 0.5),
+          estValue: formatCurrency(shares * 0.5),
+          unrealizedPnL: "$0.00 (0%)",
+          isResolved: market?.status === MarketStatus.Resolved,
+          canClaim: market?.status === MarketStatus.Resolved && 
+                   ((market.winningOutcome === 1 && tokenInfo.direction === 'UP') ||
+                    (market.winningOutcome === 0 && tokenInfo.direction === 'DOWN')),
+        };
+      })
+      .filter(Boolean);
+  }, [positions, markets]);
+
+  // 计算活跃订单
+  const activeOrders = useMemo(() => {
+    return orders.filter(o => o.status === 0);
+  }, [orders]);
+
+  // 计算可 Claim 金额
+  const claimableAmount = useMemo(() => {
+    return displayPositions
+      .filter((p: any) => p.canClaim)
+      .reduce((sum: number, p: any) => sum + p.shares, 0);
+  }, [displayPositions]);
 
   return (
     <div className="min-h-screen bg-white">
@@ -44,38 +93,39 @@ const Portfolio = () => {
             {/* Stats Grid */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <div className="text-sm text-muted-foreground mb-1">Portfolio</div>
-                <div className="text-3xl font-bold text-foreground">$3,950.22</div>
+                <div className="text-sm text-muted-foreground mb-1">Cash (USDC)</div>
+                <div className="text-3xl font-bold text-foreground">{formatCurrency(usdcBalance)}</div>
               </div>
               <div>
-                <div className="text-sm text-muted-foreground mb-1">Est.Value</div>
-                <div className="text-3xl font-bold text-success">+$10.36</div>
+                <div className="text-sm text-muted-foreground mb-1">Positions</div>
+                <div className="text-3xl font-bold text-foreground">{displayPositions.length}</div>
               </div>
               <div>
-                <div className="text-sm text-muted-foreground mb-1">Cash</div>
-                <div className="text-3xl font-bold text-foreground">$10.36</div>
+                <div className="text-sm text-muted-foreground mb-1">Active Orders</div>
+                <div className="text-3xl font-bold text-foreground">{activeOrders.length}</div>
               </div>
               <div>
-                <div className="text-sm text-muted-foreground mb-1">Realized P&L</div>
-                <div className="text-3xl font-bold text-success">+$3,950.22</div>
-                <div className="text-xs text-muted-foreground">Past day</div>
+                <div className="text-sm text-muted-foreground mb-1">To Claim</div>
+                <div className="text-3xl font-bold text-success">{formatCurrency(claimableAmount)}</div>
               </div>
             </div>
 
             {/* Claim Section */}
-            <Card className="p-4 border border-border bg-muted/20">
-              <div className="flex items-center justify-between">
-                <div className="text-base font-medium text-foreground">
-                  $20,000.53 to Claim
+            {claimableAmount > 0 && (
+              <Card className="p-4 border border-border bg-muted/20">
+                <div className="flex items-center justify-between">
+                  <div className="text-base font-medium text-foreground">
+                    {formatCurrency(claimableAmount)} to Claim
+                  </div>
+                  <Button
+                    className="bg-foreground text-background hover:bg-foreground/90"
+                    onClick={() => navigate('/rewards')}
+                  >
+                    Claim
+                  </Button>
                 </div>
-                <Button
-                  className="bg-foreground text-background hover:bg-foreground/90"
-                  onClick={() => navigate('/rewards')}
-                >
-                  Claim
-                </Button>
-              </div>
-            </Card>
+              </Card>
+            )}
           </div>
 
           {/* Right: Chart */}
@@ -105,23 +155,23 @@ const Portfolio = () => {
         {/* Positions Table */}
         <Card className="border border-border">
           {/* Tabs */}
-          <div className="border-b border-border">
-            <Tabs defaultValue="positions" className="w-full">
+          <Tabs defaultValue="positions" className="w-full">
+            <div className="border-b border-border">
               <div className="px-4">
                 <TabsList className="bg-transparent border-0 h-auto p-0">
                   <TabsTrigger 
                     value="positions" 
                     className="border-b-2 border-transparent data-[state=active]:border-primary rounded-none bg-transparent px-4 py-3"
                   >
-                    Positions(10)
+                    Positions({displayPositions.length})
                   </TabsTrigger>
                   <TabsTrigger 
                     value="orders" 
                     className="border-b-2 border-transparent data-[state=active]:border-primary rounded-none bg-transparent px-4 py-3"
                   >
-                    Open Orders(11)
+                    Open Orders({activeOrders.length})
                   </TabsTrigger>
-                    <TabsTrigger 
+                  <TabsTrigger 
                     value="history" 
                     className="border-b-2 border-transparent data-[state=active]:border-primary rounded-none bg-transparent px-4 py-3"
                   >
@@ -129,26 +179,26 @@ const Portfolio = () => {
                   </TabsTrigger>
                 </TabsList>
               </div>
-            </Tabs>
-          </div>
+            </div>
 
-          {/* Filter buttons */}
-          <div className="px-4 py-3 border-b border-border flex gap-2">
-            {["All", "Up", "Down"].map((filter) => (
-              <Button
-                key={filter}
-                variant={positionFilter === filter ? "default" : "ghost"}
-                size="sm"
-                onClick={() => setPositionFilter(filter)}
-                className="h-8 px-4"
-              >
-                {filter}
-              </Button>
-            ))}
-          </div>
+            {/* Filter buttons */}
+            <div className="px-4 py-3 border-b border-border flex gap-2">
+              {["All", "UP", "DOWN"].map((filter) => (
+                <Button
+                  key={filter}
+                  variant={positionFilter === filter ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setPositionFilter(filter)}
+                  className="h-8 px-4"
+                >
+                  {filter}
+                </Button>
+              ))}
+            </div>
 
-          {/* Table */}
-          <div className="overflow-x-auto">
+            {/* Positions Tab */}
+            <TabsContent value="positions" className="m-0">
+              <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="border-b border-border bg-muted/30">
                 <tr>
@@ -163,7 +213,14 @@ const Portfolio = () => {
                 </tr>
               </thead>
               <tbody>
-                {mockPositions.map((position) => (
+                {displayPositions.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="py-12 text-center text-muted-foreground">
+                      No positions yet
+                    </td>
+                  </tr>
+                ) : (
+                  (displayPositions as any[]).map((position) => (
                   <tr key={position.id} className="border-b border-border hover:bg-muted/20">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
@@ -199,12 +256,85 @@ const Portfolio = () => {
                         Sell
                       </Button>
                     </td>
-                  </tr>
-                ))}
+                </tr>
+                ))
+                )}
               </tbody>
             </table>
           </div>
-        </Card>
+        </TabsContent>
+
+        {/* Orders Tab */}
+        <TabsContent value="orders" className="m-0">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="border-b border-border bg-muted/30">
+                <tr>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Market</th>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Side</th>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Type</th>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Price</th>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Shares</th>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Filled</th>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {activeOrders.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="py-12 text-center text-muted-foreground">
+                      No open orders
+                    </td>
+                  </tr>
+                ) : (
+                  activeOrders.map((order: any) => (
+                    <tr key={order.orderId} className="border-b border-border hover:bg-muted/20">
+                      <td className="px-4 py-3 text-sm">
+                        Market #{Math.floor(parseInt(order.marketId))}
+                      </td>
+                      <td className="px-4 py-3">
+                        <Badge variant={order.direction === 1 ? "default" : "secondary"}>
+                          {order.direction === 1 ? 'UP' : 'DOWN'}
+                        </Badge>
+                      </td>
+                      <td className="px-4 py-3 text-sm">
+                        {order.orderType === 0 ? 'Limit Buy' : 
+                         order.orderType === 1 ? 'Limit Sell' :
+                         order.orderType === 2 ? 'Market Buy' : 'Market Sell'}
+                      </td>
+                      <td className="px-4 py-3 text-sm">
+                        {(parseInt(order.price) / 100).toFixed(2)}%
+                      </td>
+                      <td className="px-4 py-3 text-sm">
+                        {fromUSDCPrecision(order.totalAmount).toFixed(2)}
+                      </td>
+                      <td className="px-4 py-3 text-sm">
+                        {fromUSDCPrecision(order.filledAmount).toFixed(0)}/{fromUSDCPrecision(order.totalAmount).toFixed(0)}
+                      </td>
+                      <td className="px-4 py-3">
+                        <Button
+                          variant="link"
+                          size="sm"
+                          className="text-danger h-auto p-0 text-sm"
+                          onClick={() => navigate(`/market/${order.marketId}`)}
+                        >
+                          View
+                        </Button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </TabsContent>
+
+        {/* History Tab */}
+        <TabsContent value="history" className="m-0 p-8 text-center text-muted-foreground">
+          No trading history
+        </TabsContent>
+      </Tabs>
+    </Card>
       </main>
     </div>
   );

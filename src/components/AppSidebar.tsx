@@ -102,17 +102,15 @@ export function AppSidebar() {
         </div>
 
         <div className="flex items-center gap-2">
-          <Select value={selectedToken} onValueChange={setSelectedToken}>
-            <SelectTrigger className="flex-1 h-7 text-xs">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="BTC">BTC</SelectItem>
-              <SelectItem value="ETH">ETH</SelectItem>
-              <SelectItem value="USDT">USDT</SelectItem>
-              <SelectItem value="USDC">USDC</SelectItem>
-            </SelectContent>
-          </Select>
+            <Select value={selectedToken} onValueChange={setSelectedToken}>
+              <SelectTrigger className="flex-1 h-7 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="BTC">BTC</SelectItem>
+                <SelectItem value="ETH">ETH</SelectItem>
+              </SelectContent>
+            </Select>
 
           <Select value={selectedDuration} onValueChange={setSelectedDuration}>
             <SelectTrigger className="flex-1 h-7 text-xs">

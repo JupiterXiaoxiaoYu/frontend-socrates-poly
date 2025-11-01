@@ -53,6 +53,7 @@ export interface Market {
   volume?: number;
   traders?: number;
   liquidity?: number;
+  timeRemaining?: number; // 剩余时间（毫秒）
 }
 
 export interface Order {
