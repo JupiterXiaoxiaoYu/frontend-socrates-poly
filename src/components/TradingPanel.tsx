@@ -221,8 +221,9 @@ const TradingPanel = ({
     );
   }
 
-  // Market is resolved but user lost
-  if (market?.status === MarketStatus.RESOLVED && !hasWinnings) {
+  // Market is resolved but user lost (only show if user had a position)
+  const hadPosition = userPositions && userPositions.length > 0;
+  if (market?.status === MarketStatus.RESOLVED && !hasWinnings && hadPosition) {
     return (
       <div className={cn("p-6 space-y-4", className)}>
         <Card className="border-red-200 bg-red-50">

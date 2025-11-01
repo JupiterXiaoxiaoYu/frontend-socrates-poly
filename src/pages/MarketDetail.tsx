@@ -19,20 +19,15 @@ import {
   SheetTrigger,
 } from "../components/ui/sheet";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "../components/ui/dialog";
-import {
   ResizablePanelGroup,
   ResizablePanel,
   ResizableHandle,
 } from "../components/ui/resizable";
-import { TrendingUp, Users, DollarSign, Wallet } from "lucide-react";
+import { Wallet, DollarSign } from "lucide-react";
 import { useMarket } from "../contexts";
 import { useWallet } from "../contexts";
+import { useConnectModal } from "zkwasm-minirollup-browser";
+import { useToast } from "../hooks/use-toast";
 import { 
   calculateProbabilities, 
   fromUSDCPrecision, 
@@ -51,9 +46,10 @@ const MarketDetail = () => {
     setCurrentMarketId, 
     isLoading 
   } = useMarket();
-  const { l1Account, l2Account } = useWallet();
+  const { l1Account, l2Account, isConnected, isL2Connected, connectL2 } = useWallet();
+  const { openConnectModal } = useConnectModal();
+  const { toast } = useToast();
   const [isTradingOpen, setIsTradingOpen] = useState(false);
-  const [showLoginDialog, setShowLoginDialog] = useState(false);
 
   // 设置当前市场 ID
   useEffect(() => {
@@ -92,8 +88,8 @@ const MarketDetail = () => {
       id: parseInt(currentMarket.marketId),
       marketId: parseInt(currentMarket.marketId),
       title,
-      status: getMarketStatusLabel(currentMarket.status),
-      statusValue: currentMarket.status,
+      status: currentMarket.status,  // 保持数字类型（MarketStatus 枚举）
+      statusLabel: getMarketStatusLabel(currentMarket.status),
       targetPrice,
       currentPrice: targetPrice, // TODO: 从 Oracle 获取实时价格
       yesChance: Math.round(yesChance),
@@ -102,6 +98,8 @@ const MarketDetail = () => {
       windowMinutes: currentMarket.windowMinutes,
       startTick: parseInt(currentMarket.startTick),
       endTick: parseInt(currentMarket.endTick),
+      // 计算结束时间戳
+      endTimestamp: parseInt(currentMarket.oracleStartTime) + (currentMarket.windowMinutes * 60),
       // TradingPanel 需要的字段
       yesOrders: [],
       noOrders: [],
@@ -124,13 +122,43 @@ const MarketDetail = () => {
     return usdcPosition ? fromUSDCPrecision(usdcPosition.balance) : 0;
   }, [positions]);
 
-  // 检查是否已连接钱包
-  const isWalletConnected = !!l1Account && !!l2Account;
+  // 检查是否已完全连接（L1 + L2）
+  const isWalletConnected = isConnected && (isL2Connected || !!l2Account);
+
+  // 处理钱包连接（与 WalletButton 一致）
+  const handleConnectWallet = async () => {
+    try {
+      if (!isConnected) {
+        // 打开 RainbowKit 连接模态框
+        console.log('Opening connect modal...');
+        openConnectModal?.();
+      } else if (!isL2Connected && !l2Account) {
+        // 连接 L2
+        console.log('Connecting to L2...');
+        toast({
+          title: 'Connecting to App...',
+          description: 'Please sign the message to connect',
+        });
+        await connectL2();
+        toast({
+          title: 'Connected!',
+          description: 'Successfully connected to the prediction market',
+        });
+      }
+    } catch (error) {
+      console.error('Failed to connect wallet:', error);
+      toast({
+        title: 'Connection Failed',
+        description: 'Failed to connect. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
 
   // 处理交易按钮点击
   const handleTradingClick = () => {
     if (!isWalletConnected) {
-      setShowLoginDialog(true);
+      handleConnectWallet();
     } else {
       setIsTradingOpen(true);
     }
@@ -172,10 +200,9 @@ const MarketDetail = () => {
       
       <div className="flex items-center gap-2 px-4 py-3 border-b border-border bg-white">
         <h1 className="text-sm font-medium text-foreground flex-1">{marketData.title}</h1>
-        <StatusBadge status={marketData.statusValue} />
+        <StatusBadge status={marketData.status} />
         <CountdownTimer
-          targetTick={marketData.endTick}
-          currentTick={globalState ? parseInt(globalState.counter) : marketData.startTick}
+          targetTimestamp={marketData.endTimestamp}
           format="compact"
         />
       </div>
@@ -326,7 +353,7 @@ const MarketDetail = () => {
                         Connect your wallet to start trading
                       </p>
                     </div>
-                    <Button onClick={() => setShowLoginDialog(true)}>
+                    <Button onClick={handleConnectWallet}>
                       Connect Wallet
                     </Button>
                   </div>
@@ -378,7 +405,7 @@ const MarketDetail = () => {
                 <Button
                   size="lg"
                   className="flex-1 h-12 bg-primary hover:bg-primary/90 text-white font-semibold text-base rounded-full"
-                  onClick={() => setShowLoginDialog(true)}
+                  onClick={handleConnectWallet}
                 >
                   <Wallet className="w-5 h-5 mr-2" />
                   Connect Wallet to Trade
@@ -388,28 +415,6 @@ const MarketDetail = () => {
           </div>
         </div>
 
-        {/* Login Dialog */}
-        <Dialog open={showLoginDialog} onOpenChange={setShowLoginDialog}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Connect Wallet Required</DialogTitle>
-              <DialogDescription>
-                You need to connect your wallet to trade in this market.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <p className="text-sm text-muted-foreground">
-                Please use the wallet button in the header to connect your wallet.
-              </p>
-              <Button 
-                className="w-full" 
-                onClick={() => setShowLoginDialog(false)}
-              >
-                OK
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
 
         {/* Bottom padding for mobile to prevent content being hidden behind bottom bar */}
         <div className="lg:hidden h-24" />

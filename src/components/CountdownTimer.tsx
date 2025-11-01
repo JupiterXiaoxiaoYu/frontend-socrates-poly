@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react';
 import { Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatCountdown, formatCountdownVerbose } from '@/lib/formatters';
-import { TICK_SECONDS } from '@/lib/constants';
 
 interface CountdownTimerProps {
-  targetTick: number;
-  currentTick: number;
+  // 支持两种模式：基于 tick 或基于时间戳
+  targetTick?: number;
+  currentTick?: number;
   tickSeconds?: number;
+  // 或者直接使用时间戳（推荐）
+  targetTimestamp?: number; // Unix timestamp in seconds
   format?: 'full' | 'compact' | 'minimal';
   onExpire?: () => void;
   className?: string;
@@ -16,19 +18,33 @@ interface CountdownTimerProps {
 const CountdownTimer = ({
   targetTick,
   currentTick,
-  tickSeconds = TICK_SECONDS,
+  tickSeconds = 5,
+  targetTimestamp,
   format = 'compact',
   onExpire,
   className,
 }: CountdownTimerProps) => {
-  const [timeRemaining, setTimeRemaining] = useState<number>(
-    (targetTick - currentTick) * tickSeconds
-  );
+  // 计算初始剩余时间
+  const calculateInitialTime = (): number => {
+    if (targetTimestamp) {
+      // 使用时间戳模式
+      const now = Math.floor(Date.now() / 1000);
+      return Math.max(0, targetTimestamp - now);
+    } else if (targetTick !== undefined && currentTick !== undefined) {
+      // 使用 tick 模式
+      return Math.max(0, (targetTick - currentTick) * tickSeconds);
+    }
+    return 0;
+  };
 
+  const [timeRemaining, setTimeRemaining] = useState<number>(calculateInitialTime);
+
+  // 当 targetTimestamp 或 ticks 变化时重新计算
   useEffect(() => {
-    setTimeRemaining((targetTick - currentTick) * tickSeconds);
-  }, [targetTick, currentTick, tickSeconds]);
+    setTimeRemaining(calculateInitialTime());
+  }, [targetTimestamp, targetTick, currentTick, tickSeconds]);
 
+  // 倒计时逻辑
   useEffect(() => {
     if (timeRemaining <= 0) {
       onExpire?.();

@@ -1,5 +1,8 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
+import { useMarket } from "../contexts";
+import { fromUSDCPrecision, parseTokenIdx, formatCurrency } from "../lib/calculations";
+import { useMemo } from "react";
 
 interface Position {
   side: 'up' | 'down';
@@ -56,6 +59,57 @@ const mockOpenOrders: OpenOrder[] = [
 ];
 
 const PositionTabs = () => {
+  const { positions, orders, currentMarket, markets } = useMarket();
+
+  // 转换持仓数据
+  const displayPositions = useMemo(() => {
+    if (!currentMarket) return [];
+    
+    return positions
+      .filter(p => p.tokenIdx !== '0') // 排除 USDC
+      .map(p => {
+        const tokenInfo = parseTokenIdx(parseInt(p.tokenIdx));
+        if (!tokenInfo) return null;
+        
+        const shares = fromUSDCPrecision(p.balance);
+        const locked = fromUSDCPrecision(p.lockBalance);
+        
+        return {
+          side: tokenInfo.direction.toLowerCase() as 'up' | 'down',
+          shares,
+          avg: '$0.50', // TODO: 需要从历史计算
+          now: '$0.50',
+          cost: formatCurrency(shares * 0.5),
+          estValue: formatCurrency(shares * 0.5),
+          unrealizedPnL: '$0.00 (0%)',
+          pnlPercent: '0%',
+        };
+      })
+      .filter(Boolean) as Position[];
+  }, [positions, currentMarket]);
+
+  // 转换订单数据  
+  const displayOrders = useMemo(() => {
+    if (!currentMarket) return [];
+    
+    return orders
+      .filter(o => o.status === 0) // 只显示活跃订单
+      .map(o => {
+        const shares = fromUSDCPrecision(o.totalAmount);
+        const filled = fromUSDCPrecision(o.filledAmount);
+        const price = parseInt(o.price) / 100; // BPS to percent
+        
+        return {
+          side: o.direction === 1 ? 'up' : 'down' as 'up' | 'down',
+          type: o.orderType === 0 ? 'Limit' : o.orderType === 1 ? 'Limit' : 'Market',
+          price: `$${price.toFixed(2)}`,
+          shares,
+          filled: `${filled.toFixed(0)}/${shares.toFixed(0)}`,
+          total: formatCurrency(shares * price / 100),
+        };
+      });
+  }, [orders, currentMarket]);
+
   return (
     <div className="border-t border-border bg-white">
       <Tabs defaultValue="positions" className="w-full">
@@ -64,13 +118,13 @@ const PositionTabs = () => {
             value="positions"
             className="rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent px-6 py-3"
           >
-            Position(6)
+            Position({displayPositions.length})
           </TabsTrigger>
           <TabsTrigger
             value="orders"
             className="rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent px-6 py-3"
           >
-            Open orders(3)
+            Open orders({displayOrders.length})
           </TabsTrigger>
           <TabsTrigger
             value="history"
@@ -101,37 +155,44 @@ const PositionTabs = () => {
                 </tr>
               </thead>
               <tbody>
-                {mockPositions.map((position, i) => (
-                  <tr key={i} className="border-b border-border last:border-0">
-                    <td className="py-3">
-                      <span
-                        className={`inline-block px-2 py-1 rounded text-xs font-medium ${
-                          position.side === 'up'
-                            ? 'bg-success text-white'
-                            : 'bg-danger text-white'
-                        }`}
-                      >
-                        {position.side === 'up' ? 'Up' : `${position.shares} Down`}
-                      </span>
-                    </td>
-                    <td className="text-right py-3">{position.avg}</td>
-                    <td className="text-right py-3">{position.now}</td>
-                    <td className="text-right py-3">{position.cost}</td>
-                    <td className="text-right py-3">{position.estValue}</td>
-                    <td className="text-right py-3 text-success font-medium">
-                      {position.unrealizedPnL}
-                    </td>
-                    <td className="text-right py-3">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-primary hover:text-primary/70 h-8"
-                      >
-                        Sell
-                      </Button>
+                {displayPositions.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="py-8 text-center text-muted-foreground text-sm">
+                      No positions in this market
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  displayPositions.map((position, i) => (
+                    <tr key={i} className="border-b border-border last:border-0">
+                      <td className="py-3">
+                        <span
+                          className={`inline-block px-2 py-1 rounded text-xs font-medium ${
+                            position.side === 'up'
+                              ? 'bg-success text-white'
+                              : 'bg-danger text-white'
+                          }`}
+                        >
+                          {position.side === 'up' ? 'Up' : `${position.shares} Down`}
+                        </span>
+                      </td>
+                      <td className="text-right py-3">{position.avg}</td>
+                      <td className="text-right py-3">{position.now}</td>
+                      <td className="text-right py-3">{position.cost}</td>
+                      <td className="text-right py-3">{position.estValue}</td>
+                      <td className="text-right py-3 text-success font-medium">
+                        {position.unrealizedPnL}
+                      </td>
+                      <td className="text-right py-3">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-primary hover:text-primary/70 h-8"
+                        >
+                          Sell
+                        </Button>
+                      </td>
+                    </tr>
+                  )))}
               </tbody>
             </table>
           </div>
@@ -151,7 +212,14 @@ const PositionTabs = () => {
                 </tr>
               </thead>
               <tbody>
-                {mockOpenOrders.map((order, i) => (
+                {displayOrders.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="py-8 text-center text-muted-foreground text-sm">
+                      No open orders
+                    </td>
+                  </tr>
+                ) : (
+                  displayOrders.map((order, i) => (
                   <tr key={i} className="border-b border-border last:border-0">
                     <td className="py-3">
                       <div className="flex items-center gap-2">
@@ -181,7 +249,8 @@ const PositionTabs = () => {
                       </Button>
                     </td>
                   </tr>
-                ))}
+                ))
+                )}
               </tbody>
             </table>
           </div>

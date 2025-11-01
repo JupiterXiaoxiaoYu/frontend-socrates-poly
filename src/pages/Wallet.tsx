@@ -2,8 +2,11 @@ import Header from "@/components/Header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Eye, EyeOff, Download, Upload, FileText, ChevronLeft, ChevronRight } from "lucide-react";
-import { useState } from "react";
+import { Eye, EyeOff, Download, Upload, FileText, ChevronLeft, ChevronRight, Copy, Check } from "lucide-react";
+import { useState, useMemo } from "react";
+import { useMarket } from "../contexts";
+import { fromUSDCPrecision, formatCurrency } from "../lib/calculations";
+import { useToast } from "../hooks/use-toast";
 
 interface Asset {
   id: string;
@@ -115,12 +118,32 @@ const mockTransactions: Transaction[] = [
 ];
 
 const Wallet = () => {
+  const { positions, playerId } = useMarket();
+  const { toast } = useToast();
   const [hideBalance, setHideBalance] = useState(false);
   const [hideSmallBalances, setHideSmallBalances] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [copiedPid, setCopiedPid] = useState(false);
   const itemsPerPage = 6;
 
-  const totalBalance = 156763.5317;
+  // 计算 USDC 余额
+  const usdcBalance = useMemo(() => {
+    const usdcPosition = positions.find(p => p.tokenIdx === '0');
+    return usdcPosition ? fromUSDCPrecision(usdcPosition.balance) : 0;
+  }, [positions]);
+
+  // 复制 Player ID
+  const handleCopyPid = () => {
+    if (!playerId) return;
+    const pidString = `[${playerId[0]}, ${playerId[1]}]`;
+    navigator.clipboard.writeText(pidString);
+    setCopiedPid(true);
+    toast({
+      title: 'Copied!',
+      description: 'Player ID copied to clipboard',
+    });
+    setTimeout(() => setCopiedPid(false), 2000);
+  };
 
   // Pagination logic
   const totalPages = Math.ceil(mockTransactions.length / itemsPerPage);
@@ -151,12 +174,38 @@ const Wallet = () => {
       <main className="container mx-auto px-4 py-6 max-w-4xl">
         <h1 className="text-2xl font-bold mb-6 text-foreground">Wallet</h1>
 
+        {/* Player ID Card */}
+        {playerId && (
+          <Card className="p-4 border border-border mb-4 bg-muted/20">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-xs text-muted-foreground mb-1">Player ID</div>
+                <div className="font-mono text-sm text-foreground">
+                  [{playerId[0]}, {playerId[1]}]
+                </div>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleCopyPid}
+                className="h-8"
+              >
+                {copiedPid ? (
+                  <Check className="w-4 h-4 text-success" />
+                ) : (
+                  <Copy className="w-4 h-4" />
+                )}
+              </Button>
+            </div>
+          </Card>
+        )}
+
         {/* Balance Card */}
         <Card className="p-6 border border-border mb-6">
           <div className="flex items-start justify-between mb-4">
             <div>
               <div className="flex items-center gap-2 mb-2">
-                <span className="text-sm text-muted-foreground">Estimated Assets</span>
+                <span className="text-sm text-muted-foreground">USDC Balance</span>
                 <button 
                   onClick={() => setHideBalance(!hideBalance)}
                   className="text-muted-foreground hover:text-foreground"
@@ -165,7 +214,7 @@ const Wallet = () => {
                 </button>
               </div>
               <div className="text-3xl font-bold text-foreground">
-                {hideBalance ? "****" : `$${totalBalance.toLocaleString('en-US', { minimumFractionDigits: 4 })}`}
+                {hideBalance ? "****" : formatCurrency(usdcBalance, 4)}
               </div>
             </div>
 
