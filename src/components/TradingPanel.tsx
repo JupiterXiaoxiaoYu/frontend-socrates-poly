@@ -53,6 +53,11 @@ const QUICK_AMOUNTS = [10, 50, 100, 500, 1000];
 const FEE_RATE = 0.02; // 2% protocol fee
 const MIN_ORDER_AMOUNT = 1; // 最小订单金额 1 USDC (后端精度2位: 100=1.0，最小值100)
 
+// 向下取整到两位小数（用于百分数计算）
+const floorToTwoDecimals = (value: number): number => {
+  return Math.floor(value * 100) / 100;
+};
+
 const TradingPanel = ({
   market,
   pairedMarket,
@@ -224,12 +229,14 @@ const TradingPanel = ({
   const handleSliderChange = (value: number[]) => {
     setSliderValue(value);
     const newAmount = (userBalance * value[0]) / 100;
-    setAmount(newAmount);
+    // 向下取整到两位小数
+    setAmount(floorToTwoDecimals(newAmount));
   };
 
   const handlePercentClick = (percent: number) => {
     const newAmount = (userBalance * percent) / 100;
-    setAmount(newAmount);
+    // 向下取整到两位小数
+    setAmount(floorToTwoDecimals(newAmount));
     setSliderValue([percent]);
   };
 
@@ -294,9 +301,6 @@ const TradingPanel = ({
             {market.assetId === 1 ? "BTC" : market.assetId === 2 ? "ETH" : "SOL"}{" "}
             {market.outcomeType === 1 ? "UP" : "DOWN"}
           </h3>
-          <Badge variant={market.timeRemaining && market.timeRemaining < 60000 ? "destructive" : "secondary"}>
-            {market.timeRemaining ? formatTimeRemaining(market.timeRemaining) : "Active"}
-          </Badge>
         </div>
         {pairedMarket && (
           <div className="text-xs text-muted-foreground">
@@ -376,8 +380,18 @@ const TradingPanel = ({
             /* 市场活跃 - 显示交易表单 */
             <Tabs value={action} onValueChange={(v) => setAction(v as "buy" | "sell")} className="space-y-4">
               <TabsList className="grid w-full grid-cols-2 h-10">
-                <TabsTrigger value="buy">Buy</TabsTrigger>
-                <TabsTrigger value="sell">Sell</TabsTrigger>
+                <TabsTrigger
+                  value="buy"
+                  className="data-[state=active]:bg-black data-[state=active]:text-white dark:data-[state=active]:bg-white dark:data-[state=active]:text-black font-semibold"
+                >
+                  Buy
+                </TabsTrigger>
+                <TabsTrigger
+                  value="sell"
+                  className="data-[state=active]:bg-black data-[state=active]:text-white dark:data-[state=active]:bg-white dark:data-[state=active]:text-black font-semibold"
+                >
+                  Sell
+                </TabsTrigger>
               </TabsList>
 
               <TabsContent value={action} className="space-y-4 m-0">
@@ -447,11 +461,31 @@ const TradingPanel = ({
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
                     <Input
                       type="number"
-                      value={amount || ""}
-                      onChange={(e) => setAmount(Number(e.target.value))}
+                      value={amount === 0 ? "" : amount.toFixed(2)}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === "" || val === ".") {
+                          setAmount(0);
+                        } else {
+                          const numVal = Number(val);
+                          if (!isNaN(numVal)) {
+                            setAmount(numVal);
+                          }
+                        }
+                      }}
+                      onBlur={(e) => {
+                        const val = Number(e.target.value);
+                        if (!isNaN(val)) {
+                          // 用户直接输入时，保留两位小数（不向下取整）
+                          setAmount(val === 0 ? 0 : Number(val.toFixed(2)));
+                        } else {
+                          setAmount(0);
+                        }
+                      }}
                       className="pl-7 h-12 text-lg font-semibold"
                       placeholder="0.00"
                       min={MIN_ORDER_AMOUNT}
+                      step="0.01"
                     />
                   </div>
                   {amount > 0 && amount < MIN_ORDER_AMOUNT && (
