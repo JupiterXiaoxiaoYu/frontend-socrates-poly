@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { createChart, LineStyle, ColorType, AreaSeries as AreaSeriesType } from "lightweight-charts";
+import { createChart, LineStyle, ColorType, AreaSeries as AreaSeriesType, Time } from "lightweight-charts";
+import { useTheme } from "next-themes";
 import { Card } from "@/components/ui/card";
 import { PartialPriceLine } from "@/lib/chart/PartialPriceLine";
 import { socratesOracleService, PriceData, PriceHistoryData } from "@/services/socratesOracle";
@@ -13,6 +14,8 @@ interface PriceChartProps {
 const PriceChart = ({ targetPrice, currentPrice, onPriceUpdate }: PriceChartProps) => {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const [latestPrice, setLatestPrice] = useState<number | null>(currentPrice || null);
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
 
   // 当价格更新时通知父组件
   useEffect(() => {
@@ -27,7 +30,6 @@ const PriceChart = ({ targetPrice, currentPrice, onPriceUpdate }: PriceChartProp
   const smoothPriceRef = useRef<number | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const targetPriceRef = useRef<number | null>(null);
-  const smoothDataRef = useRef<Array<{ time: number; value: number }>>([]);
 
   useEffect(() => {
     if (!chartContainerRef.current) return;
@@ -36,25 +38,27 @@ const PriceChart = ({ targetPrice, currentPrice, onPriceUpdate }: PriceChartProp
     let unsubscribe: (() => void) | null = null;
 
     const initializeChart = async () => {
-      // Create chart with Chinese localization
+      if (!chartContainerRef.current) return;
+
+      // Create chart with dark mode support
       const chart = createChart(chartContainerRef.current, {
         layout: {
-          background: { type: ColorType.Solid, color: "#ffffff" },
-          textColor: "#999999",
+          background: { type: ColorType.Solid, color: isDark ? "#0b0b0b" : "#ffffff" },
+          textColor: isDark ? "#e5e5e5" : "#999999",
         },
         grid: {
-          vertLines: { color: "#f0f0f0" },
-          horzLines: { color: "#f0f0f0" },
+          vertLines: { color: isDark ? "rgba(80, 80, 80, 0.5)" : "#f0f0f0" },
+          horzLines: { color: isDark ? "rgba(80, 80, 80, 0.5)" : "#f0f0f0" },
         },
         width: chartContainerRef.current.clientWidth,
         height: chartContainerRef.current.clientHeight,
         timeScale: {
           timeVisible: true,
           secondsVisible: true,
-          borderColor: "#e0e0e0",
+          borderColor: isDark ? "rgba(80, 80, 80, 1)" : "#e0e0e0",
         },
         rightPriceScale: {
-          borderColor: "#e0e0e0",
+          borderColor: isDark ? "rgba(80, 80, 80, 1)" : "#e0e0e0",
         },
         localization: {
           locale: "en-US",
@@ -101,7 +105,7 @@ const PriceChart = ({ targetPrice, currentPrice, onPriceUpdate }: PriceChartProp
       lineSeriesRef.current = lineSeries;
 
       // Add custom partial price line with circle
-      const partialPriceLine = new PartialPriceLine();
+      const partialPriceLine = new PartialPriceLine(isDark);
       lineSeries.attachPrimitive(partialPriceLine);
       partialPriceLineRef.current = partialPriceLine;
 
@@ -122,7 +126,7 @@ const PriceChart = ({ targetPrice, currentPrice, onPriceUpdate }: PriceChartProp
         if (isSubscribed && historyData.prices && historyData.prices.length > 0) {
           // Convert historical data to chart format
           const chartData = historyData.prices.map((point) => ({
-            time: point.unix_time,
+            time: point.unix_time as Time,
             value: parseFloat(point.price),
           }));
 
@@ -144,7 +148,7 @@ const PriceChart = ({ targetPrice, currentPrice, onPriceUpdate }: PriceChartProp
         let basePrice = currentPrice || 120000;
 
         for (let i = 60; i >= 0; i--) {
-          const time = now - i;
+          const time = (now - i) as Time;
           const volatility = 50;
           const change = (Math.random() - 0.5) * volatility;
           basePrice = basePrice + change * 0.3;
@@ -188,14 +192,14 @@ const PriceChart = ({ targetPrice, currentPrice, onPriceUpdate }: PriceChartProp
 
           // Update the smooth data
           const smoothPoint = {
-            time: currentTime,
+            time: currentTime as Time,
             value: smoothValue,
           };
 
           // Update chart with smooth point
           lineSeries.update(smoothPoint);
-          if (partialPriceLine) {
-            partialPriceLine.updateAllViews();
+          if (partialPriceLineRef.current) {
+            partialPriceLineRef.current.updateAllViews();
           }
 
           smoothPriceRef.current = smoothValue;
@@ -255,6 +259,32 @@ const PriceChart = ({ targetPrice, currentPrice, onPriceUpdate }: PriceChartProp
       }
     };
   }, [targetPrice, currentPrice]);
+
+  // 主题变化时更新图表样式
+  useEffect(() => {
+    if (!chartRef.current) return;
+    chartRef.current.applyOptions({
+      layout: {
+        background: { type: ColorType.Solid, color: isDark ? "#0b0b0b" : "#ffffff" },
+        textColor: isDark ? "#e5e5e5" : "#999999",
+      },
+      grid: {
+        vertLines: { color: isDark ? "rgba(80, 80, 80, 0.5)" : "#f0f0f0" },
+        horzLines: { color: isDark ? "rgba(80, 80, 80, 0.5)" : "#f0f0f0" },
+      },
+      timeScale: {
+        borderColor: isDark ? "rgba(80, 80, 80, 1)" : "#e0e0e0",
+      },
+      rightPriceScale: {
+        borderColor: isDark ? "rgba(80, 80, 80, 1)" : "#e0e0e0",
+      },
+    });
+    // 更新 PartialPriceLine 的主题
+    if (partialPriceLineRef.current) {
+      partialPriceLineRef.current.setDarkMode(isDark);
+      partialPriceLineRef.current.updateAllViews();
+    }
+  }, [isDark]);
 
   return (
     <Card className="p-4 border border-border bg-card h-full flex flex-col">
