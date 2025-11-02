@@ -295,7 +295,7 @@ const Wallet = () => {
             </div>
 
             <div className="flex gap-3">
-              <Button 
+              <Button
                 className="flex flex-col items-center gap-1 h-auto py-3 px-4 bg-foreground text-background hover:bg-foreground/90"
                 onClick={() => setShowDepositDialog(true)}
                 disabled={!playerId}
@@ -303,8 +303,8 @@ const Wallet = () => {
                 <Download className="w-5 h-5" />
                 <span className="text-xs">Deposit</span>
               </Button>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="flex flex-col items-center gap-1 h-auto py-3 px-4"
                 onClick={() => setShowWithdrawDialog(true)}
                 disabled={!playerId || usdcBalance === 0}
@@ -312,10 +312,10 @@ const Wallet = () => {
                 <Upload className="w-5 h-5" />
                 <span className="text-xs">Withdraw</span>
               </Button>
-              <Button variant="outline" className="flex flex-col items-center gap-1 h-auto py-3 px-4">
+              {/* <Button variant="outline" className="flex flex-col items-center gap-1 h-auto py-3 px-4">
                 <FileText className="w-5 h-5" />
                 <span className="text-xs">History</span>
-              </Button>
+              </Button> */}
             </div>
           </div>
         </Card>

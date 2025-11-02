@@ -12,39 +12,37 @@ interface OrderBookEntry {
 
 interface OrderBookProps {
   marketId: number;
-  direction?: 'UP' | 'DOWN'; // 新增：显示哪个方向的订单
+  direction?: "UP" | "DOWN"; // 新增：显示哪个方向的订单
 }
 
-const OrderBook = ({ marketId, direction = 'UP' }: OrderBookProps) => {
+const OrderBook = ({ marketId, direction = "UP" }: OrderBookProps) => {
   const { orders } = useMarket();
 
   // 从真实订单构建订单簿（只显示指定方向的）
   const { bids, asks } = useMemo(() => {
-    const directionValue = direction === 'UP' ? 1 : 0;
-    
+    const directionValue = direction === "UP" ? 1 : 0;
+
     // 只获取指定方向的活跃订单
-    const activeOrders = orders.filter(o => 
-      o.status === 0 && o.direction === directionValue
-    );
-    
+    const activeOrders = orders.filter((o) => o.status === 0 && o.direction === directionValue);
+
     // 买单（按价格降序）
     const buyOrders = activeOrders
-      .filter(o => o.orderType === 0 || o.orderType === 2)
+      .filter((o) => o.orderType === 0 || o.orderType === 2)
       .sort((a, b) => parseInt(b.price) - parseInt(a.price));
-    
+
     // 卖单（按价格升序）
     const sellOrders = activeOrders
-      .filter(o => o.orderType === 1 || o.orderType === 3)
+      .filter((o) => o.orderType === 1 || o.orderType === 3)
       .sort((a, b) => parseInt(a.price) - parseInt(b.price));
 
     // 聚合相同价格的订单
     const aggregateOrders = (orderList: any[]): OrderBookEntry[] => {
       const priceMap = new Map<number, number>();
-      
-      orderList.forEach(order => {
+
+      orderList.forEach((order) => {
         const price = parseInt(order.price) / 100; // BPS to percent
         const remaining = fromUSDCPrecision(order.totalAmount) - fromUSDCPrecision(order.filledAmount);
-        
+
         priceMap.set(price, (priceMap.get(price) || 0) + remaining);
       });
 
@@ -59,7 +57,7 @@ const OrderBook = ({ marketId, direction = 'UP' }: OrderBookProps) => {
       bids: aggregateOrders(buyOrders).slice(0, 10),
       asks: aggregateOrders(sellOrders).slice(0, 10),
     };
-  }, [orders.length, direction]); // 只在订单数量或方向变化时更新
+  }, [orders, direction]); // 订单内容或方向变化时更新
 
   const maxTotal = Math.max(...bids.map((b) => b.total), ...asks.map((a) => a.total));
 
@@ -76,7 +74,9 @@ const OrderBook = ({ marketId, direction = 'UP' }: OrderBookProps) => {
           style={{ width: `${percentage}%` }}
         />
         <div className={cn("relative", isAsk ? "text-danger" : "text-success")}>{order.price.toFixed(1)}%</div>
-        <div className="relative text-right">{order.amount.toLocaleString()}</div>
+        <div className="relative text-right">
+          {order.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+        </div>
         <div className="relative text-right text-muted-foreground">{order.total.toLocaleString()}</div>
       </div>
     );

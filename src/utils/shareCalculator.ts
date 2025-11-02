@@ -1,54 +1,52 @@
 /**
  * 份额计算工具
  * 基于 socrates-prediction-mkt 的手续费逻辑
- * 
+ *
  * 精度说明：
  * - USDC 精度：100 = 1.00 USDC（2位小数，美分精度）
  * - 价格精度：10000 = 100%（BPS，4位精度）
  */
 
 // 常量定义（与后端一致）
-export const PROTOCOL_FEE_BPS = 200;  // 2% = 200 basis points
-export const PRICE_PRECISION = 10000;  // 价格精度：10000 = 1.0 (100%)
-export const AMOUNT_PRECISION = 100;   // 金额精度：100 = 1.00 USDC（2位小数）
+export const PROTOCOL_FEE_BPS = 200; // 2% = 200 basis points
+export const PRICE_PRECISION = 10000; // 价格精度：10000 = 1.0 (100%)
+export const AMOUNT_PRECISION = 100; // 金额精度：100 = 1.00 USDC（2位小数）
 export const MIN_ORDER_AMOUNT_RAW = 100; // 后端最小订单数量（原始值，表示1.00 USDC）
 export const MIN_ORDER_AMOUNT_USDC = 1; // 前端显示的最小订单金额（USDC）
 
 export interface ShareCalculationInput {
-  price: number;           // 价格（0-1，例如 0.6 = 60%）
-  usdcAmount: number;      // 用户想投入的USDC金额
-  orderType: 'BUY' | 'SELL';  // 买入还是卖出
-  isFeeExempt?: boolean;   // 是否豁免手续费（默认false）
+  price: number; // 价格（0-1，例如 0.6 = 60%）
+  usdcAmount: number; // 用户想投入的USDC金额
+  orderType: "BUY" | "SELL"; // 买入还是卖出
+  isFeeExempt?: boolean; // 是否豁免手续费（默认false）
 }
 
 export interface ShareCalculationResult {
-  shareAmount: number;      // 能得到的份额数量
-  actualCost: number;       // 实际本金成本
-  feeAmount: number;        // 手续费金额
-  totalCost: number;        // 总成本（本金+手续费）
-  effectivePrice: number;   // 有效价格（含手续费后的单价，0-1范围）
-  rawShareAmount: number;   // 后端使用的原始份额数量
+  shareAmount: number; // 能得到的份额数量
+  actualCost: number; // 实际本金成本
+  feeAmount: number; // 手续费金额
+  totalCost: number; // 总成本（本金+手续费）
+  effectivePrice: number; // 有效价格（含手续费后的单价，0-1范围）
+  rawShareAmount: number; // 后端使用的原始份额数量
 }
 
 /**
  * 计算给定USDC投入能获得多少份额
  */
-export function calculateSharesFromUSDC(
-  input: ShareCalculationInput
-): ShareCalculationResult {
+export function calculateSharesFromUSDC(input: ShareCalculationInput): ShareCalculationResult {
   const { price, usdcAmount, orderType, isFeeExempt = false } = input;
 
   // 验证输入
   if (price <= 0 || price >= 1) {
-    throw new Error('价格必须在 0-1 之间');
+    throw new Error("价格必须在 0-1 之间");
   }
   if (usdcAmount <= 0) {
-    throw new Error('投入金额必须大于0');
+    throw new Error("投入金额必须大于0");
   }
 
   // 计算单份额的成本价格
   let pricePerShare: number;
-  if (orderType === 'BUY') {
+  if (orderType === "BUY") {
     // 买入：价格就是成本
     pricePerShare = price;
   } else {
@@ -57,9 +55,7 @@ export function calculateSharesFromUSDC(
   }
 
   // 计算手续费率
-  const feeMultiplier = isFeeExempt 
-    ? 1.0 
-    : 1 + (PROTOCOL_FEE_BPS / PRICE_PRECISION);
+  const feeMultiplier = isFeeExempt ? 1.0 : 1 + PROTOCOL_FEE_BPS / PRICE_PRECISION;
 
   // 反推份额数量（用户视角的份额数量）
   // total_cost = pricePerShare × amount × feeMultiplier
@@ -104,12 +100,12 @@ export function calculateSharesFromUSDC(
 export function calculateUSDCFromShares(
   price: number,
   shareAmount: number,
-  orderType: 'BUY' | 'SELL',
+  orderType: "BUY" | "SELL",
   isFeeExempt: boolean = false
 ): ShareCalculationResult {
   // 计算单份额的成本价格
   let pricePerShare: number;
-  if (orderType === 'BUY') {
+  if (orderType === "BUY") {
     pricePerShare = price;
   } else {
     pricePerShare = 1 - price;
@@ -119,9 +115,7 @@ export function calculateUSDCFromShares(
   const actualCost = shareAmount * pricePerShare;
 
   // 计算手续费
-  const feeAmount = isFeeExempt 
-    ? 0 
-    : actualCost * (PROTOCOL_FEE_BPS / PRICE_PRECISION);
+  const feeAmount = isFeeExempt ? 0 : actualCost * (PROTOCOL_FEE_BPS / PRICE_PRECISION);
 
   const totalCost = actualCost + feeAmount;
   const effectivePrice = shareAmount > 0 ? totalCost / shareAmount : 0;
@@ -147,7 +141,7 @@ export function validateOrderAmount(usdcAmount: number): {
   if (usdcAmount < MIN_ORDER_AMOUNT_USDC) {
     return {
       valid: false,
-      error: `最小订单金额为 $${MIN_ORDER_AMOUNT_USDC}`,
+      error: `Minimum order is $${MIN_ORDER_AMOUNT_USDC}`,
     };
   }
   return { valid: true };
@@ -163,7 +157,7 @@ export function validatePrice(price: number): {
   if (price <= 0 || price >= 1) {
     return {
       valid: false,
-      error: '价格必须在 0.01 到 0.99 之间',
+      error: "价格必须在 0.01 到 0.99 之间",
     };
   }
   return { valid: true };
@@ -181,4 +175,3 @@ export function formatCalculationResult(result: ShareCalculationResult): string 
 有效价格: ${(result.effectivePrice * 100).toFixed(2)}% (含手续费)
   `.trim();
 }
-
