@@ -1,4 +1,4 @@
-import { CanvasRenderingTarget2D } from 'fancy-canvas';
+import { CanvasRenderingTarget2D } from "fancy-canvas";
 import {
   BarData,
   IChartApi,
@@ -13,7 +13,7 @@ import {
   SeriesType,
   Time,
   WhitespaceData,
-} from 'lightweight-charts';
+} from "lightweight-charts";
 
 function positionsLine(
   position: number,
@@ -29,49 +29,39 @@ function positionsLine(
 class PartialPriceLineRenderer implements IPrimitivePaneRenderer {
   _price: number | null = null;
   _x: number | null = null;
-  _color: string = '#000000';
-  
-  update(priceY: number | null, color: string, x: number | null) {
+  _color: string = "#000000";
+  _isDark: boolean = false;
+
+  update(priceY: number | null, color: string, x: number | null, isDark: boolean = false) {
     this._price = priceY;
     this._color = color;
     this._x = x;
+    this._isDark = isDark;
   }
 
   draw(target: CanvasRenderingTarget2D) {
-    target.useBitmapCoordinateSpace(scope => {
+    target.useBitmapCoordinateSpace((scope) => {
       if (this._price === null || this._x === null) return;
       const xPosition = Math.round(this._x * scope.horizontalPixelRatio);
-      const yPosition = positionsLine(
-        this._price,
-        scope.verticalPixelRatio,
-        scope.verticalPixelRatio
-      );
+      const yPosition = positionsLine(this._price, scope.verticalPixelRatio, scope.verticalPixelRatio);
       const yCentre = yPosition.position + yPosition.length / 2;
       const ctx = scope.context;
-      
+
       // Draw dashed line from current price to right edge
       ctx.beginPath();
-      ctx.setLineDash([
-        4 * scope.verticalPixelRatio,
-        2 * scope.verticalPixelRatio,
-      ]);
+      ctx.setLineDash([4 * scope.verticalPixelRatio, 2 * scope.verticalPixelRatio]);
       ctx.moveTo(xPosition, yCentre);
       ctx.lineTo(scope.bitmapSize.width, yCentre);
       ctx.strokeStyle = this._color;
       ctx.lineWidth = scope.verticalPixelRatio;
       ctx.stroke();
-      
+
       // Draw circle at the end point
       ctx.beginPath();
       ctx.setLineDash([]);
-      ctx.arc(
-        xPosition,
-        yCentre,
-        6 * scope.verticalPixelRatio,
-        0,
-        2 * Math.PI
-      );
-      ctx.fillStyle = '#ffffff';
+      ctx.arc(xPosition, yCentre, 6 * scope.verticalPixelRatio, 0, 2 * Math.PI);
+      // 根据主题设置圆圈填充颜色
+      ctx.fillStyle = this._isDark ? "#0b0b0b" : "#ffffff";
       ctx.fill();
       ctx.strokeStyle = this._color;
       ctx.lineWidth = 2 * scope.verticalPixelRatio;
@@ -82,9 +72,11 @@ class PartialPriceLineRenderer implements IPrimitivePaneRenderer {
 
 class PartialPriceLineView implements IPrimitivePaneView {
   _renderer: PartialPriceLineRenderer;
-  
-  constructor() {
+  _isDark: boolean = false;
+
+  constructor(isDark: boolean = false) {
     this._renderer = new PartialPriceLineRenderer();
+    this._isDark = isDark;
   }
 
   renderer(): IPrimitivePaneRenderer {
@@ -92,7 +84,11 @@ class PartialPriceLineView implements IPrimitivePaneView {
   }
 
   update(priceY: number | null, color: string, x: number | null) {
-    this._renderer.update(priceY, color, x);
+    this._renderer.update(priceY, color, x, this._isDark);
+  }
+
+  setDarkMode(isDark: boolean) {
+    this._isDark = isDark;
   }
 }
 
@@ -100,9 +96,16 @@ export class PartialPriceLine implements ISeriesPrimitive<Time> {
   _paneViews: PartialPriceLineView[];
   _chart: IChartApi | null = null;
   _series: ISeriesApi<SeriesType> | null = null;
+  _isDark: boolean = false;
 
-  constructor() {
-    this._paneViews = [new PartialPriceLineView()];
+  constructor(isDark: boolean = false) {
+    this._isDark = isDark;
+    this._paneViews = [new PartialPriceLineView(isDark)];
+  }
+
+  setDarkMode(isDark: boolean) {
+    this._isDark = isDark;
+    this._paneViews.forEach((pv) => pv.setDarkMode(isDark));
   }
 
   attached({ chart, series }: SeriesAttachedParameter<Time>) {
@@ -120,17 +123,11 @@ export class PartialPriceLine implements ISeriesPrimitive<Time> {
 
   updateAllViews() {
     if (!this._series || !this._chart) return;
-    
-    const seriesOptions = this._series.options();
-    let color =
-      seriesOptions.priceLineColor ||
-      (seriesOptions as LineStyleOptions).color ||
-      '#f59e0b';
 
-    const lastValue = this._series.dataByIndex(
-      100000,
-      MismatchDirection.NearestLeft
-    );
+    const seriesOptions = this._series.options();
+    let color = seriesOptions.priceLineColor || (seriesOptions as LineStyleOptions).color || "#f59e0b";
+
+    const lastValue = this._series.dataByIndex(100000, MismatchDirection.NearestLeft);
 
     let price: number | null = null;
     let x: number | null = null;
@@ -143,10 +140,9 @@ export class PartialPriceLine implements ISeriesPrimitive<Time> {
       x = this._chart.timeScale().timeToCoordinate(lastValue.time);
     }
 
-    const priceY =
-      price !== null ? (this._series.priceToCoordinate(price) as number) : null;
+    const priceY = price !== null ? (this._series.priceToCoordinate(price) as number) : null;
 
-    this._paneViews.forEach(pw => pw.update(priceY, color, x));
+    this._paneViews.forEach((pw) => pw.update(priceY, color, x));
   }
 
   paneViews() {

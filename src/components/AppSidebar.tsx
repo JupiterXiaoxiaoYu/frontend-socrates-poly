@@ -91,8 +91,10 @@ export function AppSidebar() {
         <div className="flex items-center justify-between mb-3">
           <span className="text-xs font-semibold text-muted-foreground">Market</span>
           <div className="flex items-center gap-2 text-xs">
-            <button className="px-3 py-1 rounded bg-foreground text-white hover:bg-foreground/90">Trending</button>
-            <button className="text-muted-foreground hover:text-foreground">Favorites</button>
+            <button className="px-3 py-1 rounded bg-foreground text-primary-foreground hover:bg-foreground/90 transition-colors">
+              Trending
+            </button>
+            <button className="text-muted-foreground hover:text-foreground transition-colors">Favorites</button>
           </div>
         </div>
 
