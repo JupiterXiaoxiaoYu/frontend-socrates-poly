@@ -1,19 +1,19 @@
-import { useEffect, useRef, useState } from 'react';
-import { createChart, LineStyle, ColorType, AreaSeries as AreaSeriesType } from 'lightweight-charts';
-import { Card } from '@/components/ui/card';
-import { PartialPriceLine } from '@/lib/chart/PartialPriceLine';
-import { socratesOracleService, PriceData, PriceHistoryData } from '@/services/socratesOracle';
+import { useEffect, useRef, useState } from "react";
+import { createChart, LineStyle, ColorType, AreaSeries as AreaSeriesType } from "lightweight-charts";
+import { Card } from "@/components/ui/card";
+import { PartialPriceLine } from "@/lib/chart/PartialPriceLine";
+import { socratesOracleService, PriceData, PriceHistoryData } from "@/services/socratesOracle";
 
 interface PriceChartProps {
   targetPrice: number;
   currentPrice?: number;
-  onPriceUpdate?: (price: number) => void;  // 新增：价格更新回调
+  onPriceUpdate?: (price: number) => void; // 新增：价格更新回调
 }
 
 const PriceChart = ({ targetPrice, currentPrice, onPriceUpdate }: PriceChartProps) => {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const [latestPrice, setLatestPrice] = useState<number | null>(currentPrice || null);
-  
+
   // 当价格更新时通知父组件
   useEffect(() => {
     if (latestPrice !== null && onPriceUpdate) {
@@ -27,7 +27,7 @@ const PriceChart = ({ targetPrice, currentPrice, onPriceUpdate }: PriceChartProp
   const smoothPriceRef = useRef<number | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const targetPriceRef = useRef<number | null>(null);
-  const smoothDataRef = useRef<Array<{time: number, value: number}>>([]);
+  const smoothDataRef = useRef<Array<{ time: number; value: number }>>([]);
 
   useEffect(() => {
     if (!chartContainerRef.current) return;
@@ -39,29 +39,29 @@ const PriceChart = ({ targetPrice, currentPrice, onPriceUpdate }: PriceChartProp
       // Create chart with Chinese localization
       const chart = createChart(chartContainerRef.current, {
         layout: {
-          background: { type: ColorType.Solid, color: '#ffffff' },
-          textColor: '#999999',
+          background: { type: ColorType.Solid, color: "#ffffff" },
+          textColor: "#999999",
         },
         grid: {
-          vertLines: { color: '#f0f0f0' },
-          horzLines: { color: '#f0f0f0' },
+          vertLines: { color: "#f0f0f0" },
+          horzLines: { color: "#f0f0f0" },
         },
         width: chartContainerRef.current.clientWidth,
         height: chartContainerRef.current.clientHeight,
         timeScale: {
           timeVisible: true,
           secondsVisible: true,
-          borderColor: '#e0e0e0',
+          borderColor: "#e0e0e0",
         },
         rightPriceScale: {
-          borderColor: '#e0e0e0',
+          borderColor: "#e0e0e0",
         },
         localization: {
-          locale: 'en-US',
+          locale: "en-US",
           priceFormatter: (price: number) => {
-            return new Intl.NumberFormat('en-US', {
-              style: 'currency',
-              currency: 'USD',
+            return new Intl.NumberFormat("en-US", {
+              style: "currency",
+              currency: "USD",
               minimumFractionDigits: 2,
               maximumFractionDigits: 2,
             }).format(price);
@@ -69,11 +69,11 @@ const PriceChart = ({ targetPrice, currentPrice, onPriceUpdate }: PriceChartProp
           timeFormatter: (time: any) => {
             // 将 Unix 时间戳转换为当地时区，英文格式，24小时制
             const date = new Date(time * 1000);
-            return date.toLocaleTimeString('en-US', {
-              hour: '2-digit',
-              minute: '2-digit',
-              second: '2-digit',
-              hour12: false
+            return date.toLocaleTimeString("en-US", {
+              hour: "2-digit",
+              minute: "2-digit",
+              second: "2-digit",
+              hour12: false,
             });
           },
         },
@@ -83,16 +83,16 @@ const PriceChart = ({ targetPrice, currentPrice, onPriceUpdate }: PriceChartProp
 
       // Create line series
       const lineSeries = chart.addSeries(AreaSeriesType as any, {
-        lineColor: '#f59e0b',
-        topColor: 'rgba(245, 158, 11, 0.2)',
-        bottomColor: 'rgba(245, 158, 11, 0.0)',
+        lineColor: "#f59e0b",
+        topColor: "rgba(245, 158, 11, 0.2)",
+        bottomColor: "rgba(245, 158, 11, 0.0)",
         lineWidth: 3,
         priceLineVisible: false,
         lineStyle: 0, // solid
         crosshairMarkerVisible: false,
         lastValueVisible: false,
         priceFormat: {
-          type: 'price',
+          type: "price",
           precision: 2,
           minMove: 0.01,
         },
@@ -108,20 +108,20 @@ const PriceChart = ({ targetPrice, currentPrice, onPriceUpdate }: PriceChartProp
       // Add target price line with more visible styling
       lineSeries.createPriceLine({
         price: targetPrice,
-        color: '#3b82f6', // Blue color for better visibility
+        color: "#3b82f6", // Blue color for better visibility
         lineWidth: 2,
         lineStyle: LineStyle.Dashed,
         axisLabelVisible: true,
-        title: 'Price to Beat',
+        title: "Price to Beat",
       });
 
       // Get 60 seconds of historical data
       try {
-        const historyData: PriceHistoryData = await socratesOracleService.getPriceHistory('BTC/USD');
+        const historyData: PriceHistoryData = await socratesOracleService.getPriceHistory("BTC/USD");
 
         if (isSubscribed && historyData.prices && historyData.prices.length > 0) {
           // Convert historical data to chart format
-          const chartData = historyData.prices.map(point => ({
+          const chartData = historyData.prices.map((point) => ({
             time: point.unix_time,
             value: parseFloat(point.price),
           }));
@@ -136,7 +136,7 @@ const PriceChart = ({ targetPrice, currentPrice, onPriceUpdate }: PriceChartProp
           setIsLoading(false);
         }
       } catch (error) {
-        console.error('Failed to fetch price history:', error);
+        console.error("Failed to fetch price history:", error);
 
         // Fallback to mock data with currentPrice
         const now = Math.floor(Date.now() / 1000);
@@ -209,26 +209,23 @@ const PriceChart = ({ targetPrice, currentPrice, onPriceUpdate }: PriceChartProp
       };
 
       // Subscribe to real-time updates with smooth animation
-      unsubscribe = await socratesOracleService.subscribeToPriceUpdates(
-        'BTC/USD',
-        (priceData: PriceData) => {
-          if (!isSubscribed) return;
+      unsubscribe = await socratesOracleService.subscribeToPriceUpdates("BTC/USD", (priceData: PriceData) => {
+        if (!isSubscribed) return;
 
-          const newPrice = parseFloat(priceData.price);
-          const currentTime = priceData.unix_time;
+        const newPrice = parseFloat(priceData.price);
+        const currentTime = priceData.unix_time;
 
-          setLatestPrice(newPrice);
+        setLatestPrice(newPrice);
 
-          // Store target price for smooth animation
-          targetPriceRef.current = newPrice;
+        // Store target price for smooth animation
+        targetPriceRef.current = newPrice;
 
-          // Trigger smooth animation to new price
-          animateToTarget(newPrice, currentTime);
+        // Trigger smooth animation to new price
+        animateToTarget(newPrice, currentTime);
 
-          // Scroll to real-time
-          chart.timeScale().scrollToRealTime();
-        }
-      );
+        // Scroll to real-time
+        chart.timeScale().scrollToRealTime();
+      });
 
       // Handle resize
       const handleResize = () => {
@@ -240,7 +237,7 @@ const PriceChart = ({ targetPrice, currentPrice, onPriceUpdate }: PriceChartProp
         }
       };
 
-      window.addEventListener('resize', handleResize);
+      window.addEventListener("resize", handleResize);
     };
 
     initializeChart();
@@ -248,7 +245,7 @@ const PriceChart = ({ targetPrice, currentPrice, onPriceUpdate }: PriceChartProp
     return () => {
       isSubscribed = false;
       if (unsubscribe) {
-        socratesOracleService.unsubscribe('BTC/USD');
+        socratesOracleService.unsubscribe("BTC/USD");
       }
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
@@ -260,7 +257,7 @@ const PriceChart = ({ targetPrice, currentPrice, onPriceUpdate }: PriceChartProp
   }, [targetPrice, currentPrice]);
 
   return (
-    <Card className="p-4 border border-border bg-white h-full flex flex-col">
+    <Card className="p-4 border border-border bg-card h-full flex flex-col">
       <div className="mb-3 flex items-center justify-between flex-shrink-0">
         <div>
           <div className="text-xs text-muted-foreground mb-1">Current Price</div>
@@ -270,13 +267,18 @@ const PriceChart = ({ targetPrice, currentPrice, onPriceUpdate }: PriceChartProp
             ) : latestPrice ? (
               `$${latestPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
             ) : (
-              `$${(currentPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+              `$${(currentPrice || 0).toLocaleString(undefined, {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}`
             )}
           </div>
         </div>
         <div className="text-right">
           <div className="text-xs font-semibold text-blue-600 mb-1">Price to Beat</div>
-          <div className="text-lg font-bold text-blue-700">${targetPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+          <div className="text-lg font-bold text-blue-700">
+            ${targetPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </div>
         </div>
       </div>
       <div ref={chartContainerRef} className="flex-1 min-h-0" />

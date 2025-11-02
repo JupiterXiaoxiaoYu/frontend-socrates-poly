@@ -6,7 +6,7 @@ import { useMemo, useState, memo } from "react";
 import { useToast } from "../hooks/use-toast";
 
 interface Position {
-  side: 'up' | 'down';
+  side: "up" | "down";
   shares: number;
   avg: string;
   now: string;
@@ -17,7 +17,7 @@ interface Position {
 }
 
 interface OpenOrder {
-  side: 'up' | 'down';
+  side: "up" | "down";
   type: string;
   price: string;
   shares: number;
@@ -27,35 +27,35 @@ interface OpenOrder {
 
 const mockPositions: Position[] = [
   {
-    side: 'up',
+    side: "up",
     shares: 24,
-    avg: '$55',
-    now: '$55',
-    cost: '$100.00',
-    estValue: '$100.00',
-    unrealizedPnL: '+$120.00 (+41%)',
-    pnlPercent: '+41%',
+    avg: "$55",
+    now: "$55",
+    cost: "$100.00",
+    estValue: "$100.00",
+    unrealizedPnL: "+$120.00 (+41%)",
+    pnlPercent: "+41%",
   },
   {
-    side: 'down',
+    side: "down",
     shares: 100,
-    avg: '$55',
-    now: '$100.00',
-    cost: '$100.00',
-    estValue: '$100.00',
-    unrealizedPnL: '+$120.00 (+41%)',
-    pnlPercent: '+41%',
+    avg: "$55",
+    now: "$100.00",
+    cost: "$100.00",
+    estValue: "$100.00",
+    unrealizedPnL: "+$120.00 (+41%)",
+    pnlPercent: "+41%",
   },
 ];
 
 const mockOpenOrders: OpenOrder[] = [
   {
-    side: 'up',
-    type: 'Limit',
-    price: '$0.65',
+    side: "up",
+    type: "Limit",
+    price: "$0.65",
     shares: 100,
-    filled: '0/100',
-    total: '$65.00',
+    filled: "0/100",
+    total: "$65.00",
   },
 ];
 
@@ -66,25 +66,25 @@ const PositionTabs = () => {
   // 转换持仓数据 - 使用稳定的依赖项避免闪烁
   const displayPositions = useMemo(() => {
     if (!currentMarket) return [];
-    
+
     return positions
-      .filter(p => p.tokenIdx !== '0') // 排除 USDC
-      .map(p => {
+      .filter((p) => p.tokenIdx !== "0") // 排除 USDC
+      .map((p) => {
         const tokenInfo = parseTokenIdx(parseInt(p.tokenIdx));
         if (!tokenInfo) return null;
-        
+
         const shares = fromUSDCPrecision(p.balance);
         const locked = fromUSDCPrecision(p.lockBalance);
-        
+
         return {
-          side: tokenInfo.direction.toLowerCase() as 'up' | 'down',
+          side: tokenInfo.direction.toLowerCase() as "up" | "down",
           shares,
-          avg: '$0.50', // TODO: 需要从历史计算
-          now: '$0.50',
+          avg: "$0.50", // TODO: 需要从历史计算
+          now: "$0.50",
           cost: formatCurrency(shares * 0.5),
           estValue: formatCurrency(shares * 0.5),
-          unrealizedPnL: '$0.00 (0%)',
-          pnlPercent: '0%',
+          unrealizedPnL: "$0.00 (0%)",
+          pnlPercent: "0%",
         };
       })
       .filter(Boolean) as Position[];
@@ -93,20 +93,20 @@ const PositionTabs = () => {
   // 转换订单数据 - 使用稳定的依赖项避免闪烁
   const displayOrders = useMemo(() => {
     if (!currentMarket) return [];
-    
+
     return orders
-      .filter(o => o.status === 0) // 只显示活跃订单
-      .map(o => {
+      .filter((o) => o.status === 0) // 只显示活跃订单
+      .map((o) => {
         const shares = fromUSDCPrecision(o.totalAmount);
         const filled = fromUSDCPrecision(o.filledAmount);
         // 后端使用 BPS：0-10000，除以 100 得到百分比
         const pricePercent = parseInt(o.price) / 100;
         const priceDecimal = pricePercent / 100; // 转为 0-1 小数
-        
+
         return {
           orderId: o.orderId,
-          side: o.direction === 1 ? 'up' : 'down' as 'up' | 'down',
-          type: o.orderType === 0 ? 'Limit' : o.orderType === 1 ? 'Limit' : 'Market',
+          side: o.direction === 1 ? "up" : ("down" as "up" | "down"),
+          type: o.orderType === 0 ? "Limit" : o.orderType === 1 ? "Limit" : "Market",
           price: `${pricePercent.toFixed(2)}%`, // 显示为百分比，例如 "50.00%"
           shares,
           filled: `${filled.toFixed(0)}/${shares.toFixed(0)}`,
@@ -117,21 +117,21 @@ const PositionTabs = () => {
 
   // 处理取消订单
   const [cancellingOrderId, setCancellingOrderId] = useState<string | null>(null);
-  
+
   const handleCancelOrder = async (orderId: string) => {
     setCancellingOrderId(orderId);
     try {
       await cancelOrder(BigInt(orderId));
       toast({
-        title: 'Order Cancelled',
-        description: 'Successfully cancelled order',
+        title: "Order Cancelled",
+        description: "Successfully cancelled order",
       });
     } catch (error) {
-      console.error('Cancel order failed:', error);
+      console.error("Cancel order failed:", error);
       toast({
-        title: 'Cancel Failed',
-        description: error instanceof Error ? error.message : 'Failed to cancel order',
-        variant: 'destructive',
+        title: "Cancel Failed",
+        description: error instanceof Error ? error.message : "Failed to cancel order",
+        variant: "destructive",
       });
     } finally {
       setCancellingOrderId(null);
@@ -139,9 +139,9 @@ const PositionTabs = () => {
   };
 
   return (
-    <div className="border-t border-border bg-white">
+    <div className="border-t border-border bg-background">
       <Tabs defaultValue="positions" className="w-full">
-        <TabsList className="w-full justify-start rounded-none border-b border-border bg-white h-auto p-0">
+        <TabsList className="w-full justify-start rounded-none border-b border-border bg-background h-auto p-0">
           <TabsTrigger
             value="positions"
             className="rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent px-6 py-3"
@@ -195,32 +195,25 @@ const PositionTabs = () => {
                       <td className="py-3">
                         <span
                           className={`inline-block px-2 py-1 rounded text-xs font-medium ${
-                            position.side === 'up'
-                              ? 'bg-success text-white'
-                              : 'bg-danger text-white'
+                            position.side === "up" ? "bg-success text-white" : "bg-danger text-white"
                           }`}
                         >
-                          {position.side === 'up' ? 'Up' : `${position.shares} Down`}
+                          {position.side === "up" ? "Up" : `${position.shares} Down`}
                         </span>
                       </td>
                       <td className="text-right py-3">{position.avg}</td>
                       <td className="text-right py-3">{position.now}</td>
                       <td className="text-right py-3">{position.cost}</td>
                       <td className="text-right py-3">{position.estValue}</td>
-                      <td className="text-right py-3 text-success font-medium">
-                        {position.unrealizedPnL}
-                      </td>
+                      <td className="text-right py-3 text-success font-medium">{position.unrealizedPnL}</td>
                       <td className="text-right py-3">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-primary hover:text-primary/70 h-8"
-                        >
+                        <Button variant="ghost" size="sm" className="text-primary hover:text-primary/70 h-8">
                           Sell
                         </Button>
                       </td>
                     </tr>
-                  )))}
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -248,25 +241,23 @@ const PositionTabs = () => {
                   </tr>
                 ) : (
                   displayOrders.map((order, i) => (
-                  <tr key={i} className="border-b border-border last:border-0">
-                    <td className="py-3">
-                      <div className="flex items-center gap-2">
-                        <span
-                          className={`inline-block px-2 py-1 rounded text-xs font-medium ${
-                            order.side === 'up'
-                              ? 'bg-success text-white'
-                              : 'bg-danger text-white'
-                          }`}
-                        >
-                          {order.side === 'up' ? 'Up' : 'Down'}
-                        </span>
-                        <span className="text-muted-foreground">{order.type}</span>
-                      </div>
-                    </td>
-                    <td className="text-right py-3">{order.price}</td>
-                    <td className="text-right py-3">{order.shares}</td>
-                    <td className="text-right py-3">{order.filled}</td>
-                    <td className="text-right py-3">{order.total}</td>
+                    <tr key={i} className="border-b border-border last:border-0">
+                      <td className="py-3">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`inline-block px-2 py-1 rounded text-xs font-medium ${
+                              order.side === "up" ? "bg-success text-white" : "bg-danger text-white"
+                            }`}
+                          >
+                            {order.side === "up" ? "Up" : "Down"}
+                          </span>
+                          <span className="text-muted-foreground">{order.type}</span>
+                        </div>
+                      </td>
+                      <td className="text-right py-3">{order.price}</td>
+                      <td className="text-right py-3">{order.shares}</td>
+                      <td className="text-right py-3">{order.filled}</td>
+                      <td className="text-right py-3">{order.total}</td>
                       <td className="text-right py-3">
                         <Button
                           variant="ghost"
@@ -275,11 +266,11 @@ const PositionTabs = () => {
                           onClick={() => handleCancelOrder(order.orderId)}
                           disabled={cancellingOrderId === order.orderId}
                         >
-                          {cancellingOrderId === order.orderId ? 'Cancelling...' : 'Cancel'}
+                          {cancellingOrderId === order.orderId ? "Cancelling..." : "Cancel"}
                         </Button>
                       </td>
-                  </tr>
-                ))
+                    </tr>
+                  ))
                 )}
               </tbody>
             </table>

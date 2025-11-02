@@ -43,9 +43,9 @@ const mockRewards: RewardItem[] = [
 
 const Rewards = () => {
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-background">
       <Header />
-      
+
       <main className="container mx-auto px-4 py-6 max-w-5xl">
         <h1 className="text-2xl font-bold mb-6 text-foreground">Rewards</h1>
 
@@ -79,20 +79,20 @@ const Rewards = () => {
             <div className="border-b border-border">
               <div className="px-4">
                 <TabsList className="bg-transparent border-0 h-auto p-0">
-                  <TabsTrigger 
-                    value="details" 
+                  <TabsTrigger
+                    value="details"
                     className="border-b-2 border-transparent data-[state=active]:border-primary rounded-none bg-transparent px-4 py-3"
                   >
                     Reward Details
                   </TabsTrigger>
-                  <TabsTrigger 
-                    value="records" 
+                  <TabsTrigger
+                    value="records"
                     className="border-b-2 border-transparent data-[state=active]:border-primary rounded-none bg-transparent px-4 py-3"
                   >
                     Claim Records
                   </TabsTrigger>
-                  <TabsTrigger 
-                    value="rules" 
+                  <TabsTrigger
+                    value="rules"
                     className="border-b-2 border-transparent data-[state=active]:border-primary rounded-none bg-transparent px-4 py-3"
                   >
                     View Rules
@@ -104,39 +104,25 @@ const Rewards = () => {
             <TabsContent value="details" className="p-0 m-0">
               <div className="divide-y divide-border">
                 {mockRewards.map((reward) => (
-                  <div 
-                    key={reward.id} 
-                    className="p-4 hover:bg-muted/20 transition-colors"
-                  >
+                  <div key={reward.id} className="p-4 hover:bg-muted/20 transition-colors">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-3 mb-2">
-                          <span className="text-xs text-muted-foreground">
-                            {reward.timestamp}
-                          </span>
+                          <span className="text-xs text-muted-foreground">{reward.timestamp}</span>
                           <Badge variant="secondary" className="text-xs">
                             {reward.type}
                           </Badge>
                         </div>
-                        <div className="text-sm text-foreground mb-2 line-clamp-2">
-                          {reward.market}
-                        </div>
-                        <div className="text-base font-semibold text-[#f59e0b]">
-                          {reward.amount.toFixed(2)} USDC
-                        </div>
+                        <div className="text-sm text-foreground mb-2 line-clamp-2">{reward.market}</div>
+                        <div className="text-base font-semibold text-[#f59e0b]">{reward.amount.toFixed(2)} USDC</div>
                       </div>
                       <div className="flex-shrink-0">
                         {reward.status === "待领取" ? (
-                          <Button 
-                            variant="link" 
-                            className="text-foreground h-auto p-0 text-sm"
-                          >
+                          <Button variant="link" className="text-foreground h-auto p-0 text-sm">
                             Claimable
                           </Button>
                         ) : (
-                          <span className="text-sm text-muted-foreground">
-                            Claimed
-                          </span>
+                          <span className="text-sm text-muted-foreground">Claimed</span>
                         )}
                       </div>
                     </div>
@@ -146,9 +132,7 @@ const Rewards = () => {
             </TabsContent>
 
             <TabsContent value="records" className="p-8">
-              <div className="text-center text-muted-foreground">
-                No claim records yet
-              </div>
+              <div className="text-center text-muted-foreground">No claim records yet</div>
             </TabsContent>
 
             <TabsContent value="rules" className="p-8">
