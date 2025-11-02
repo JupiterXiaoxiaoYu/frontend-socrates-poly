@@ -37,8 +37,9 @@ interface TradingPanelProps {
   userBalance: number;
   userPositions?: any[];
   isFeeExempt?: boolean;
-  onPlaceOrder?: (order: { marketId: number; orderType: OrderType; price: number; amount: number }) => Promise<void>;
+  onPlaceOrder?: (order: { marketId: number; direction: string; orderType: OrderType; price: number; amount: number }) => Promise<void>;
   onClaim?: (marketId: number) => Promise<void>;
+  onDirectionChange?: (direction: 'UP' | 'DOWN') => void;
   className?: string;
 }
 
@@ -54,10 +55,17 @@ const TradingPanel = ({
   isFeeExempt = false,
   onPlaceOrder,
   onClaim,
+  onDirectionChange,
   className,
 }: TradingPanelProps) => {
   const [direction, setDirection] = useState<"up" | "down">("up");
   const [action, setAction] = useState<"buy" | "sell">("buy");
+  
+  // 包装 setDirection，立即通知父组件
+  const handleDirectionChange = (newDirection: 'up' | 'down') => {
+    setDirection(newDirection);
+    onDirectionChange?.(newDirection.toUpperCase() as 'UP' | 'DOWN');
+  };
   const [orderType, setOrderType] = useState<"market" | "limit">("market");
   const [amount, setAmount] = useState(0);
   const [limitPrice, setLimitPrice] = useState(
@@ -183,8 +191,17 @@ const TradingPanel = ({
           ? 0 // 市价单：price = 0
           : Math.round(limitPrice * 10000); // 限价单：转为 BPS
 
+      console.log('[TradingPanel] Placing order:', {
+        marketId: market.marketId,
+        direction: direction.toUpperCase(),
+        orderType: orderTypeValue,
+        price: orderPrice,
+        amount: Math.round(estimatedShares * 100),
+      });
+      
       await onPlaceOrder({
         marketId: market.marketId,
+        direction: direction.toUpperCase(), // 传递当前选中的方向
         orderType: orderTypeValue,
         price: orderPrice,
         amount: Math.round(estimatedShares * 100),
@@ -263,63 +280,12 @@ const TradingPanel = ({
     );
   }
 
-  // Market is not active
-  if (market?.status !== MarketStatus.ACTIVE) {
-    const isResolved = market?.status === MarketStatus.RESOLVED;
-    const startPrice = market?.oracleStartPrice || 0;
-    const endPrice = market?.oracleEndPrice || startPrice;
-    const winningOutcome = market?.winningOutcome;
-
-    return (
-      <div className={cn("p-6 space-y-4", className)}>
-        <Card>
-          <CardContent className="p-4 text-center space-y-4">
-            <Clock className="w-8 h-8 mx-auto text-muted-foreground" />
-            <div className="text-lg font-semibold">
-              {market?.status === MarketStatus.PENDING
-                ? "Market Not Started"
-                : market?.status === MarketStatus.CLOSED
-                ? "Trading Closed"
-                : "Market Ended"}
-            </div>
-
-            {isResolved && (
-              <div className="space-y-2 text-sm pt-3">
-                <div className="flex justify-between items-center py-2 border-t">
-                  <span className="text-muted-foreground">Start Price:</span>
-                  <span className="font-mono font-semibold">${(startPrice / 100).toLocaleString()}</span>
-                </div>
-
-                <div className="flex justify-between items-center py-2 border-t">
-                  <span className="text-muted-foreground">End Price:</span>
-                  <span className="font-mono font-semibold">${(endPrice / 100).toLocaleString()}</span>
-                </div>
-
-                <div className="flex justify-between items-center py-2 border-t">
-                  <span className="text-muted-foreground">Outcome:</span>
-                  <span
-                    className={`font-semibold ${
-                      winningOutcome === 1 ? "text-success" : winningOutcome === 0 ? "text-danger" : "text-warning"
-                    }`}
-                  >
-                    {winningOutcome === 1 ? "🔼 UP Won" : winningOutcome === 0 ? "🔽 DOWN Won" : "↔️ TIE"}
-                  </span>
-                </div>
-              </div>
-            )}
-
-            <p className="text-sm text-muted-foreground">
-              {market?.status === MarketStatus.PENDING
-                ? "Market has not yet started"
-                : market?.status === MarketStatus.CLOSED
-                ? "Awaiting oracle resolution"
-                : "Market has been resolved"}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  // 检查市场是否已结束（但仍显示 UP/DOWN 标签结构）
+  const isMarketEnded = market?.status !== MarketStatus.ACTIVE;
+  const isResolved = market?.status === MarketStatus.RESOLVED;
+  const startPrice = market?.oracleStartPrice || 0;
+  const endPrice = market?.oracleEndPrice || startPrice;
+  const winningOutcome = market?.winningOutcome;
 
   return (
     <div className={cn("p-6 h-full flex flex-col overflow-auto", className)}>
@@ -344,7 +310,7 @@ const TradingPanel = ({
       {/* Direction Tabs (UP/DOWN) */}
       <Tabs
         value={direction}
-        onValueChange={(v) => setDirection(v as "up" | "down")}
+        onValueChange={(v) => handleDirectionChange(v as "up" | "down")}
         className="space-y-4 flex-1 flex flex-col"
       >
         <TabsList className="grid w-full grid-cols-2 h-12 bg-muted">
@@ -365,26 +331,63 @@ const TradingPanel = ({
         </TabsList>
 
         <TabsContent value={direction} className="space-y-4 flex-1 flex flex-col m-0">
-          {/* Buy/Sell Tabs */}
-          <Tabs value={action} onValueChange={(v) => setAction(v as "buy" | "sell")} className="space-y-4">
-            <TabsList className="grid w-full grid-cols-2 h-10">
-              <TabsTrigger value="buy">Buy</TabsTrigger>
-              <TabsTrigger value="sell">Sell</TabsTrigger>
-            </TabsList>
+          {/* 市场已结束 - 显示结果 */}
+          {isMarketEnded ? (
+            <div className="space-y-4">
+              <Card>
+                <CardContent className="p-4 text-center space-y-3">
+                  <Clock className="w-8 h-8 mx-auto text-muted-foreground" />
+                  <div className="text-base font-semibold">
+                    {market?.status === MarketStatus.PENDING ? "Not Started" :
+                     market?.status === MarketStatus.CLOSED ? "Awaiting Oracle" : "Market Resolved"}
+                  </div>
+                  
+                  {isResolved && (
+                    <div className="space-y-2 text-sm pt-2">
+                      <div className="flex justify-between py-1.5 border-t">
+                        <span className="text-muted-foreground">Start:</span>
+                        <span className="font-mono">${(startPrice / 100).toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between py-1.5 border-t">
+                        <span className="text-muted-foreground">End:</span>
+                        <span className="font-mono">${(endPrice / 100).toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between py-1.5 border-t">
+                        <span className="text-muted-foreground">Winner:</span>
+                        <span className={`font-semibold ${
+                          winningOutcome === 1 ? "text-success" : 
+                          winningOutcome === 0 ? "text-danger" : "text-warning"
+                        }`}>
+                          {winningOutcome === 1 ? "🔼 UP" : 
+                           winningOutcome === 0 ? "🔽 DOWN" : "↔️ TIE"}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          ) : (
+            /* 市场活跃 - 显示交易表单 */
+            <Tabs value={action} onValueChange={(v) => setAction(v as "buy" | "sell")} className="space-y-4">
+              <TabsList className="grid w-full grid-cols-2 h-10">
+                <TabsTrigger value="buy">Buy</TabsTrigger>
+                <TabsTrigger value="sell">Sell</TabsTrigger>
+              </TabsList>
 
-            <TabsContent value={action} className="space-y-4 m-0">
-              {/* Order Type Dropdown */}
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Order Type</span>
-                <select
-                  value={orderType}
-                  onChange={(e) => setOrderType(e.target.value as "market" | "limit")}
-                  className="px-3 py-1.5 text-sm border border-border rounded-md bg-background"
-                >
-                  <option value="market">Market</option>
-                  <option value="limit">Limit</option>
-                </select>
-              </div>
+              <TabsContent value={action} className="space-y-4 m-0">
+                {/* Order Type Dropdown */}
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Order Type</span>
+                  <select
+                    value={orderType}
+                    onChange={(e) => setOrderType(e.target.value as "market" | "limit")}
+                    className="px-3 py-1.5 text-sm border border-border rounded-md bg-background"
+                  >
+                    <option value="market">Market</option>
+                    <option value="limit">Limit</option>
+                  </select>
+                </div>
               {/* Price Impact Warning */}
               {orderType === "market" && priceImpact > 5 && (
                 <Alert className="border-orange-200 bg-orange-50">
@@ -396,16 +399,13 @@ const TradingPanel = ({
                 </Alert>
               )}
 
-              {/* Current Price Display */}
-              <div className="text-center p-3 bg-muted/30 rounded-lg">
-                <div className="text-sm text-muted-foreground">Current Price</div>
-                <div className="text-2xl font-bold">{formatCurrency(price)}</div>
-                {orderType === "market" && orderBook && (
-                  <div className="text-xs text-muted-foreground mt-1">
-                    Spread: {formatCurrency(orderBook.spread)} • Mid: {formatCurrency(orderBook.midPrice)}
-                  </div>
-                )}
-              </div>
+              {/* Current Price Display - 只在 Limit 模式显示 */}
+              {orderType === "limit" && (
+                <div className="text-center p-3 bg-muted/30 rounded-lg">
+                  <div className="text-sm text-muted-foreground">Your Limit Price</div>
+                  <div className="text-2xl font-bold">{formatCurrency(limitPrice)}</div>
+                </div>
+              )}
 
               {/* Limit Price - Only for limit orders */}
               {orderType === "limit" && (
@@ -505,11 +505,9 @@ const TradingPanel = ({
                   </div>
                 </div>
               )}
-            </TabsContent>
-          </Tabs>
-
-          {/* Submit Button */}
-          <Button
+                
+                {/* Submit Button */}
+                <Button
             size="lg"
             className={cn(
               "w-full h-12 font-semibold text-base mt-auto",
@@ -530,6 +528,9 @@ const TradingPanel = ({
           {/* Position Info */}
           {userPosition && (
             <div className="text-xs text-muted-foreground text-center">You have a position in this market</div>
+          )}
+              </TabsContent>
+            </Tabs>
           )}
         </TabsContent>
       </Tabs>

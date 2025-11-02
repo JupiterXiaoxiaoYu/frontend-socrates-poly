@@ -33,6 +33,7 @@ interface MarketContextType {
   positions: Position[];
   globalState: GlobalState | null;
   playerId: PlayerId | null;
+  marketPrices: Map<string, number>; // 每个市场的最新价格
   
   // 状态
   isLoading: boolean;
@@ -80,6 +81,7 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [positions, setPositions] = useState<Position[]>([]);
   const [globalState, setGlobalState] = useState<GlobalState | null>(null);
   const [playerId, setPlayerId] = useState<PlayerId | null>(null);
+  const [marketPrices, setMarketPrices] = useState<Map<string, number>>(new Map()); // 每个市场的最新成交价格
   
   // Status state
   const [isLoading, setIsLoading] = useState(false);
@@ -277,6 +279,20 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return () => clearInterval(interval);
   }, [playerId]);
 
+  // 当 trades 变化时，立即更新当前市场的最新成交价格
+  useEffect(() => {
+    if (!currentMarketId || !trades || trades.length === 0) return;
+    
+    const latestTrade = trades[0];
+    const latestPrice = parseInt(latestTrade.price) / 100; // BPS to percent
+    
+    setMarketPrices(prev => {
+      const newMap = new Map(prev);
+      newMap.set(currentMarketId, latestPrice);
+      return newMap;
+    });
+  }, [trades, currentMarketId]);
+
   // ==================== 数据加载 ====================
 
   const loadInitialData = async () => {
@@ -298,7 +314,28 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setMarkets(marketsData);
       console.log('Loaded markets:', marketsData.length);
 
-      // 2. 获取全局状态
+      // 2. 批量获取活跃市场的最新成交价格（只获取未 Resolved 的市场）
+      const activeMarkets = marketsData.filter(m => m.status === 0 || m.status === 1 || m.status === 3);
+      const priceMap = new Map<string, number>();
+      
+      await Promise.all(
+        activeMarkets.map(async (market) => {
+          try {
+            const marketTrades = await apiClient.getTrades(market.marketId);
+            if (marketTrades.length > 0) {
+              const latestPrice = parseInt(marketTrades[0].price) / 100; // BPS to percent
+              priceMap.set(market.marketId, latestPrice);
+            }
+          } catch (error) {
+            console.warn(`Failed to load trades for market ${market.marketId}`);
+          }
+        })
+      );
+      
+      setMarketPrices(priceMap);
+      console.log('Loaded market prices:', priceMap.size);
+
+      // 3. 获取全局状态
       try {
         const stateData = await apiClient.getGlobalState();
         setGlobalState(stateData);
@@ -307,7 +344,7 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         console.warn('Failed to load global state:', error);
       }
 
-      // 3. 如果有当前市场，获取订单和成交（只获取当前市场的）
+      // 4. 如果有当前市场，获取订单和成交（只获取当前市场的）
       if (currentMarketId) {
         const [marketData, ordersData, tradesData] = await Promise.all([
           apiClient.getMarket(currentMarketId),
@@ -473,6 +510,7 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     positions,
     globalState,
     playerId,
+    marketPrices,
     isLoading,
     isPlayerInstalled,
     playerClient,

@@ -27,17 +27,18 @@ interface DisplayMarket {
 
 const Index = () => {
   const navigate = useNavigate();
-  const { markets, globalState, isLoading } = useMarket();
+  const { markets, marketPrices, isLoading } = useMarket();
   const [selectedToken, setSelectedToken] = useState("BTC");
   const [selectedDuration, setSelectedDuration] = useState("all");
 
   // 转换 API 数据为显示格式 - 优化依赖避免闪烁
   const displayMarkets = useMemo(() => {
     return markets.map((market: any) => {
-      // 计算概率
-      const upVolume = BigInt(market.upMarket?.volume || "0");
-      const downVolume = BigInt(market.downMarket?.volume || "0");
-      const { yesChance, noChance } = calculateProbabilities(upVolume, downVolume);
+      // 从最新成交价格计算概率
+      const latestPrice = marketPrices.get(market.marketId);
+      const { yesChance, noChance } = latestPrice 
+        ? calculateProbabilities(latestPrice)
+        : calculateProbabilities(); // 默认 50/50
 
       // 计算总成交量
       const totalVolume =
