@@ -21,13 +21,7 @@ interface DepositDialogProps {
   isLoading?: boolean;
 }
 
-export function DepositDialog({
-  open,
-  onOpenChange,
-  onConfirm,
-  balance = 0,
-  isLoading = false,
-}: DepositDialogProps) {
+export function DepositDialog({ open, onOpenChange, onConfirm, balance = 0, isLoading = false }: DepositDialogProps) {
   const [amount, setAmount] = useState("");
   const [error, setError] = useState("");
 
@@ -39,7 +33,7 @@ export function DepositDialog({
     if (parts.length > 2) return;
     // Limit to 2 decimal places
     if (parts[1] && parts[1].length > 2) return;
-    
+
     setAmount(sanitized);
     setError("");
   };
@@ -51,17 +45,17 @@ export function DepositDialog({
 
   const handleConfirm = async () => {
     const numAmount = parseFloat(amount);
-    
+
     if (!amount || isNaN(numAmount)) {
       setError("Please enter a valid amount");
       return;
     }
-    
+
     if (numAmount <= 0) {
       setError("Amount must be greater than 0");
       return;
     }
-    
+
     if (numAmount < 1) {
       setError("Minimum deposit amount is 1 USDC");
       return;
@@ -73,7 +67,7 @@ export function DepositDialog({
       setError("");
       onOpenChange(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "充值失败");
+      setError(err instanceof Error ? err.message : "Deposit failed");
     }
   };
 
@@ -88,9 +82,7 @@ export function DepositDialog({
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Deposit USDC</DialogTitle>
-          <DialogDescription>
-            Deposit USDC to your trading account
-          </DialogDescription>
+          <DialogDescription>Deposit USDC to your trading account</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6 py-4">
@@ -163,18 +155,10 @@ export function DepositDialog({
         </div>
 
         <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={handleClose}
-            disabled={isLoading}
-          >
+          <Button variant="outline" onClick={handleClose} disabled={isLoading}>
             Cancel
           </Button>
-          <Button
-            onClick={handleConfirm}
-            disabled={isLoading || !amount}
-            className="min-w-[100px]"
-          >
+          <Button onClick={handleConfirm} disabled={isLoading || !amount} className="min-w-[100px]">
             {isLoading ? "Processing..." : "Confirm Deposit"}
           </Button>
         </DialogFooter>
@@ -182,4 +166,3 @@ export function DepositDialog({
     </Dialog>
   );
 }
-

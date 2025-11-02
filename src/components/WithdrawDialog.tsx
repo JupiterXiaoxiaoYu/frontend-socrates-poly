@@ -21,13 +21,7 @@ interface WithdrawDialogProps {
   isLoading?: boolean;
 }
 
-export function WithdrawDialog({
-  open,
-  onOpenChange,
-  onConfirm,
-  balance = 0,
-  isLoading = false,
-}: WithdrawDialogProps) {
+export function WithdrawDialog({ open, onOpenChange, onConfirm, balance = 0, isLoading = false }: WithdrawDialogProps) {
   const [amount, setAmount] = useState("");
   const [error, setError] = useState("");
 
@@ -39,7 +33,7 @@ export function WithdrawDialog({
     if (parts.length > 2) return;
     // Limit to 2 decimal places
     if (parts[1] && parts[1].length > 2) return;
-    
+
     setAmount(sanitized);
     setError("");
   };
@@ -56,22 +50,22 @@ export function WithdrawDialog({
 
   const handleConfirm = async () => {
     const numAmount = parseFloat(amount);
-    
+
     if (!amount || isNaN(numAmount)) {
       setError("Please enter a valid amount");
       return;
     }
-    
+
     if (numAmount <= 0) {
       setError("Amount must be greater than 0");
       return;
     }
-    
+
     if (numAmount < 1) {
       setError("Minimum withdrawal amount is 1 USDC");
       return;
     }
-    
+
     if (numAmount > balance) {
       setError("Withdrawal amount exceeds available balance");
       return;
@@ -83,7 +77,7 @@ export function WithdrawDialog({
       setError("");
       onOpenChange(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "提现失败");
+      setError(err instanceof Error ? err.message : "Withdrawal failed");
     }
   };
 
@@ -98,9 +92,7 @@ export function WithdrawDialog({
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Withdraw USDC</DialogTitle>
-          <DialogDescription>
-            Withdraw USDC from your trading account
-          </DialogDescription>
+          <DialogDescription>Withdraw USDC from your trading account</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6 py-4">
@@ -110,13 +102,7 @@ export function WithdrawDialog({
               <div className="text-sm text-muted-foreground">Available Balance</div>
               <div className="text-2xl font-bold">{balance.toFixed(2)} USDC</div>
             </div>
-            <Button
-              variant="link"
-              size="sm"
-              onClick={handleMaxAmount}
-              disabled={isLoading}
-              className="text-primary"
-            >
+            <Button variant="link" size="sm" onClick={handleMaxAmount} disabled={isLoading} className="text-primary">
               Withdraw All
             </Button>
           </div>
@@ -189,11 +175,7 @@ export function WithdrawDialog({
         </div>
 
         <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={handleClose}
-            disabled={isLoading}
-          >
+          <Button variant="outline" onClick={handleClose} disabled={isLoading}>
             Cancel
           </Button>
           <Button
@@ -209,4 +191,3 @@ export function WithdrawDialog({
     </Dialog>
   );
 }
-

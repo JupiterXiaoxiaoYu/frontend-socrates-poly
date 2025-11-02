@@ -38,10 +38,10 @@ export function calculateSharesFromUSDC(input: ShareCalculationInput): ShareCalc
 
   // 验证输入
   if (price <= 0 || price >= 1) {
-    throw new Error("价格必须在 0-1 之间");
+    throw new Error("Price must be between 0 and 1");
   }
   if (usdcAmount <= 0) {
-    throw new Error("投入金额必须大于0");
+    throw new Error("Amount must be greater than 0");
   }
 
   // 计算单份额的成本价格
@@ -157,7 +157,7 @@ export function validatePrice(price: number): {
   if (price <= 0 || price >= 1) {
     return {
       valid: false,
-      error: "价格必须在 0.01 到 0.99 之间",
+      error: "Price must be between 0.01 and 0.99",
     };
   }
   return { valid: true };
