@@ -54,7 +54,8 @@ const TradingPanel = ({
   onClaim,
   className
 }: TradingPanelProps) => {
-  const [side, setSide] = useState<'up' | 'down'>('up');
+  const [direction, setDirection] = useState<'up' | 'down'>('up');
+  const [action, setAction] = useState<'buy' | 'sell'>('buy');
   const [orderType, setOrderType] = useState<'market' | 'limit'>('market');
   const [amount, setAmount] = useState(0);
   const [limitPrice, setLimitPrice] = useState(market?.currentPrice || 0.5);
@@ -92,7 +93,7 @@ const TradingPanel = ({
     }
 
     // Simplified price impact calculation
-    const relevantOrders = side === 'up' ? book.asks : book.bids;
+    const relevantOrders = direction === 'up' ? book.asks : book.bids;
     let remainingAmount = tradeAmount;
     let totalCost = 0;
 
@@ -156,20 +157,27 @@ const TradingPanel = ({
 
     setIsPlacingOrder(true);
     try {
-      const orderTypeValue = side === 'up'
-        ? (orderType === 'market' ? OrderType.MARKET_BUY : OrderType.LIMIT_BUY)
-        : (orderType === 'market' ? OrderType.MARKET_SELL : OrderType.LIMIT_SELL);
+      // 根据 action (buy/sell) 和 orderType (market/limit) 确定订单类型
+      let orderTypeValue: OrderType;
+      if (action === 'buy') {
+        orderTypeValue = orderType === 'market' ? OrderType.MARKET_BUY : OrderType.LIMIT_BUY;
+      } else {
+        orderTypeValue = orderType === 'market' ? OrderType.MARKET_SELL : OrderType.LIMIT_SELL;
+      }
 
       // 后端期望：
-      // - price: BPS 格式 (0-10000)，例如 5000 = 50%
+      // - Limit Order: price 是用户指定的价格（BPS）
+      // - Market Order: price 传 0（后端按最优价格成交）
       // - amount: 份额数量（精度2位）
-      //   用户输入 10 USDC @ 0.5 → 份额 20 → 传 2000
-      //   后端锁定：20 × 0.5 × 1.02 = 10.2 USDC
+      const orderPrice = orderType === 'market' 
+        ? 0 // 市价单：price = 0
+        : Math.round(limitPrice * 10000); // 限价单：转为 BPS
+        
       await onPlaceOrder({
         marketId: market.marketId,
         orderType: orderTypeValue,
-        price: Math.round(limitPrice * 10000), // 0.5 → 5000 BPS
-        amount: Math.round(estimatedShares * 100), // 20.0 → 2000 (份额)
+        price: orderPrice,
+        amount: Math.round(estimatedShares * 100),
       });
 
       // Reset form
@@ -330,49 +338,46 @@ const TradingPanel = ({
         )}
       </div>
 
-      {/* Order Type Toggle */}
-      <div className="mb-4">
-        <div className="flex gap-2 p-1 bg-muted rounded-lg">
-          <Button
-            variant={orderType === 'market' ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => setOrderType('market')}
-            className="flex-1"
-          >
-            <Zap className="w-4 h-4 mr-2" />
-            Market
-          </Button>
-          <Button
-            variant={orderType === 'limit' ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => setOrderType('limit')}
-            className="flex-1"
-          >
-            <Calculator className="w-4 h-4 mr-2" />
-            Limit
-          </Button>
-        </div>
-      </div>
-
-      <Tabs value={side} onValueChange={(v) => setSide(v as 'up' | 'down')} className="space-y-4 flex-1 flex flex-col">
-        <TabsList className="grid w-full grid-cols-2 h-12">
-          <TabsTrigger
-            value="up"
-            className="data-[state=active]:bg-success data-[state=active]:text-white"
+      {/* Direction Tabs (UP/DOWN) */}
+      <Tabs value={direction} onValueChange={(v) => setDirection(v as 'up' | 'down')} className="space-y-4 flex-1 flex flex-col">
+        <TabsList className="grid w-full grid-cols-2 h-12 bg-muted">
+          <TabsTrigger 
+            value="up" 
+            className="data-[state=active]:bg-success data-[state=active]:text-white font-semibold"
           >
             <TrendingUp className="w-4 h-4 mr-2" />
-            Buy UP
+            UP
           </TabsTrigger>
-          <TabsTrigger
-            value="down"
-            className="data-[state=active]:bg-danger data-[state=active]:text-white"
+          <TabsTrigger 
+            value="down" 
+            className="data-[state=active]:bg-danger data-[state=active]:text-white font-semibold"
           >
             <TrendingDown className="w-4 h-4 mr-2" />
-            Buy DOWN
+            DOWN
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value={side} className="space-y-4 flex-1 flex flex-col">
+        <TabsContent value={direction} className="space-y-4 flex-1 flex flex-col m-0">
+          {/* Buy/Sell Tabs */}
+          <Tabs value={action} onValueChange={(v) => setAction(v as 'buy' | 'sell')} className="space-y-4">
+            <TabsList className="grid w-full grid-cols-2 h-10">
+              <TabsTrigger value="buy">Buy</TabsTrigger>
+              <TabsTrigger value="sell">Sell</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value={action} className="space-y-4 m-0">
+              {/* Order Type Dropdown */}
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Order Type</span>
+                <select
+                  value={orderType}
+                  onChange={(e) => setOrderType(e.target.value as 'market' | 'limit')}
+                  className="px-3 py-1.5 text-sm border border-border rounded-md bg-background"
+                >
+                  <option value="market">Market</option>
+                  <option value="limit">Limit</option>
+                </select>
+              </div>
           {/* Price Impact Warning */}
           {orderType === 'market' && priceImpact > 5 && (
             <Alert className="border-orange-200 bg-orange-50">
@@ -498,82 +503,37 @@ const TradingPanel = ({
             </div>
           </div>
 
-          {/* Estimated Returns */}
-          <div className="space-y-2 p-4 rounded-lg bg-success/5 border border-success/20">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-sm font-semibold text-foreground">Estimates</span>
-              <Info className="w-3 h-3 text-muted-foreground" />
-            </div>
-            <div className="space-y-1.5">
-              <div className="flex justify-between text-xs">
-                <span className="text-muted-foreground">Shares</span>
-                <span className="font-semibold">{estimatedShares.toFixed(2)}</span>
+          {/* Potential Win Display */}
+          {amount > 0 && (
+            <div className="p-4 rounded-lg bg-success/5 border border-success/20">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm text-muted-foreground">Shares</span>
+                <span className="text-lg font-bold">{estimatedShares.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between text-xs">
-                <span className="text-muted-foreground">Max Win</span>
-                <span className="font-semibold text-success">
-                  +${maxWin.toFixed(2)}
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Potential Win</span>
+                <span className="text-2xl font-bold text-success">
+                  ${maxWin.toFixed(2)}
                 </span>
               </div>
-              <div className="flex justify-between text-xs">
-                <span className="text-muted-foreground">Max Loss</span>
-                <span className="font-semibold text-danger">
-                  -${maxLoss.toFixed(2)}
-                </span>
-              </div>
-              <div className="flex justify-between text-xs">
-                <span className="text-muted-foreground">Breakeven</span>
-                <span className="font-semibold">${breakeven.toFixed(2)}</span>
-              </div>
-              {amount > 0 && (
-                <div className="flex justify-between text-xs pt-1 border-t border-border">
-                  <span className="text-muted-foreground">ROI</span>
-                  <span className={cn("font-semibold", roi > 0 ? "text-success" : "text-danger")}>
-                    {roi > 0 ? '+' : ''}{roi.toFixed(1)}%
-                  </span>
-                </div>
-              )}
             </div>
-          </div>
-
-          {/* Fee Breakdown */}
-          <div className="space-y-2 p-4 rounded-lg bg-muted/30 border border-border">
-            <div className="text-sm font-semibold text-foreground mb-2">Fees</div>
-            <div className="space-y-1.5">
-              <div className="flex justify-between text-xs">
-                <span className="text-muted-foreground">Trading Fee (2%)</span>
-                <span className="font-medium">
-                  {isFeeExempt ? (
-                    <span className="text-success">Exempt ✓</span>
-                  ) : (
-                    `$${tradingFee.toFixed(2)}`
-                  )}
-                </span>
-              </div>
-              <div className="flex justify-between text-xs">
-              </div>
-              <div className="flex justify-between text-xs pt-1.5 border-t border-border">
-                <span className="font-medium text-foreground">Total Fees</span>
-                <span className="font-semibold">${totalFees.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between text-xs font-semibold pt-1.5 border-t border-border">
-                <span className="text-foreground">Total Cost</span>
-                <span className="text-foreground">${(amount + totalFees).toFixed(2)}</span>
-              </div>
-            </div>
-          </div>
+          )}
+            </TabsContent>
+          </Tabs>
 
           {/* Submit Button */}
           <Button
             size="lg"
             className={cn(
               "w-full h-12 font-semibold text-base mt-auto",
-              side === 'up' ? "bg-success hover:bg-success/90 text-white" : "bg-danger hover:bg-danger/90 text-white"
+              direction === 'up' ? "bg-success hover:bg-success/90 text-white" : "bg-danger hover:bg-danger/90 text-white"
             )}
             disabled={!canPlaceOrder || isPlacingOrder}
             onClick={handlePlaceOrder}
           >
-            {isPlacingOrder ? 'Placing Order...' : `${orderType === 'market' ? 'Place Market' : 'Place Limit'} ${side === 'up' ? 'UP' : 'DOWN'} Order`}
+            {isPlacingOrder 
+              ? 'Placing Order...' 
+              : `${action === 'buy' ? 'Buy' : 'Sell'} ${direction.toUpperCase()} ${orderType === 'market' ? '(Market)' : '(Limit)'}`}
           </Button>
 
           {/* Position Info */}
@@ -605,8 +565,8 @@ const TradingPanel = ({
                 </div>
               </div>
               <div>
-                <span className="text-muted-foreground">Side:</span>
-                <div className="font-medium capitalize">{side}</div>
+                <span className="text-muted-foreground">Action:</span>
+                <div className="font-medium capitalize">{action} {direction.toUpperCase()}</div>
               </div>
               <div>
                 <span className="text-muted-foreground">Type:</span>
@@ -676,7 +636,7 @@ const TradingPanel = ({
               onClick={confirmOrder}
               disabled={isPlacingOrder}
               className={cn(
-                side === 'up' ? "bg-success hover:bg-success/90" : "bg-danger hover:bg-danger/90"
+                direction === 'up' ? "bg-success hover:bg-success/90" : "bg-danger hover:bg-danger/90"
               )}
             >
               {isPlacingOrder ? 'Placing Order...' : 'Confirm Order'}
