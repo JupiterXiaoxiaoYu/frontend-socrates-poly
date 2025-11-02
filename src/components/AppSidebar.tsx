@@ -20,7 +20,7 @@ interface DisplayMarket {
 }
 
 export function AppSidebar() {
-  const { markets } = useMarket();
+  const { markets, marketPrices } = useMarket();
   const { playNewMarketSound } = useSound();
   const [selectedToken, setSelectedToken] = useState("BTC");
   const [selectedDuration, setSelectedDuration] = useState("all");
@@ -41,10 +41,11 @@ export function AppSidebar() {
   // 转换 API 数据为显示格式
   const displayMarkets = useMemo(() => {
     return markets.map((market: any) => {
-      // 计算概率
-      const upVolume = BigInt(market.upMarket?.volume || "0");
-      const downVolume = BigInt(market.downMarket?.volume || "0");
-      const { yesChance } = calculateProbabilities(upVolume, downVolume);
+      // 从最新成交价格计算概率
+      const latestPrice = marketPrices.get(market.marketId);
+      const { yesChance } = latestPrice 
+        ? calculateProbabilities(latestPrice)
+        : calculateProbabilities(); // 默认 50/50
 
       // 计算总成交量
       const totalVolume =

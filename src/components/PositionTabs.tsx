@@ -2,7 +2,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { useMarket } from "../contexts";
 import { fromUSDCPrecision, parseTokenIdx, formatCurrency } from "../lib/calculations";
-import { useMemo, useState, memo } from "react";
+import { useMemo, useState, useCallback } from "react";
 import { useToast } from "../hooks/use-toast";
 
 interface Position {
@@ -60,35 +60,11 @@ const mockOpenOrders: OpenOrder[] = [
 ];
 
 const PositionTabs = () => {
-  const { positions, orders, currentMarket, cancelOrder, playerId } = useMarket();
+  const { positions, orders, currentMarket, cancelOrder, playerId, trades, claim, marketPrices } = useMarket();
   const { toast } = useToast();
 
-  // 转换持仓数据 - 使用稳定的依赖项避免闪烁
-  const displayPositions = useMemo(() => {
-    if (!currentMarket) return [];
 
-    return positions
-      .filter((p) => p.tokenIdx !== "0") // 排除 USDC
-      .map((p) => {
-        const tokenInfo = parseTokenIdx(parseInt(p.tokenIdx));
-        if (!tokenInfo) return null;
-
-        const shares = fromUSDCPrecision(p.balance);
-        const locked = fromUSDCPrecision(p.lockBalance);
-
-        return {
-          side: tokenInfo.direction.toLowerCase() as "up" | "down",
-          shares,
-          avg: "$0.50", // TODO: 需要从历史计算
-          now: "$0.50",
-          cost: formatCurrency(shares * 0.5),
-          estValue: formatCurrency(shares * 0.5),
-          unrealizedPnL: "$0.00 (0%)",
-          pnlPercent: "0%",
-        };
-      })
-      .filter(Boolean) as Position[];
-  }, [positions.length, currentMarket?.marketId]); // 只在持仓数量或市场ID变化时更新
+  // 转换持仓数据 - 只显示当前市场的持仓
 
   // 转换订单数据 - 只显示用户自己的订单
   const displayOrders = useMemo(() => {
@@ -117,6 +93,244 @@ const PositionTabs = () => {
         };
       });
   }, [orders.length, currentMarket?.marketId]); // 只在订单数量或市场ID变化时更新
+
+  // 转换交易历史 - 只显示用户参与的成交
+  const userTrades = useMemo(() => {
+    if (!playerId) return [];
+    
+    // 获取用户的所有订单ID
+    const userOrderIds = new Set(
+      displayOrders.map(o => o.orderId)
+    );
+    
+    // 同时检查已成交和已取消的订单
+    const allUserOrders = orders.filter(o => 
+      o.pid1 === playerId[0] && o.pid2 === playerId[1]
+    );
+    allUserOrders.forEach(o => userOrderIds.add(o.orderId));
+    
+    // 过滤用户参与的成交
+    return trades
+      .filter(t => 
+        userOrderIds.has(t.buyOrderId) || userOrderIds.has(t.sellOrderId)
+      )
+      .slice(0, 20)
+      .map(t => {
+        // 判断用户是买方还是卖方
+        const isBuyer = userOrderIds.has(t.buyOrderId);
+        
+        // trade.direction 表示成交发生在哪个子市场（UP 或 DOWN）
+        // 买方获得该方向的份额，卖方获得相反方向的份额
+        const tradeDirection = t.direction === 1 ? 'UP' : 'DOWN';
+        
+        let userAction: string;
+        let userDirection: string;
+        
+        // 交易发生在哪个市场就显示哪个方向
+        // 不管用户是买方还是卖方，都显示成交市场的方向
+        userAction = isBuyer ? 'Buy' : 'Sell';
+        userDirection = tradeDirection; // 显示交易发生的市场方向
+        
+        const priceDecimal = parseInt(t.price) / 10000; // BPS to decimal
+        const shares = fromUSDCPrecision(t.amount);
+        const tradeCost = shares * priceDecimal;
+        
+        return {
+          tradeId: t.tradeId,
+          price: (parseInt(t.price) / 100).toFixed(2) + '%',
+          amount: shares.toFixed(2),
+          cost: formatCurrency(tradeCost),
+          side: `${userAction} ${userDirection}`,
+          action: userAction,
+          direction: userDirection,
+          time: new Date(t.createdAt).toLocaleString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+          }),
+        };
+      });
+  }, [trades, playerId, orders, displayOrders]);
+
+  // 从 userTrades 计算份额、成本和平均价格
+  const positionCostMap = useMemo(() => {
+    const costMap = new Map<string, { avgPrice: number; totalCost: number; totalShares: number }>();
+    
+    if (!playerId || userTrades.length === 0) return costMap;
+
+    // 按方向聚合所有交易（买入和卖出）
+    const upBuys: any[] = [];
+    const upSells: any[] = [];
+    const downBuys: any[] = [];
+    const downSells: any[] = [];
+    
+    userTrades.forEach(trade => {
+      if (trade.direction === 'UP') {
+        if (trade.action === 'Buy') upBuys.push(trade);
+        else upSells.push(trade);
+      } else {
+        if (trade.action === 'Buy') downBuys.push(trade);
+        else downSells.push(trade);
+      }
+    });
+
+    // 计算 UP 的数据
+    const upBuyShares = upBuys.reduce((sum, t) => sum + parseFloat(t.amount), 0);
+    const upSellShares = upSells.reduce((sum, t) => sum + parseFloat(t.amount), 0);
+    const upNetShares = upBuyShares - upSellShares;
+    
+    if (upBuyShares > 0) {
+      const upBuyCost = upBuys.reduce((sum, t) => {
+        const price = parseFloat(t.price) / 100;
+        const shares = parseFloat(t.amount);
+        return sum + (shares * price);
+      }, 0);
+      
+      costMap.set('UP', {
+        avgPrice: upBuyCost / upBuyShares,
+        totalCost: upBuyCost,
+        totalShares: upNetShares, // 净持仓
+      });
+    }
+
+    // 计算 DOWN 的数据
+    const downBuyShares = downBuys.reduce((sum, t) => sum + parseFloat(t.amount), 0);
+    const downSellShares = downSells.reduce((sum, t) => sum + parseFloat(t.amount), 0);
+    const downNetShares = downBuyShares - downSellShares;
+    
+    if (downBuyShares > 0) {
+      const downBuyCost = downBuys.reduce((sum, t) => {
+        const price = parseFloat(t.price) / 100;
+        const shares = parseFloat(t.amount);
+        return sum + (shares * price);
+      }, 0);
+      
+      costMap.set('DOWN', {
+        avgPrice: downBuyCost / downBuyShares,
+        totalCost: downBuyCost,
+        totalShares: downNetShares, // 净持仓
+      });
+    }
+
+    return costMap;
+  }, [userTrades, playerId]);
+
+  const displayPositions = useMemo(() => {
+    if (!currentMarket) return [];
+    
+    const currentMarketId = parseInt(currentMarket.marketId);
+    console.log('[Position Filter] Current Market ID:', currentMarketId);
+    console.log('[Position Filter] All positions:', positions.map(p => ({
+      tokenIdx: p.tokenIdx,
+      marketId: parseTokenIdx(parseInt(p.tokenIdx))?.marketId,
+      direction: parseTokenIdx(parseInt(p.tokenIdx))?.direction,
+    })));
+
+    return positions
+      .filter((p) => {
+        if (p.tokenIdx === "0") return false; // 排除 USDC
+        const tokenInfo = parseTokenIdx(parseInt(p.tokenIdx));
+        const match = tokenInfo && tokenInfo.marketId === currentMarketId;
+        console.log(`[Position Filter] tokenIdx ${p.tokenIdx}:`, {
+          marketId: tokenInfo?.marketId,
+          match,
+        });
+        return match; // 只显示当前市场
+      })
+      .map((p) => {
+        const tokenInfo = parseTokenIdx(parseInt(p.tokenIdx));
+        if (!tokenInfo) return null;
+
+        // 优先使用交易历史计算的份额，否则使用 API 的 balance
+        const costInfo = positionCostMap.get(tokenInfo.direction);
+        const shares = costInfo?.totalShares || fromUSDCPrecision(p.balance);
+        const avgPrice = costInfo?.avgPrice || null;
+        const cost = costInfo?.totalCost || 0;
+        
+        // 当前价格逻辑
+        let currentPrice = 0.5; // 默认
+        
+        if (currentMarket.status === 2) {
+          // 市场已 Resolved
+          const isWinner = 
+            (currentMarket.winningOutcome === 1 && tokenInfo.direction === 'UP') ||
+            (currentMarket.winningOutcome === 0 && tokenInfo.direction === 'DOWN');
+          currentPrice = isWinner ? 1.0 : 0.0; // 赢家 $1，输家 $0
+        } else {
+          // 市场活跃，使用最新成交价
+          const latestPrice = marketPrices.get(currentMarket.marketId);
+          currentPrice = latestPrice ? latestPrice / 100 : 0.5;
+        }
+        
+        const estValue = shares * currentPrice;
+        const unrealizedPnL = estValue - cost;
+        const unrealizedPnLPercent = cost > 0 ? (unrealizedPnL / cost) * 100 : 0;
+
+        return {
+          side: tokenInfo.direction.toLowerCase() as "up" | "down",
+          shares,
+          avg: avgPrice ? formatCurrency(avgPrice) : "-",
+          now: formatCurrency(currentPrice),
+          cost: cost > 0 ? formatCurrency(cost) : "-",
+          estValue: formatCurrency(estValue),
+          unrealizedPnL: cost > 0 
+            ? `${unrealizedPnL >= 0 ? '+' : ''}${formatCurrency(Math.abs(unrealizedPnL))} (${unrealizedPnLPercent >= 0 ? '+' : ''}${unrealizedPnLPercent.toFixed(1)}%)`
+            : "-",
+          pnlPercent: `${unrealizedPnLPercent >= 0 ? '+' : ''}${unrealizedPnLPercent.toFixed(1)}%`,
+        };
+      })
+      .filter(Boolean) as Position[];
+  }, [positions.length, currentMarket?.marketId, positionCostMap, marketPrices]);
+  // 计算可 Claim 金额
+  const claimableInfo = useMemo(() => {
+    if (!currentMarket || currentMarket.status !== 2) {
+      return { canClaim: false, amount: 0, direction: null };
+    }
+
+    const currentMarketId = parseInt(currentMarket.marketId);
+    const winningOutcome = currentMarket.winningOutcome;
+    
+    const winningPosition = positions.find(p => {
+      const tokenInfo = parseTokenIdx(parseInt(p.tokenIdx));
+      return tokenInfo && 
+             tokenInfo.marketId === currentMarketId &&
+             ((winningOutcome === 1 && tokenInfo.direction === 'UP') ||
+              (winningOutcome === 0 && tokenInfo.direction === 'DOWN'));
+    });
+
+    return {
+      canClaim: !!winningPosition && fromUSDCPrecision(winningPosition.balance) > 0,
+      amount: winningPosition ? fromUSDCPrecision(winningPosition.balance) : 0,
+      direction: winningOutcome === 1 ? 'UP' : winningOutcome === 0 ? 'DOWN' : 'TIE',
+    };
+  }, [currentMarket, positions]);
+
+  // 处理 Claim
+  const [isClaiming, setIsClaiming] = useState(false);
+  
+  const handleClaim = async () => {
+    if (!currentMarket || !claimableInfo.canClaim) return;
+    
+    setIsClaiming(true);
+    try {
+      await claim(BigInt(currentMarket.marketId));
+      toast({
+        title: 'Claim Successful',
+        description: `Successfully claimed ${formatCurrency(claimableInfo.amount)}!`,
+      });
+    } catch (error) {
+      console.error('Claim failed:', error);
+      toast({
+        title: 'Claim Failed',
+        description: error instanceof Error ? error.message : 'Failed to claim',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsClaiming(false);
+    }
+  };
 
   // 处理取消订单
   const [cancellingOrderId, setCancellingOrderId] = useState<string | null>(null);
@@ -176,19 +390,20 @@ const PositionTabs = () => {
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-xs text-muted-foreground border-b border-border">
-                  <th className="text-left pb-2 font-medium">Shares</th>
+                  <th className="text-left pb-2 font-medium">Side</th>
+                  <th className="text-right pb-2 font-medium">Shares</th>
                   <th className="text-right pb-2 font-medium">Avg</th>
                   <th className="text-right pb-2 font-medium">Now</th>
                   <th className="text-right pb-2 font-medium">Cost</th>
                   <th className="text-right pb-2 font-medium">Est. Value</th>
-                  <th className="text-right pb-2 font-medium">Unrealized P&L</th>
+                  <th className="text-right pb-2 font-medium">P&L</th>
                   <th className="text-right pb-2 font-medium">Action</th>
                 </tr>
               </thead>
               <tbody>
                 {displayPositions.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="py-8 text-center text-muted-foreground text-sm">
+                    <td colSpan={8} className="py-8 text-center text-muted-foreground text-sm">
                       No positions in this market
                     </td>
                   </tr>
@@ -201,18 +416,28 @@ const PositionTabs = () => {
                             position.side === "up" ? "bg-success text-white" : "bg-danger text-white"
                           }`}
                         >
-                          {position.side === "up" ? "Up" : `${position.shares} Down`}
+                          {position.side === "up" ? "UP" : "DOWN"}
                         </span>
                       </td>
+                      <td className="text-right py-3 font-semibold">{position.shares.toFixed(2)}</td>
                       <td className="text-right py-3">{position.avg}</td>
                       <td className="text-right py-3">{position.now}</td>
                       <td className="text-right py-3">{position.cost}</td>
                       <td className="text-right py-3">{position.estValue}</td>
-                      <td className="text-right py-3 text-success font-medium">{position.unrealizedPnL}</td>
+                      <td className={`text-right py-3 font-medium ${
+                        position.unrealizedPnL.startsWith('+') ? 'text-success' : 
+                        position.unrealizedPnL.startsWith('-') ? 'text-danger' : 'text-muted-foreground'
+                      }`}>
+                        {position.unrealizedPnL}
+                      </td>
                       <td className="text-right py-3">
-                        <Button variant="ghost" size="sm" className="text-primary hover:text-primary/70 h-8">
-                          Sell
-                        </Button>
+                        {currentMarket?.status === 1 ? (
+                          <Button variant="ghost" size="sm" className="text-primary hover:text-primary/70 h-8">
+                            Sell
+                          </Button>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">Closed</span>
+                        )}
                       </td>
                     </tr>
                   ))
@@ -280,22 +505,84 @@ const PositionTabs = () => {
           </div>
         </TabsContent>
 
-        <TabsContent value="history" className="p-8 m-0">
-          <div className="text-center text-muted-foreground">
-            <p>No trading history</p>
-          </div>
+        <TabsContent value="history" className="p-4 m-0">
+          {userTrades.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <p>No trading history in this market</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-xs text-muted-foreground border-b border-border">
+                    <th className="text-left pb-2 font-medium">Side</th>
+                    <th className="text-right pb-2 font-medium">Price</th>
+                    <th className="text-right pb-2 font-medium">Amount</th>
+                    <th className="text-right pb-2 font-medium">Cost</th>
+                    <th className="text-right pb-2 font-medium">Time</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {userTrades.map((trade) => (
+                    <tr key={trade.tradeId} className="border-b border-border">
+                      <td className="py-3">
+                        <div className="flex items-center gap-2">
+                          <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${
+                            trade.action === 'Buy' ? 'bg-primary text-white' : 'bg-secondary text-foreground'
+                          }`}>
+                            {trade.action}
+                          </span>
+                          <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${
+                            trade.direction === 'UP' ? 'bg-success text-white' : 'bg-danger text-white'
+                          }`}>
+                            {trade.direction}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="text-right py-3">{trade.price}</td>
+                      <td className="text-right py-3">{trade.amount}</td>
+                      <td className="text-right py-3 font-semibold">{trade.cost}</td>
+                      <td className="text-right py-3 text-muted-foreground text-xs">{trade.time}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="claim" className="p-4 m-0">
-          <div className="bg-muted/20 p-4 rounded-lg flex items-center justify-between">
-            <div>
-              <div className="text-xs text-muted-foreground mb-1">Claimable Rewards</div>
-              <div className="text-xl font-bold text-foreground">$20,000.53</div>
+          {claimableInfo.canClaim ? (
+            <div className="bg-success/10 border border-success/20 p-4 rounded-lg">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <div className="text-xs text-muted-foreground mb-1">Claimable Amount</div>
+                  <div className="text-2xl font-bold text-success">
+                    {formatCurrency(claimableInfo.amount)}
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    Winning direction: {claimableInfo.direction}
+                  </div>
+                </div>
+              </div>
+              <Button
+                onClick={handleClaim}
+                disabled={isClaiming}
+                className="w-full bg-success hover:bg-success/90 text-white font-semibold h-12"
+                size="lg"
+              >
+                {isClaiming ? 'Claiming...' : 'Claim Winnings'}
+              </Button>
             </div>
-            <button className="bg-foreground text-background hover:bg-foreground/90 px-8 py-2 rounded font-medium">
-              Claim
-            </button>
-          </div>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              <p>
+                {currentMarket?.status === 2 
+                  ? 'No claimable winnings in this market'
+                  : 'Market not yet resolved'}
+              </p>
+            </div>
+          )}
         </TabsContent>
       </Tabs>
     </div>

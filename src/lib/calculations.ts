@@ -69,22 +69,39 @@ export function calculateFee(amount: number, isFeeExempt: boolean): number {
 }
 
 // 根据流动性计算概率
-export function calculateProbabilities(upVolume: bigint, downVolume: bigint): {
+// 根据最新成交价格或成交量计算概率
+export function calculateProbabilities(
+  priceOrVolume?: number | bigint,
+  downVolume?: bigint
+): {
   yesChance: number;
   noChance: number;
 } {
-  const up = Number(upVolume);
-  const down = Number(downVolume);
-  const total = up + down;
+  // 如果提供了两个参数，使用成交量逻辑
+  if (downVolume !== undefined && typeof priceOrVolume === 'bigint') {
+    const up = Number(priceOrVolume);
+    const down = Number(downVolume);
+    const total = up + down;
 
-  if (total === 0) {
-    return { yesChance: 50, noChance: 50 };
+    if (total === 0) {
+      return { yesChance: 50, noChance: 50 };
+    }
+
+    return {
+      yesChance: (up / total) * 100,
+      noChance: (down / total) * 100,
+    };
   }
 
-  return {
-    yesChance: (up / total) * 100,
-    noChance: (down / total) * 100,
-  };
+  // 如果只提供一个参数（价格），使用价格逻辑
+  if (typeof priceOrVolume === 'number') {
+    const yesChance = priceOrVolume;
+    const noChance = 100 - priceOrVolume;
+    return { yesChance, noChance };
+  }
+
+  // 默认 50/50
+  return { yesChance: 50, noChance: 50 };
 }
 
 // 计算市场总成交量
@@ -139,7 +156,9 @@ export const TOKEN_USDC = 0;
 
 // 计算市场份额的 token 索引
 export function getTokenIdx(marketId: number, direction: 'UP' | 'DOWN'): number {
-  return marketId * 2 + (direction === 'UP' ? 1 : 2);
+  // Market 1: UP=1, DOWN=2
+  // Market N: UP=N*2-1, DOWN=N*2
+  return direction === 'UP' ? marketId * 2 - 1 : marketId * 2;
 }
 
 // 从 token 索引反推市场 ID 和方向
@@ -149,10 +168,21 @@ export function parseTokenIdx(tokenIdx: number): {
 } | null {
   if (tokenIdx === 0) return null; // USDC
   
-  const marketId = Math.floor(tokenIdx / 2);
-  const direction = tokenIdx % 2 === 1 ? 'UP' : 'DOWN';
+  // tokenIdx 规则：奇数=UP，偶数=DOWN
+  // Market 1: UP=1, DOWN=2
+  // Market 2: UP=3, DOWN=4
+  // Market 82: UP=163, DOWN=164
+  // Market 83: UP=165, DOWN=166
   
-  return { marketId, direction };
+  if (tokenIdx % 2 === 1) {
+    // 奇数 = UP
+    const marketId = (tokenIdx - 1) / 2;
+    return { marketId, direction: 'UP' };
+  } else {
+    // 偶数 = DOWN
+    const marketId = (tokenIdx - 2) / 2;
+    return { marketId, direction: 'DOWN' };
+  }
 }
 
 // ==================== 数字格式化 ====================

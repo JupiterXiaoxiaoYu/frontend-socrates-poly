@@ -29,12 +29,13 @@ import { MarketStatus } from "../types/api";
 
 const MarketDetail = () => {
   const { id } = useParams();
-  const { currentMarket, globalState, positions, orders, setCurrentMarketId, placeOrder, claim, isLoading } =
+  const { currentMarket, globalState, positions, orders, trades, setCurrentMarketId, placeOrder, claim, isLoading } =
     useMarket();
   const { l1Account, l2Account, isConnected, isL2Connected, connectL2 } = useWallet();
   const { openConnectModal } = useConnectModal();
   const { toast } = useToast();
   const [isTradingOpen, setIsTradingOpen] = useState(false);
+  const [selectedDirection, setSelectedDirection] = useState<'UP' | 'DOWN'>('UP');
 
   // 设置当前市场 ID
   useEffect(() => {
@@ -46,15 +47,20 @@ const MarketDetail = () => {
     };
   }, [id, setCurrentMarketId]);
 
-  // 计算市场当前价格（从订单簿）
+  // 计算市场当前价格（优先从最新成交，否则从订单簿）
   const marketCurrentPrice = useMemo(() => {
+    // 1. 优先使用最新成交价格
+    if (trades && trades.length > 0) {
+      const latestTrade = trades[0];
+      return parseInt(latestTrade.price) / 100; // BPS to percent
+    }
+
+    // 2. 没有成交时，使用订单簿中间价
     if (!orders || orders.length === 0) return null;
 
-    // 获取活跃的买单和卖单
     const activeOrders = orders.filter((o) => o.status === 0);
     if (activeOrders.length === 0) return null;
 
-    // 计算中间价（买一价 + 卖一价）/ 2
     const buyOrders = activeOrders
       .filter((o) => o.orderType === 0 || o.orderType === 2)
       .sort((a, b) => parseInt(b.price) - parseInt(a.price));
@@ -62,8 +68,6 @@ const MarketDetail = () => {
       .filter((o) => o.orderType === 1 || o.orderType === 3)
       .sort((a, b) => parseInt(a.price) - parseInt(b.price));
 
-    // 后端使用 BPS：10000 = 100%
-    // 除以 100 得到百分比值（0-100）
     const bestBid = buyOrders[0] ? parseInt(buyOrders[0].price) / 100 : null;
     const bestAsk = sellOrders[0] ? parseInt(sellOrders[0].price) / 100 : null;
 
@@ -76,16 +80,16 @@ const MarketDetail = () => {
     }
 
     return null;
-  }, [orders]);
+  }, [trades, orders]);
 
   // 计算显示数据并转换为 TradingPanel 所需的 Market 格式
   const marketData = useMemo(() => {
     if (!currentMarket) return null;
 
-    // 计算概率
-    const upVolume = BigInt(currentMarket.upMarket?.volume || "0");
-    const downVolume = BigInt(currentMarket.downMarket?.volume || "0");
-    const { yesChance, noChance } = calculateProbabilities(upVolume, downVolume);
+    // 从市场当前价格计算概率（优先使用最新成交价格）
+    const { yesChance, noChance } = marketCurrentPrice !== null 
+      ? calculateProbabilities(marketCurrentPrice)
+      : calculateProbabilities(); // 默认 50/50
 
     // 计算总成交量
     const totalVolume =
@@ -149,10 +153,9 @@ const MarketDetail = () => {
   }, [positions]);
 
   // 处理下单
-  const handlePlaceOrder = async (order: { marketId: number; orderType: any; price: number; amount: number }) => {
+  const handlePlaceOrder = async (order: { marketId: number; direction: string; orderType: any; price: number; amount: number }) => {
     try {
-      // 转换参数格式
-      const direction = order.orderType === 0 || order.orderType === 2 ? "UP" : "DOWN";
+      // 转换订单类型
       const orderTypeStr =
         order.orderType === 0
           ? "limit_buy"
@@ -167,7 +170,7 @@ const MarketDetail = () => {
       // - amount: 已经是 2位精度 (100 = 1.0)，例如 1000 = 10.00
       await placeOrder({
         marketId: BigInt(order.marketId),
-        direction,
+        direction: order.direction as any,
         orderType: orderTypeStr as any,
         price: BigInt(order.price), // 直接使用，已经是 BPS
         amount: BigInt(order.amount), // 直接使用，已经是 2位精度
@@ -175,7 +178,7 @@ const MarketDetail = () => {
 
       toast({
         title: "Order Placed",
-        description: `Successfully placed ${direction} ${orderTypeStr} order`,
+        description: `Successfully placed ${order.direction} ${orderTypeStr} order`,
       });
     } catch (error) {
       console.error("Place order failed:", error);
@@ -380,10 +383,10 @@ const MarketDetail = () => {
                     <TabsContent value="orderbook" className="flex-1 p-0 m-0 h-full overflow-hidden">
                       <div className="h-full flex flex-col">
                         <div className="flex-1 overflow-auto">
-                          <OrderBook marketId={marketData.marketId} />
+                          <OrderBook marketId={marketData.marketId} direction={selectedDirection} />
                         </div>
                         <div className="h-[200px] border-t border-border flex-shrink-0">
-                          <RecentTrades marketId={marketData.marketId} />
+                          <RecentTrades marketId={marketData.marketId} direction={selectedDirection} />
                         </div>
                       </div>
                     </TabsContent>
@@ -427,6 +430,7 @@ const MarketDetail = () => {
                   isFeeExempt={false}
                   onPlaceOrder={handlePlaceOrder}
                   onClaim={handleClaim}
+                  onDirectionChange={setSelectedDirection}
                 />
               ) : (
                 <div className="h-full flex items-center justify-center p-6">
@@ -471,6 +475,7 @@ const MarketDetail = () => {
                           isFeeExempt={false}
                           onPlaceOrder={handlePlaceOrder}
                           onClaim={handleClaim}
+                          onDirectionChange={setSelectedDirection}
                         />
                       </div>
                     </SheetContent>

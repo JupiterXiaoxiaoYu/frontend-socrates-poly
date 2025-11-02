@@ -12,14 +12,20 @@ interface OrderBookEntry {
 
 interface OrderBookProps {
   marketId: number;
+  direction?: 'UP' | 'DOWN'; // 新增：显示哪个方向的订单
 }
 
-const OrderBook = ({ marketId }: OrderBookProps) => {
+const OrderBook = ({ marketId, direction = 'UP' }: OrderBookProps) => {
   const { orders } = useMarket();
 
-  // 从真实订单构建订单簿
+  // 从真实订单构建订单簿（只显示指定方向的）
   const { bids, asks } = useMemo(() => {
-    const activeOrders = orders.filter(o => o.status === 0);
+    const directionValue = direction === 'UP' ? 1 : 0;
+    
+    // 只获取指定方向的活跃订单
+    const activeOrders = orders.filter(o => 
+      o.status === 0 && o.direction === directionValue
+    );
     
     // 买单（按价格降序）
     const buyOrders = activeOrders
@@ -53,7 +59,7 @@ const OrderBook = ({ marketId }: OrderBookProps) => {
       bids: aggregateOrders(buyOrders).slice(0, 10),
       asks: aggregateOrders(sellOrders).slice(0, 10),
     };
-  }, [orders]);
+  }, [orders.length, direction]); // 只在订单数量或方向变化时更新
 
   const maxTotal = Math.max(...bids.map((b) => b.total), ...asks.map((a) => a.total));
 
