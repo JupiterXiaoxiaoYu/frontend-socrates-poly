@@ -7,7 +7,13 @@ import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import PortfolioPnLChart from "@/components/PortfolioPnLChart";
 import { useMarket } from "../contexts";
-import { fromUSDCPrecision, parseTokenIdx, formatCurrency, generateMarketTitle, fromPricePrecision } from "../lib/calculations";
+import {
+  fromUSDCPrecision,
+  parseTokenIdx,
+  formatCurrency,
+  generateMarketTitle,
+  fromPricePrecision,
+} from "../lib/calculations";
 import { MarketStatus } from "../types/api";
 import { useToast } from "../hooks/use-toast";
 
@@ -21,30 +27,30 @@ const Portfolio = () => {
 
   // 计算 USDC 余额
   const usdcBalance = useMemo(() => {
-    const usdcPosition = positions.find(p => p.tokenIdx === '0');
+    const usdcPosition = positions.find((p) => p.tokenIdx === "0");
     return usdcPosition ? fromUSDCPrecision(usdcPosition.balance) : 0;
   }, [positions]);
 
   // 转换持仓数据
   const displayPositions = useMemo(() => {
     return positions
-      .filter(p => p.tokenIdx !== '0') // 排除 USDC
-      .map(p => {
+      .filter((p) => p.tokenIdx !== "0") // 排除 USDC
+      .map((p) => {
         const tokenInfo = parseTokenIdx(parseInt(p.tokenIdx));
         if (!tokenInfo) return null;
-        
+
         const shares = fromUSDCPrecision(p.balance);
         const marketId = tokenInfo.marketId;
-        const market = markets.find(m => m.marketId === marketId.toString());
-        
+        const market = markets.find((m) => m.marketId === marketId.toString());
+
         // 生成市场标题
         let marketTitle = `Market #${marketId}`;
         if (market) {
-          const asset = market.assetId === '1' ? 'BTC' : 'ETH';
+          const asset = market.assetId === "1" ? "BTC" : "ETH";
           const targetPrice = fromPricePrecision(market.oracleStartPrice);
           marketTitle = generateMarketTitle(asset as any, targetPrice, parseInt(market.oracleStartTime), market.windowMinutes);
         }
-        
+
         return {
           id: p.tokenIdx,
           marketId,
@@ -57,9 +63,10 @@ const Portfolio = () => {
           estValue: formatCurrency(shares * 0.5),
           unrealizedPnL: "$0.00 (0%)",
           isResolved: market?.status === MarketStatus.Resolved,
-          canClaim: market?.status === MarketStatus.Resolved && 
-                   ((market.winningOutcome === 1 && tokenInfo.direction === 'UP') ||
-                    (market.winningOutcome === 0 && tokenInfo.direction === 'DOWN')),
+          canClaim:
+            market?.status === MarketStatus.Resolved &&
+            ((market.winningOutcome === 1 && tokenInfo.direction === "UP") ||
+              (market.winningOutcome === 0 && tokenInfo.direction === "DOWN")),
         };
       })
       .filter(Boolean);
@@ -67,14 +74,12 @@ const Portfolio = () => {
 
   // 计算活跃订单（用户的所有订单）
   const activeOrders = useMemo(() => {
-    return (userAllOrders || []).filter(o => o.status === 0);
+    return (userAllOrders || []).filter((o) => o.status === 0);
   }, [userAllOrders?.length]); // 只在订单数量变化时更新
 
   // 计算可 Claim 金额
   const claimableAmount = useMemo(() => {
-    return displayPositions
-      .filter((p: any) => p.canClaim)
-      .reduce((sum: number, p: any) => sum + p.shares, 0);
+    return displayPositions.filter((p: any) => p.canClaim).reduce((sum: number, p: any) => sum + p.shares, 0);
   }, [displayPositions]);
 
   // 处理取消订单
@@ -83,15 +88,15 @@ const Portfolio = () => {
     try {
       await cancelOrder(BigInt(orderId));
       toast({
-        title: 'Order Cancelled',
-        description: 'Successfully cancelled order',
+        title: "Order Cancelled",
+        description: "Successfully cancelled order",
       });
     } catch (error) {
-      console.error('Cancel order failed:', error);
+      console.error("Cancel order failed:", error);
       toast({
-        title: 'Cancel Failed',
-        description: error instanceof Error ? error.message : 'Failed to cancel order',
-        variant: 'destructive',
+        title: "Cancel Failed",
+        description: error instanceof Error ? error.message : "Failed to cancel order",
+        variant: "destructive",
       });
     } finally {
       setCancellingOrderId(null);
@@ -99,15 +104,17 @@ const Portfolio = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-background">
       <Header />
-      
+
       <main className="container mx-auto px-4 py-6 max-w-7xl">
         <h1 className="text-2xl font-bold mb-4 text-foreground">Portfolio</h1>
-        
+
         {/* Web3 wallet status */}
         <div className="mb-4">
-          <a href="#" className="text-sm text-primary hover:underline">Web3 wallet</a>
+          <a href="#" className="text-sm text-primary hover:underline">
+            Web3 wallet
+          </a>
           <span className="text-sm text-muted-foreground ml-1">in use</span>
         </div>
 
@@ -143,7 +150,7 @@ const Portfolio = () => {
                   </div>
                   <Button
                     className="bg-foreground text-background hover:bg-foreground/90"
-                    onClick={() => navigate('/rewards')}
+                    onClick={() => navigate("/rewards")}
                   >
                     Claim
                   </Button>
@@ -183,20 +190,20 @@ const Portfolio = () => {
             <div className="border-b border-border">
               <div className="px-4">
                 <TabsList className="bg-transparent border-0 h-auto p-0">
-                  <TabsTrigger 
-                    value="positions" 
+                  <TabsTrigger
+                    value="positions"
                     className="border-b-2 border-transparent data-[state=active]:border-primary rounded-none bg-transparent px-4 py-3"
                   >
                     Positions({displayPositions.length})
                   </TabsTrigger>
-                  <TabsTrigger 
-                    value="orders" 
+                  <TabsTrigger
+                    value="orders"
                     className="border-b-2 border-transparent data-[state=active]:border-primary rounded-none bg-transparent px-4 py-3"
                   >
                     Open Orders({activeOrders.length})
                   </TabsTrigger>
-                  <TabsTrigger 
-                    value="history" 
+                  <TabsTrigger
+                    value="history"
                     className="border-b-2 border-transparent data-[state=active]:border-primary rounded-none bg-transparent px-4 py-3"
                   >
                     History
@@ -223,154 +230,138 @@ const Portfolio = () => {
             {/* Positions Tab */}
             <TabsContent value="positions" className="m-0">
               <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="border-b border-border bg-muted/30">
-                <tr>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Market</th>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Shares</th>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Avg</th>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Now</th>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Cost</th>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Est.Value</th>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Unrealized P&L</th>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {displayPositions.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="py-12 text-center text-muted-foreground">
-                      No positions yet
-                    </td>
-                  </tr>
-                ) : (
-                  (displayPositions as any[]).map((position) => (
-                  <tr key={position.id} className="border-b border-border hover:bg-muted/20">
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm text-foreground">{position.market}</span>
-                        <Badge variant="default" className="bg-success text-white text-xs">
-                          {position.side}
-                        </Badge>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-foreground">
-                      {position.shares} ¢
-                    </td>
-                    <td className="px-4 py-3 text-sm text-foreground">
-                      {position.avg} ¢
-                    </td>
-                    <td className="px-4 py-3 text-sm text-foreground">
-                      {position.now} ¢
-                    </td>
-                    <td className="px-4 py-3 text-sm text-foreground">
-                      {position.cost}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-foreground">
-                      {position.estValue}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-success">
-                      {position.unrealizedPnL}
-                    </td>
-                    <td className="px-4 py-3">
-                      <Button 
-                        variant="link" 
-                        className="text-primary h-auto p-0 text-sm"
-                      >
-                        Sell
-                      </Button>
-                    </td>
-                </tr>
-                ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </TabsContent>
-
-        {/* Orders Tab */}
-        <TabsContent value="orders" className="m-0">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="border-b border-border bg-muted/30">
-                <tr>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Market</th>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Side</th>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Type</th>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Price</th>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Shares</th>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Filled</th>
-                  <th className="text-right px-4 py-3 text-xs font-medium text-muted-foreground">Action</th>
-                  <th className="text-right px-4 py-3 text-xs font-medium text-muted-foreground"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {activeOrders.length === 0 ? (
-                  <tr>
-                    <td colSpan={8} className="py-12 text-center text-muted-foreground">
-                      No open orders
-                    </td>
-                  </tr>
-                ) : (
-                  activeOrders.map((order: any) => (
-                    <tr key={order.orderId} className="border-b border-border hover:bg-muted/20">
-                      <td className="px-4 py-3 text-sm">
-                        Market #{Math.floor(parseInt(order.marketId))}
-                      </td>
-                      <td className="px-4 py-3">
-                        <Badge variant={order.direction === 1 ? "default" : "secondary"}>
-                          {order.direction === 1 ? 'UP' : 'DOWN'}
-                        </Badge>
-                      </td>
-                      <td className="px-4 py-3 text-sm">
-                        {order.orderType === 0 ? 'Limit Buy' : 
-                         order.orderType === 1 ? 'Limit Sell' :
-                         order.orderType === 2 ? 'Market Buy' : 'Market Sell'}
-                      </td>
-                      <td className="px-4 py-3 text-sm">
-                        {(parseInt(order.price) / 100).toFixed(2)}%
-                      </td>
-                      <td className="px-4 py-3 text-sm">
-                        {fromUSDCPrecision(order.totalAmount).toFixed(2)}
-                      </td>
-                      <td className="px-4 py-3 text-sm">
-                        {fromUSDCPrecision(order.filledAmount).toFixed(0)}/{fromUSDCPrecision(order.totalAmount).toFixed(0)}
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-danger hover:text-danger/70 h-8"
-                          onClick={() => handleCancelOrder(order.orderId)}
-                          disabled={cancellingOrderId === order.orderId}
-                        >
-                          {cancellingOrderId === order.orderId ? 'Cancelling...' : 'Cancel'}
-                        </Button>
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <Button
-                          variant="link"
-                          size="sm"
-                          className="text-primary h-auto p-0 text-sm"
-                          onClick={() => navigate(`/market/${order.marketId}`)}
-                        >
-                          View
-                        </Button>
-                      </td>
+                <table className="w-full">
+                  <thead className="border-b border-border bg-muted/30">
+                    <tr>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Market</th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Shares</th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Avg</th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Now</th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Cost</th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Est.Value</th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Unrealized P&L</th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Action</th>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </TabsContent>
+                  </thead>
+                  <tbody>
+                    {displayPositions.length === 0 ? (
+                      <tr>
+                        <td colSpan={7} className="py-12 text-center text-muted-foreground">
+                          No positions yet
+                        </td>
+                      </tr>
+                    ) : (
+                      (displayPositions as any[]).map((position) => (
+                        <tr key={position.id} className="border-b border-border hover:bg-muted/20">
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm text-foreground">{position.market}</span>
+                              <Badge variant="default" className="bg-success text-white text-xs">
+                                {position.side}
+                              </Badge>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-sm text-foreground">{position.shares} ¢</td>
+                          <td className="px-4 py-3 text-sm text-foreground">{position.avg} ¢</td>
+                          <td className="px-4 py-3 text-sm text-foreground">{position.now} ¢</td>
+                          <td className="px-4 py-3 text-sm text-foreground">{position.cost}</td>
+                          <td className="px-4 py-3 text-sm text-foreground">{position.estValue}</td>
+                          <td className="px-4 py-3 text-sm text-success">{position.unrealizedPnL}</td>
+                          <td className="px-4 py-3">
+                            <Button variant="link" className="text-primary h-auto p-0 text-sm">
+                              Sell
+                            </Button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </TabsContent>
 
-        {/* History Tab */}
-        <TabsContent value="history" className="m-0 p-8 text-center text-muted-foreground">
-          No trading history
-        </TabsContent>
-      </Tabs>
-    </Card>
+            {/* Orders Tab */}
+            <TabsContent value="orders" className="m-0">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="border-b border-border bg-muted/30">
+                    <tr>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Market</th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Side</th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Type</th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Price</th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Shares</th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Filled</th>
+                      <th className="text-right px-4 py-3 text-xs font-medium text-muted-foreground">Action</th>
+                      <th className="text-right px-4 py-3 text-xs font-medium text-muted-foreground"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {activeOrders.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} className="py-12 text-center text-muted-foreground">
+                          No open orders
+                        </td>
+                      </tr>
+                    ) : (
+                      activeOrders.map((order: any) => (
+                        <tr key={order.orderId} className="border-b border-border hover:bg-muted/20">
+                          <td className="px-4 py-3 text-sm">Market #{Math.floor(parseInt(order.marketId))}</td>
+                          <td className="px-4 py-3">
+                            <Badge variant={order.direction === 1 ? "default" : "secondary"}>
+                              {order.direction === 1 ? "UP" : "DOWN"}
+                            </Badge>
+                          </td>
+                          <td className="px-4 py-3 text-sm">
+                            {order.orderType === 0
+                              ? "Limit Buy"
+                              : order.orderType === 1
+                              ? "Limit Sell"
+                              : order.orderType === 2
+                              ? "Market Buy"
+                              : "Market Sell"}
+                          </td>
+                          <td className="px-4 py-3 text-sm">{(parseInt(order.price) / 100).toFixed(2)}%</td>
+                          <td className="px-4 py-3 text-sm">{fromUSDCPrecision(order.totalAmount).toFixed(2)}</td>
+                          <td className="px-4 py-3 text-sm">
+                            {fromUSDCPrecision(order.filledAmount).toFixed(0)}/
+                            {fromUSDCPrecision(order.totalAmount).toFixed(0)}
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-danger hover:text-danger/70 h-8"
+                              onClick={() => handleCancelOrder(order.orderId)}
+                              disabled={cancellingOrderId === order.orderId}
+                            >
+                              {cancellingOrderId === order.orderId ? "Cancelling..." : "Cancel"}
+                            </Button>
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <Button
+                              variant="link"
+                              size="sm"
+                              className="text-primary h-auto p-0 text-sm"
+                              onClick={() => navigate(`/market/${order.marketId}`)}
+                            >
+                              View
+                            </Button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </TabsContent>
+
+            {/* History Tab */}
+            <TabsContent value="history" className="m-0 p-8 text-center text-muted-foreground">
+              No trading history
+            </TabsContent>
+          </Tabs>
+        </Card>
       </main>
     </div>
   );

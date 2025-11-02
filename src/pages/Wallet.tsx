@@ -129,7 +129,7 @@ const Wallet = () => {
 
   // 计算 USDC 余额
   const usdcBalance = useMemo(() => {
-    const usdcPosition = positions.find(p => p.tokenIdx === '0');
+    const usdcPosition = positions.find((p) => p.tokenIdx === "0");
     return usdcPosition ? fromUSDCPrecision(usdcPosition.balance) : 0;
   }, [positions]);
 
@@ -140,8 +140,8 @@ const Wallet = () => {
     navigator.clipboard.writeText(pidString);
     setCopiedPid(true);
     toast({
-      title: 'Copied!',
-      description: 'Player ID copied to clipboard',
+      title: "Copied!",
+      description: "Player ID copied to clipboard",
     });
     setTimeout(() => setCopiedPid(false), 2000);
   };
@@ -155,7 +155,7 @@ const Wallet = () => {
         const data = await apiClient.getFinancialActivity(playerId, 50);
         setTransactions(data);
       } catch (error) {
-        console.error('Failed to load transactions:', error);
+        console.error("Failed to load transactions:", error);
       }
     };
 
@@ -168,18 +168,18 @@ const Wallet = () => {
 
   // 转换交易数据
   const displayTransactions = useMemo(() => {
-    return transactions.map(tx => {
-      let type = '';
-      let amount = '';
+    return transactions.map((tx) => {
+      let type = "";
+      let amount = "";
       let status: "Completed" | "Failed" | "Pending" = "Completed";
 
-      if (tx.type === 'deposit') {
-        type = 'Deposit USDC';
+      if (tx.type === "deposit") {
+        type = "Deposit USDC";
         amount = `+${fromUSDCPrecision(tx.amount).toFixed(4)} USDC`;
-      } else if (tx.type === 'withdrawal') {
-        type = 'Withdraw USDC';
+      } else if (tx.type === "withdrawal") {
+        type = "Withdraw USDC";
         amount = `-${fromUSDCPrecision(tx.amount).toFixed(4)} USDC`;
-      } else if (tx.type === 'claim') {
+      } else if (tx.type === "claim") {
         type = `Claim from Market #${tx.marketId}`;
         amount = `+${fromUSDCPrecision(tx.totalClaimed).toFixed(4)} USDC`;
       }
@@ -188,14 +188,14 @@ const Wallet = () => {
         id: tx.timestamp,
         type,
         amount,
-        date: new Date(tx.timestamp).toLocaleString('en-US', {
-          year: 'numeric',
-          month: '2-digit',
-          day: '2-digit',
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit',
-          hour12: false
+        date: new Date(tx.timestamp).toLocaleString("en-US", {
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+          hour12: false,
         }),
         status,
       };
@@ -225,9 +225,9 @@ const Wallet = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-background">
       <Header />
-      
+
       <main className="container mx-auto px-4 py-6 max-w-4xl">
         <h1 className="text-2xl font-bold mb-6 text-foreground">Wallet</h1>
 
@@ -241,17 +241,8 @@ const Wallet = () => {
                   [{playerId[0]}, {playerId[1]}]
                 </div>
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleCopyPid}
-                className="h-8"
-              >
-                {copiedPid ? (
-                  <Check className="w-4 h-4 text-success" />
-                ) : (
-                  <Copy className="w-4 h-4" />
-                )}
+              <Button variant="ghost" size="sm" onClick={handleCopyPid} className="h-8">
+                {copiedPid ? <Check className="w-4 h-4 text-success" /> : <Copy className="w-4 h-4" />}
               </Button>
             </div>
           </Card>
@@ -263,7 +254,7 @@ const Wallet = () => {
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-sm text-muted-foreground">USDC Balance</span>
-                <button 
+                <button
                   onClick={() => setHideBalance(!hideBalance)}
                   className="text-muted-foreground hover:text-foreground"
                 >
@@ -276,23 +267,15 @@ const Wallet = () => {
             </div>
 
             <div className="flex gap-3">
-              <Button 
-                className="flex flex-col items-center gap-1 h-auto py-3 px-4 bg-foreground text-background hover:bg-foreground/90"
-              >
+              <Button className="flex flex-col items-center gap-1 h-auto py-3 px-4 bg-foreground text-background hover:bg-foreground/90">
                 <Download className="w-5 h-5" />
                 <span className="text-xs">Deposit</span>
               </Button>
-              <Button 
-                variant="outline"
-                className="flex flex-col items-center gap-1 h-auto py-3 px-4"
-              >
+              <Button variant="outline" className="flex flex-col items-center gap-1 h-auto py-3 px-4">
                 <Upload className="w-5 h-5" />
                 <span className="text-xs">Withdraw</span>
               </Button>
-              <Button 
-                variant="outline"
-                className="flex flex-col items-center gap-1 h-auto py-3 px-4"
-              >
+              <Button variant="outline" className="flex flex-col items-center gap-1 h-auto py-3 px-4">
                 <FileText className="w-5 h-5" />
                 <span className="text-xs">History</span>
               </Button>
@@ -325,42 +308,44 @@ const Wallet = () => {
                   </tr>
                 ) : (
                   currentTransactions.map((transaction) => (
-                  <tr key={transaction.id} className="border-b border-border hover:bg-muted/20">
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
-                          {transaction.type.includes('Deposit') ? (
-                            <Download className="w-4 h-4 text-success" />
-                          ) : (
-                            <Upload className="w-4 h-4 text-danger" />
-                          )}
+                    <tr key={transaction.id} className="border-b border-border hover:bg-muted/20">
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+                            {transaction.type.includes("Deposit") ? (
+                              <Download className="w-4 h-4 text-success" />
+                            ) : (
+                              <Upload className="w-4 h-4 text-danger" />
+                            )}
+                          </div>
+                          <span className="text-sm text-foreground">{transaction.type}</span>
                         </div>
-                        <span className="text-sm text-foreground">{transaction.type}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <span className={`text-sm font-medium ${
-                        transaction.amount.startsWith('+') ? 'text-success' : 'text-danger'
-                      }`}>
-                        {transaction.amount}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-right text-sm text-foreground">
-                      {transaction.date}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <Badge
-                        variant={
-                          transaction.status === "Completed" ? "default" :
-                          transaction.status === "Failed" ? "destructive" :
-                          "secondary"
-                        }
-                        className="text-xs"
-                      >
-                        {transaction.status}
-                      </Badge>
-                    </td>
-                  </tr>
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <span
+                          className={`text-sm font-medium ${
+                            transaction.amount.startsWith("+") ? "text-success" : "text-danger"
+                          }`}
+                        >
+                          {transaction.amount}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-right text-sm text-foreground">{transaction.date}</td>
+                      <td className="px-4 py-3 text-right">
+                        <Badge
+                          variant={
+                            transaction.status === "Completed"
+                              ? "default"
+                              : transaction.status === "Failed"
+                              ? "destructive"
+                              : "secondary"
+                          }
+                          className="text-xs"
+                        >
+                          {transaction.status}
+                        </Badge>
+                      </td>
+                    </tr>
                   ))
                 )}
               </tbody>
@@ -372,7 +357,8 @@ const Wallet = () => {
             <div className="p-4 border-t border-border">
               <div className="flex items-center justify-between">
                 <div className="text-sm text-muted-foreground">
-                  Showing {startIndex + 1} to {Math.min(endIndex, displayTransactions.length)} of {displayTransactions.length} transactions
+                  Showing {startIndex + 1} to {Math.min(endIndex, displayTransactions.length)} of{" "}
+                  {displayTransactions.length} transactions
                 </div>
                 <div className="flex items-center gap-2">
                   <Button
