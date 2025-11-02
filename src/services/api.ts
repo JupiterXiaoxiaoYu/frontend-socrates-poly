@@ -16,7 +16,7 @@ import type {
 } from '../types/api';
 
 // API Base URL
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+export const API_BASE_URL = import.meta.env.REACT_APP_URL || 'http://localhost:3000';
 
 // 命令常量（与后端对应）
 const CMD_TICK = 0;

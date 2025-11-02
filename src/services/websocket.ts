@@ -67,7 +67,7 @@ class WebSocketService {
   }
 
   private getWebSocketUrl(): string {
-    const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+    const apiBaseUrl = import.meta.env.REACT_APP_URL || 'http://localhost:3000';
     const wsUrl = apiBaseUrl.replace('http', 'ws');
     return `${wsUrl}/ws`;
   }
