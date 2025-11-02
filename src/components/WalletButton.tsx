@@ -14,18 +14,18 @@ export function WalletButton() {
 
   // 监听 L2 连接状态变化
   useEffect(() => {
-    console.log('🔄 Wallet state changed:', {
+    console.log("🔄 Wallet state changed:", {
       isConnected,
       isL2Connected,
       hasL1Account: !!l1Account,
       l1Address: l1Account?.address,
       hasL2Account: !!l2Account,
-      address
+      address,
     });
   }, [isConnected, isL2Connected, l1Account, l2Account, address]);
 
   const formatAddress = (address: string) => {
-    if (!address || typeof address !== 'string') return 'Invalid Address';
+    if (!address || typeof address !== "string") return "Invalid Address";
     return `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
   };
 
@@ -33,34 +33,34 @@ export function WalletButton() {
     try {
       if (!isConnected) {
         // Open Rainbow Kit connection modal
-        console.log('Opening connect modal...');
+        console.log("Opening connect modal...");
         openConnectModal?.();
       } else if (!isL2Connected) {
         // Connect L2 layer
-        console.log('Connecting to L2...');
+        console.log("Connecting to L2...");
         toast({
-          title: 'Connecting to App...',
-          description: 'Please sign the message to connect to the prediction market',
+          title: "Connecting to App...",
+          description: "Please sign the message to connect to the prediction market",
         });
         await connectL2();
         toast({
-          title: 'Connected!',
-          description: 'Successfully connected to the prediction market',
+          title: "Connected!",
+          description: "Successfully connected to the prediction market",
         });
       }
     } catch (error) {
-      console.error('Failed to connect wallet:', error);
+      console.error("Failed to connect wallet:", error);
       toast({
-        title: 'Connection Failed',
-        description: 'Failed to connect. Please try again.',
-        variant: 'destructive',
+        title: "Connection Failed",
+        description: "Failed to connect. Please try again.",
+        variant: "destructive",
       });
     }
   };
 
   // SDK 直接提供 address 字段（不是 l1Account.address）
   const displayAddress = address || l1Account?.address;
-  
+
   // 检查是否真正连接：有 address 说明 L1 已连接，有 l2Account 说明 L2 已连接
   const isReallyL2Connected = isL2Connected || !!l2Account;
 
@@ -68,33 +68,22 @@ export function WalletButton() {
     <div className="flex items-center gap-3">
       {/* 显示 L1 地址 */}
       {isConnected && displayAddress && (
-        <Badge
-          variant="secondary"
-          className="hidden sm:flex font-mono text-xs bg-white/10 text-white border-white/20"
-        >
+        <Badge variant="secondary" className="hidden sm:flex font-mono text-xs">
           {formatAddress(displayAddress)}
         </Badge>
       )}
-      
+
       <Button
         variant="outline"
         size="sm"
         onClick={handleWalletClick}
-        className={`font-mono border-white text-white bg-white/10 hover:bg-white/20 ${
-          isConnected && isReallyL2Connected ? 'border-green-400 text-green-400' : ''
-        }`}
+        className={`font-mono ${isConnected && isReallyL2Connected ? "border-success text-success" : ""}`}
       >
         <Wallet className="h-4 w-4 mr-2" />
         <span className="hidden sm:inline">
-          {isConnected && isReallyL2Connected 
-            ? 'CONNECTED' 
-            : isConnected 
-            ? 'CONNECT L2' 
-            : 'CONNECT WALLET'}
+          {isConnected && isReallyL2Connected ? "CONNECTED" : isConnected ? "CONNECT L2" : "CONNECT WALLET"}
         </span>
-        <span className="sm:hidden">
-          {isConnected && isReallyL2Connected ? 'OK' : 'CONNECT'}
-        </span>
+        <span className="sm:hidden">{isConnected && isReallyL2Connected ? "OK" : "CONNECT"}</span>
       </Button>
     </div>
   );

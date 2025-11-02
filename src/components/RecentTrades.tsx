@@ -27,10 +27,10 @@ const RecentTrades = ({ marketId }: RecentTradesProps) => {
       <div className="px-4 py-2 border-b border-border bg-muted/30">
         <h3 className="text-xs font-semibold text-foreground">Recent Trades</h3>
       </div>
-      
+
       <div className="flex-1 overflow-auto">
         <table className="w-full text-xs">
-          <thead className="sticky top-0 bg-white border-b border-border">
+          <thead className="sticky top-0 bg-background border-b border-border">
             <tr>
               <th className="text-left px-3 py-2 font-medium text-muted-foreground">Price</th>
               <th className="text-right px-3 py-2 font-medium text-muted-foreground">Amount</th>
@@ -39,10 +39,7 @@ const RecentTrades = ({ marketId }: RecentTradesProps) => {
           </thead>
           <tbody>
             {mockTrades.map((trade) => (
-              <tr 
-                key={trade.id} 
-                className="border-b border-border hover:bg-muted/20 transition-colors"
-              >
+              <tr key={trade.id} className="border-b border-border hover:bg-muted/20 transition-colors">
                 <td className="px-3 py-2">
                   <div className="flex items-center gap-1">
                     {trade.side === "BUY" ? (
@@ -55,12 +52,8 @@ const RecentTrades = ({ marketId }: RecentTradesProps) => {
                     </span>
                   </div>
                 </td>
-                <td className="text-right px-3 py-2 text-foreground">
-                  {trade.amount}
-                </td>
-                <td className="text-right px-3 py-2 text-muted-foreground">
-                  {formatRelativeTime(trade.timestamp)}
-                </td>
+                <td className="text-right px-3 py-2 text-foreground">{trade.amount}</td>
+                <td className="text-right px-3 py-2 text-muted-foreground">{formatRelativeTime(trade.timestamp)}</td>
               </tr>
             ))}
           </tbody>
