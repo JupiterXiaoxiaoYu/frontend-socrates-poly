@@ -461,7 +461,7 @@ const TradingPanel = ({
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
                     <Input
                       type="number"
-                      value={amount === 0 ? "" : amount.toFixed(2)}
+                      value={amount || ""}
                       onChange={(e) => {
                         const val = e.target.value;
                         if (val === "" || val === ".") {
@@ -475,10 +475,9 @@ const TradingPanel = ({
                       }}
                       onBlur={(e) => {
                         const val = Number(e.target.value);
-                        if (!isNaN(val)) {
-                          // 用户直接输入时，保留两位小数（不向下取整）
-                          setAmount(val === 0 ? 0 : Number(val.toFixed(2)));
-                        } else {
+                        if (!isNaN(val) && val > 0) {
+                          setAmount(Number(val.toFixed(2)));
+                        } else if (val === 0 || isNaN(val)) {
                           setAmount(0);
                         }
                       }}
