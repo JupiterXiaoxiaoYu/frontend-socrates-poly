@@ -1,27 +1,36 @@
+import { useMemo } from "react";
 import { TrendingUp, TrendingDown } from "lucide-react";
-import { formatRelativeTime } from "@/lib/formatters";
-
-interface Trade {
-  id: string;
-  price: string;
-  amount: string;
-  side: "BUY" | "SELL";
-  timestamp: number;
-}
+import { useMarket } from "../contexts";
+import { fromUSDCPrecision } from "../lib/calculations";
 
 interface RecentTradesProps {
   marketId: number;
 }
 
-const mockTrades: Trade[] = [
-  { id: "1", price: "0.67", amount: "150", side: "BUY", timestamp: Date.now() - 1000 },
-  { id: "2", price: "0.66", amount: "200", side: "SELL", timestamp: Date.now() - 5000 },
-  { id: "3", price: "0.67", amount: "100", side: "BUY", timestamp: Date.now() - 10000 },
-  { id: "4", price: "0.65", amount: "300", side: "SELL", timestamp: Date.now() - 15000 },
-  { id: "5", price: "0.66", amount: "250", side: "BUY", timestamp: Date.now() - 20000 },
-];
-
 const RecentTrades = ({ marketId }: RecentTradesProps) => {
+  const { trades } = useMarket();
+
+  // 转换真实成交数据
+  const displayTrades = useMemo(() => {
+    return trades
+      .slice(0, 20) // 最近 20 条
+      .map(t => {
+        const price = (parseInt(t.price) / 100).toFixed(2); // BPS to percent
+        const amount = fromUSDCPrecision(t.amount).toFixed(0);
+        
+        // 简单的时间显示
+        const timeAgo = 'Recently';
+
+        return {
+          id: t.tradeId,
+          side: t.direction === 1 ? 'BUY' : 'SELL',
+          price,
+          amount,
+          time: timeAgo,
+        };
+      });
+  }, [trades]);
+
   return (
     <div className="flex flex-col h-full">
       <div className="px-4 py-2 border-b border-border bg-muted/30">
@@ -38,24 +47,36 @@ const RecentTrades = ({ marketId }: RecentTradesProps) => {
             </tr>
           </thead>
           <tbody>
-            {mockTrades.map((trade) => (
-              <tr key={trade.id} className="border-b border-border hover:bg-muted/20 transition-colors">
-                <td className="px-3 py-2">
-                  <div className="flex items-center gap-1">
-                    {trade.side === "BUY" ? (
-                      <TrendingUp className="w-3 h-3 text-success" />
-                    ) : (
-                      <TrendingDown className="w-3 h-3 text-danger" />
-                    )}
-                    <span className={trade.side === "BUY" ? "text-success font-medium" : "text-danger font-medium"}>
-                      ${trade.price}
-                    </span>
-                  </div>
+            {displayTrades.length === 0 ? (
+              <tr>
+                <td colSpan={3} className="py-8 text-center text-muted-foreground">
+                  No recent trades
                 </td>
-                <td className="text-right px-3 py-2 text-foreground">{trade.amount}</td>
-                <td className="text-right px-3 py-2 text-muted-foreground">{formatRelativeTime(trade.timestamp)}</td>
               </tr>
-            ))}
+            ) : (
+              displayTrades.map((trade) => (
+                <tr key={trade.id} className="border-b border-border hover:bg-muted/20 transition-colors">
+                  <td className="px-3 py-2">
+                    <div className="flex items-center gap-1">
+                      {trade.side === "BUY" ? (
+                        <TrendingUp className="w-3 h-3 text-success" />
+                      ) : (
+                        <TrendingDown className="w-3 h-3 text-danger" />
+                      )}
+                      <span className={trade.side === "BUY" ? "text-success font-medium" : "text-danger font-medium"}>
+                        {trade.price}%
+                      </span>
+                    </div>
+                  </td>
+                  <td className="px-3 py-2 text-right text-foreground font-mono">
+                    {trade.amount}
+                  </td>
+                  <td className="px-3 py-2 text-right text-muted-foreground">
+                    {trade.time}
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>

@@ -60,7 +60,7 @@ const mockOpenOrders: OpenOrder[] = [
 ];
 
 const PositionTabs = () => {
-  const { positions, orders, currentMarket, cancelOrder } = useMarket();
+  const { positions, orders, currentMarket, cancelOrder, playerId } = useMarket();
   const { toast } = useToast();
 
   // 转换持仓数据 - 使用稳定的依赖项避免闪烁
@@ -90,12 +90,15 @@ const PositionTabs = () => {
       .filter(Boolean) as Position[];
   }, [positions.length, currentMarket?.marketId]); // 只在持仓数量或市场ID变化时更新
 
-  // 转换订单数据 - 使用稳定的依赖项避免闪烁
+  // 转换订单数据 - 只显示用户自己的订单
   const displayOrders = useMemo(() => {
-    if (!currentMarket) return [];
+    if (!currentMarket || !playerId) return [];
 
     return orders
-      .filter((o) => o.status === 0) // 只显示活跃订单
+      .filter((o) => 
+        o.status === 0 && // 只显示活跃订单
+        o.pid1 === playerId[0] && o.pid2 === playerId[1] // 只显示自己的订单
+      )
       .map((o) => {
         const shares = fromUSDCPrecision(o.totalAmount);
         const filled = fromUSDCPrecision(o.filledAmount);

@@ -1,6 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { useMarket } from "../contexts";
+import { fromUSDCPrecision } from "../lib/calculations";
 
 interface OrderBookEntry {
   price: number;
@@ -13,68 +15,45 @@ interface OrderBookProps {
 }
 
 const OrderBook = ({ marketId }: OrderBookProps) => {
-  const [bids, setBids] = useState<OrderBookEntry[]>([]);
-  const [asks, setAsks] = useState<OrderBookEntry[]>([]);
+  const { orders } = useMarket();
 
-  // Generate initial order book data
-  useEffect(() => {
-    const generateOrders = (basePrice: number, isBid: boolean): OrderBookEntry[] => {
-      const orders: OrderBookEntry[] = [];
-      let totalAmount = 0;
+  // 从真实订单构建订单簿
+  const { bids, asks } = useMemo(() => {
+    const activeOrders = orders.filter(o => o.status === 0);
+    
+    // 买单（按价格降序）
+    const buyOrders = activeOrders
+      .filter(o => o.orderType === 0 || o.orderType === 2)
+      .sort((a, b) => parseInt(b.price) - parseInt(a.price));
+    
+    // 卖单（按价格升序）
+    const sellOrders = activeOrders
+      .filter(o => o.orderType === 1 || o.orderType === 3)
+      .sort((a, b) => parseInt(a.price) - parseInt(b.price));
 
-      for (let i = 0; i < 10; i++) {
-        const priceOffset = (i + 1) * 0.5;
-        const price = isBid ? basePrice - priceOffset : basePrice + priceOffset;
-        const amount = Math.floor(Math.random() * 5000) + 1000;
-        totalAmount += amount;
+    // 聚合相同价格的订单
+    const aggregateOrders = (orderList: any[]): OrderBookEntry[] => {
+      const priceMap = new Map<number, number>();
+      
+      orderList.forEach(order => {
+        const price = parseInt(order.price) / 100; // BPS to percent
+        const remaining = fromUSDCPrecision(order.totalAmount) - fromUSDCPrecision(order.filledAmount);
+        
+        priceMap.set(price, (priceMap.get(price) || 0) + remaining);
+      });
 
-        orders.push({
-          price: parseFloat(price.toFixed(1)),
-          amount,
-          total: totalAmount,
-        });
-      }
-
-      return orders;
+      let cumulative = 0;
+      return Array.from(priceMap.entries()).map(([price, amount]) => {
+        cumulative += amount;
+        return { price, amount, total: cumulative };
+      });
     };
 
-    const basePrice = 50; // 50% probability
-    setBids(generateOrders(basePrice, true));
-    setAsks(generateOrders(basePrice, false));
-
-    // Update order book randomly
-    const interval = setInterval(() => {
-      setBids((prev) => {
-        const newBids = [...prev];
-        const randomIndex = Math.floor(Math.random() * newBids.length);
-        const change = (Math.random() - 0.5) * 1000;
-        newBids[randomIndex].amount = Math.max(100, newBids[randomIndex].amount + change);
-
-        // Recalculate totals
-        let total = 0;
-        return newBids.map((order) => {
-          total += order.amount;
-          return { ...order, total };
-        });
-      });
-
-      setAsks((prev) => {
-        const newAsks = [...prev];
-        const randomIndex = Math.floor(Math.random() * newAsks.length);
-        const change = (Math.random() - 0.5) * 1000;
-        newAsks[randomIndex].amount = Math.max(100, newAsks[randomIndex].amount + change);
-
-        // Recalculate totals
-        let total = 0;
-        return newAsks.map((order) => {
-          total += order.amount;
-          return { ...order, total };
-        });
-      });
-    }, 2000);
-
-    return () => clearInterval(interval);
-  }, [marketId]);
+    return {
+      bids: aggregateOrders(buyOrders).slice(0, 10),
+      asks: aggregateOrders(sellOrders).slice(0, 10),
+    };
+  }, [orders]);
 
   const maxTotal = Math.max(...bids.map((b) => b.total), ...asks.map((a) => a.total));
 
