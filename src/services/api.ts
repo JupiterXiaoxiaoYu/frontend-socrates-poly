@@ -54,9 +54,6 @@ export class ExchangePlayer extends PlayerConvention {
     try {
       return await this.rpc.sendTransaction(cmd, this.processingKey);
     } catch (error) {
-      if (error instanceof Error) {
-        console.error('Transaction error:', error.message);
-      }
       throw error;
     }
   }
@@ -68,7 +65,6 @@ export class ExchangePlayer extends PlayerConvention {
       return await this.sendTransactionWithCommand(cmd);
     } catch (e) {
       if (e instanceof Error && e.message === 'PlayerAlreadyExists') {
-        console.log('Player already exists, skipping registration');
         return null;
       }
       throw e;
@@ -317,6 +313,19 @@ export class ExchangeAPI {
     
     if (!body.success) {
       throw new Error(body.error || 'Failed to fetch player orders');
+    }
+    return body.data || [];
+  }
+
+  // 查询玩家所有成交记录
+  async getPlayerTrades(pid: PlayerId, limit = 100): Promise<Trade[]> {
+    const [pid1, pid2] = pid.map((v: string) => v.toString());
+    const url = `${this.baseUrl}/data/player/${pid1}/${pid2}/trades?limit=${limit}`;
+    const response = await fetch(url);
+    const body: ApiResponse<Trade[]> = await response.json();
+    
+    if (!body.success) {
+      throw new Error(body.error || 'Failed to fetch player trades');
     }
     return body.data || [];
   }

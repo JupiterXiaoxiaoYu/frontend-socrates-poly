@@ -190,14 +190,6 @@ const TradingPanel = ({
         orderType === "market"
           ? 0 // 市价单：price = 0
           : Math.round(limitPrice * 10000); // 限价单：转为 BPS
-
-      console.log('[TradingPanel] Placing order:', {
-        marketId: market.marketId,
-        direction: direction.toUpperCase(),
-        orderType: orderTypeValue,
-        price: orderPrice,
-        amount: Math.round(estimatedShares * 100),
-      });
       
       await onPlaceOrder({
         marketId: market.marketId,
@@ -212,7 +204,7 @@ const TradingPanel = ({
       setSliderValue([0]);
       setShowConfirmation(false);
     } catch (error) {
-      console.error("Failed to place order:", error);
+      // Error handled by parent component
     } finally {
       setIsPlacingOrder(false);
     }

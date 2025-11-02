@@ -27,8 +27,6 @@ export function getErrorMessage(error: unknown): string {
 }
 
 export function handleApiError(error: unknown): void {
-  console.error('API Error:', error);
-  
   // You can add error reporting service here (e.g., Sentry)
   
   const message = getErrorMessage(error);

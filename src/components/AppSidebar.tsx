@@ -31,7 +31,6 @@ export function AppSidebar() {
     if (markets.length > 0) {
       // 如果市场数量增加，播放音效
       if (previousMarketCountRef.current > 0 && markets.length > previousMarketCountRef.current) {
-        console.log("🔔 New market detected! Playing notification sound...");
         playNewMarketSound();
       }
       previousMarketCountRef.current = markets.length;

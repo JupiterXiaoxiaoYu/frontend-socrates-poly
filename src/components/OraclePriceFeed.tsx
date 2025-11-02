@@ -93,7 +93,6 @@ const OraclePriceFeed: React.FC<OraclePriceFeedProps> = ({
       setLastUpdate(Date.now());
       setConnectionStatus('connected');
     } catch (error) {
-      console.error('Failed to load prices:', error);
       setConnectionStatus('disconnected');
     } finally {
       setIsRefreshing(false);

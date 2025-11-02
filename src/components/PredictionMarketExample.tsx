@@ -48,7 +48,7 @@ const PredictionMarketExample: React.FC = () => {
     try {
       await connect();
     } catch (error) {
-      console.error("Failed to connect:", error);
+      // Error handled by context
     }
   };
 
@@ -77,7 +77,6 @@ const PredictionMarketExample: React.FC = () => {
         fee: 100n,
       });
     } catch (error) {
-      console.error("Failed to create market:", error);
       alert(error instanceof Error ? error.message : "Failed to create market");
     }
   };
@@ -107,7 +106,6 @@ const PredictionMarketExample: React.FC = () => {
         price: "5000",
       });
     } catch (error) {
-      console.error("Failed to place order:", error);
       alert(error instanceof Error ? error.message : "Failed to place order");
     }
   };

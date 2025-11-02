@@ -136,8 +136,6 @@ const PriceChart = ({ targetPrice, currentPrice, onPriceUpdate }: PriceChartProp
           setIsLoading(false);
         }
       } catch (error) {
-        console.error("Failed to fetch price history:", error);
-
         // Fallback to mock data with currentPrice
         const now = Math.floor(Date.now() / 1000);
         const fallbackData = [];

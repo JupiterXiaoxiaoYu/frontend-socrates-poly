@@ -181,7 +181,6 @@ const MarketDetail = () => {
         description: `Successfully placed ${order.direction} ${orderTypeStr} order`,
       });
     } catch (error) {
-      console.error("Place order failed:", error);
       toast({
         title: "Order Failed",
         description: error instanceof Error ? error.message : "Failed to place order",
@@ -199,7 +198,6 @@ const MarketDetail = () => {
         description: "Successfully claimed winnings!",
       });
     } catch (error) {
-      console.error("Claim failed:", error);
       toast({
         title: "Claim Failed",
         description: error instanceof Error ? error.message : "Failed to claim",
@@ -216,11 +214,9 @@ const MarketDetail = () => {
     try {
       if (!isConnected) {
         // 打开 RainbowKit 连接模态框
-        console.log("Opening connect modal...");
         openConnectModal?.();
       } else if (!isL2Connected && !l2Account) {
         // 连接 L2
-        console.log("Connecting to L2...");
         toast({
           title: "Connecting to App...",
           description: "Please sign the message to connect",
@@ -232,7 +228,6 @@ const MarketDetail = () => {
         });
       }
     } catch (error) {
-      console.error("Failed to connect wallet:", error);
       toast({
         title: "Connection Failed",
         description: "Failed to connect. Please try again.",

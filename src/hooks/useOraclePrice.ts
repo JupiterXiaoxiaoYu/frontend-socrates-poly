@@ -113,7 +113,6 @@ export const useOraclePrice = (options: UseOraclePriceOptions = {}): UseOraclePr
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch price data';
       setError(errorMessage);
-      console.error('[Oracle] Failed to fetch initial data:', err);
     } finally {
       setLoading(false);
     }
@@ -158,8 +157,6 @@ export const useOraclePrice = (options: UseOraclePriceOptions = {}): UseOraclePr
     setLastUpdate(new Date());
     setUpdateCount(prev => prev + 1);
     setError(null); // 清除错误状态
-
-    console.log(`[Oracle] Price updated: ${symbol} = ${priceData.formattedPrice}`);
   }, [symbol]);
 
   // WebSocket状态处理
@@ -170,7 +167,6 @@ export const useOraclePrice = (options: UseOraclePriceOptions = {}): UseOraclePr
       setError('WebSocket connection error');
     } else if (status === 'disconnected') {
       // 切换到轮询模式
-      console.log('[Oracle] WebSocket disconnected, switching to polling mode');
     }
   }, []);
 

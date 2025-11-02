@@ -54,7 +54,6 @@ class SocratesOracleService {
         this.ws = new WebSocket(this.wsUrl);
 
         this.ws.onopen = () => {
-          console.log('Socrates Oracle WebSocket connected');
           this.isConnecting = false;
           this.reconnectAttempts = 0;
           this.reconnectDelay = 1000;
@@ -73,13 +72,11 @@ class SocratesOracleService {
         };
 
         this.ws.onclose = () => {
-          console.log('Socrates Oracle WebSocket disconnected');
           this.isConnecting = false;
           this.handleReconnect();
         };
 
         this.ws.onerror = (error) => {
-          console.error('Socrates Oracle WebSocket error:', error);
           this.isConnecting = false;
           reject(error);
         };
@@ -102,10 +99,11 @@ class SocratesOracleService {
           // Handle pong response
           break;
         default:
-          console.log('Unknown message type:', message.type);
+          // Unknown message type
+          break;
       }
     } catch (error) {
-      console.error('Error parsing WebSocket message:', error);
+      // Silently handle parse errors
     }
   }
 
@@ -140,14 +138,10 @@ class SocratesOracleService {
     if (this.reconnectAttempts < this.maxReconnectAttempts) {
       const delay = Math.min(this.reconnectDelay * Math.pow(2, this.reconnectAttempts), 60000);
 
-      console.log(`Attempting to reconnect in ${delay}ms... (attempt ${this.reconnectAttempts + 1}/${this.maxReconnectAttempts})`);
-
       setTimeout(() => {
         this.reconnectAttempts++;
         this.connect();
       }, delay);
-    } else {
-      console.error('Max reconnection attempts reached');
     }
   }
 

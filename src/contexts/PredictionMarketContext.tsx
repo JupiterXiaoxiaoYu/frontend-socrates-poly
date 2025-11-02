@@ -163,8 +163,6 @@ interface GlobalPlayerState {
 const PredictionMarketContext = createContext<PredictionMarketContextType | undefined>(undefined);
 
 export const PredictionMarketProvider: React.FC<PredictionMarketProviderProps> = ({ children, config }) => {
-    console.log('PredictionMarketProvider: Component mounted with config:', config);
-
     const [api, setApi] = useState<PredictionMarketAPI | null>(null);
     const [markets, setMarkets] = useState<MarketData[]>([]);
     const [userPositions, setUserPositions] = useState<PositionData[]>([]);
@@ -235,35 +233,18 @@ export const PredictionMarketProvider: React.FC<PredictionMarketProviderProps> =
     const walletData = useWallet();
     const { l1Account, l2Account, playerId, setPlayerId, isConnected, connectL1 } = walletData;
 
-    console.log('PredictionMarketProvider: Wallet state:', {
-        hasL1Account: !!l1Account,
-        hasL2Account: !!l2Account,
-        playerId,
-        isConnected
-    });
-
     // Auto-connect L1 when RainbowKit connection is established
     useEffect(() => {
         if (isConnected && !l1Account) {
-            console.log('PredictionMarketContext: Auto-connecting L1 account...');
             connectL1();
         }
     }, [isConnected, l1Account, connectL1]);
 
     // Initialize API when L2 account is available OR use fallback for public data
     useEffect(() => {
-        console.log('PredictionMarketContext: API initialization check:', {
-            hasL2Account: !!l2Account,
-            hasPrivateKey: !!(l2Account && l2Account.getPrivateKey),
-            hasApi: !!api,
-            apiInitializing,
-            fallbackInitialized
-        });
-
         if (l2Account && l2Account.getPrivateKey && !apiInitializing) {
             // If wallet is connected, always reinitialize API with user's private key
             if (fallbackInitialized || !api) {
-                console.log('PredictionMarketContext: Reinitializing API with wallet private key...');
                 setFallbackInitialized(false);
                 setApi(null);
                 setPlayerInstalled(false);
@@ -272,7 +253,6 @@ export const PredictionMarketProvider: React.FC<PredictionMarketProviderProps> =
         } else if (!l2Account && !apiInitializing) {
             // If no wallet is connected, ensure we have fallback API
             if (!fallbackInitialized || !api) {
-                console.log('PredictionMarketContext: Initializing/reinitializing API with fallback...');
                 setFallbackInitialized(true);
                 setApi(null);
                 setPlayerInstalled(false);
@@ -284,7 +264,6 @@ export const PredictionMarketProvider: React.FC<PredictionMarketProviderProps> =
     // Reset user-specific state when wallet is disconnected
     useEffect(() => {
         if (!l1Account && !l2Account && fallbackInitialized) {
-            console.log('PredictionMarketContext: Wallet disconnected, resetting user data and switching back to fallback mode');
             setUserPositions([]);
             setUserStats(null);
             setTransactionHistory([]);
@@ -300,9 +279,7 @@ export const PredictionMarketProvider: React.FC<PredictionMarketProviderProps> =
                 if (!api || playerInstalled) return;
 
                 try {
-                    console.log("Auto-installing player...");
                     const result = await api.installPlayer();
-                    console.log("Player installation completed:", result);
                     setPlayerInstalled(true);
 
                     // Generate player ID from L2 account
@@ -313,12 +290,10 @@ export const PredictionMarketProvider: React.FC<PredictionMarketProviderProps> =
                                 const leHexBN = new LeHexBN(bnToHexLe(pubkey));
                                 const pkeyArray = leHexBN.toU64Array();
                                 const playerId: [string, string] = [pkeyArray[1].toString(), pkeyArray[2].toString()];
-                                console.log("Generated player ID from L2 account:", playerId);
                                 return playerId;
                             }
                             return null;
                         } catch (error) {
-                            console.error("Failed to generate player ID from L2:", error);
                             return null;
                         }
                     };
@@ -326,12 +301,10 @@ export const PredictionMarketProvider: React.FC<PredictionMarketProviderProps> =
                     const generatedPlayerId = generatePlayerIdFromL2();
                     if (generatedPlayerId) {
                         setPlayerId(generatedPlayerId);
-                        console.log("Player ID set from L2 account:", generatedPlayerId);
                     }
                 } catch (err) {
                     // Handle PlayerAlreadyExist as success case
                     if (err instanceof Error && (err.message.includes("PlayerAlreadyExist") || err.message.includes("PlayerAlreadyExists"))) {
-                        console.log("Player already installed, continuing...");
                         setPlayerInstalled(true);
 
                         // Still need to generate player ID even if player already exists
@@ -342,12 +315,10 @@ export const PredictionMarketProvider: React.FC<PredictionMarketProviderProps> =
                                     const leHexBN = new LeHexBN(bnToHexLe(pubkey));
                                     const pkeyArray = leHexBN.toU64Array();
                                     const playerId: [string, string] = [pkeyArray[1].toString(), pkeyArray[2].toString()];
-                                    console.log("Generated player ID from L2 account:", playerId);
                                     return playerId;
                                 }
                                 return null;
                             } catch (error) {
-                                console.error("Failed to generate player ID from L2:", error);
                                 return null;
                             }
                         };
@@ -355,11 +326,9 @@ export const PredictionMarketProvider: React.FC<PredictionMarketProviderProps> =
                         const generatedPlayerId = generatePlayerIdFromL2();
                         if (generatedPlayerId) {
                             setPlayerId(generatedPlayerId);
-                            console.log("Player ID set from L2 account:", generatedPlayerId);
                         }
                         return;
                     }
-                    console.error("Auto-install failed:", err);
                 }
             };
 
@@ -369,30 +338,18 @@ export const PredictionMarketProvider: React.FC<PredictionMarketProviderProps> =
 
     // Set up polling when API is ready and either player is installed OR using fallback
     useEffect(() => {
-        console.log('PredictionMarketContext: Polling setup check:', {
-            hasApi: !!api,
-            playerInstalled,
-            isConnected
-        });
-
         if (api && playerInstalled) {
-            console.log("PredictionMarketContext: API ready and player installed, starting data polling...");
-
             // Load initial data
             loadInitialData();
 
             // Set up polling interval (every 5 seconds)
             const pollInterval = setInterval(() => {
-                console.log('PredictionMarketContext: 5-second auto refresh triggered');
                 refreshData(false);
             }, 5000);
 
             return () => {
-                console.log('PredictionMarketContext: Cleaning up polling interval');
                 clearInterval(pollInterval);
             };
-        } else {
-            console.log('PredictionMarketContext: Not starting polling - requirements not met');
         }
     }, [api, playerInstalled]);
 
@@ -448,9 +405,7 @@ export const PredictionMarketProvider: React.FC<PredictionMarketProviderProps> =
 
             setApi(apiInstance);
             setPlayerInstalled(true); // Set as installed to enable data polling
-            console.log("PredictionMarketContext: API initialized successfully with fallback private key");
         } catch (err) {
-            console.error('Failed to initialize API with fallback:', err);
             setError(err instanceof Error ? err.message : 'Failed to initialize API');
         } finally {
             setApiInitializing(false);
@@ -465,7 +420,7 @@ export const PredictionMarketProvider: React.FC<PredictionMarketProviderProps> =
         try {
             await refreshData(true); // true = initial load
         } catch (error) {
-            console.error('Failed to load initial data:', error);
+            // Error handled in refreshData
         } finally {
             setLoading(false);
         }
@@ -474,7 +429,6 @@ export const PredictionMarketProvider: React.FC<PredictionMarketProviderProps> =
     // Refresh all data
     const refreshData = useCallback(async (isInitialLoad = false) => {
         if (!api) {
-            console.log('PredictionMarketContext: Cannot refresh data - api not available');
             return;
         }
 
@@ -483,27 +437,21 @@ export const PredictionMarketProvider: React.FC<PredictionMarketProviderProps> =
                 setError(null);
             }
 
-            console.log('PredictionMarketContext: Starting data refresh...');
-
             let currentBalance = "0.00";
 
             // Query user balance and global state using RPC if L2 account is available
             if (l2Account && l2Account.getPrivateKey) {
                 try {
-                    console.log('PredictionMarketContext: Querying user balance and global state via RPC...');
                     const rpcResponse: any = await api.rpc.queryState(l2Account.getPrivateKey());
-                    console.log('PredictionMarketContext: RPC response:', rpcResponse);
 
                     if (rpcResponse && rpcResponse.success && rpcResponse.data) {
                         const parsedData = JSON.parse(rpcResponse.data);
-                        console.log('PredictionMarketContext: Parsed RPC data:', parsedData);
 
                         if (parsedData.player && parsedData.player.data && parsedData.player.data.balance) {
                             const balanceRaw = BigInt(parsedData.player.data.balance);
                             const balancePoints = Number(balanceRaw).toFixed(0);
                             currentBalance = balancePoints;
                             setUserBalance(balancePoints);
-                            console.log('PredictionMarketContext: User balance:', balancePoints, 'points');
                         } else {
                             setUserBalance("0.00");
                         }
@@ -512,22 +460,18 @@ export const PredictionMarketProvider: React.FC<PredictionMarketProviderProps> =
                         if (parsedData.state && parsedData.state.counter) {
                             const counter = parsedData.state.counter;
                             setGlobalCounter(counter);
-                            console.log('PredictionMarketContext: Global counter:', counter);
                         }
                     } else {
                         setUserBalance("0.00");
                     }
                 } catch (balanceError) {
-                    console.warn('PredictionMarketContext: Failed to query balance via RPC:', balanceError);
                     setUserBalance("0.00");
                 }
             } else {
                 // For fallback mode, try to get global counter from RPC with fallback key
                 try {
-                    console.log('PredictionMarketContext: Querying global state via RPC with fallback key...');
                     const fallbackPrivkey = "000000";
                     const rpcResponse: any = await api.rpc.queryState(fallbackPrivkey);
-                    console.log('PredictionMarketContext: Fallback RPC response:', rpcResponse);
 
                     if (rpcResponse && rpcResponse.success && rpcResponse.data) {
                         const parsedData = JSON.parse(rpcResponse.data);
@@ -535,19 +479,16 @@ export const PredictionMarketProvider: React.FC<PredictionMarketProviderProps> =
                         if (parsedData.state && parsedData.state.counter) {
                             const counter = parsedData.state.counter;
                             setGlobalCounter(counter);
-                            console.log('PredictionMarketContext: Global counter from fallback:', counter);
                         }
                     }
                 } catch (fallbackError) {
-                    console.warn('PredictionMarketContext: Failed to query global state via fallback RPC:', fallbackError);
+                    // Silently skip
                 }
                 setUserBalance("0.00");
             }
 
             // Fetch all markets
-            console.log('PredictionMarketContext: Calling api.getAllMarkets()...');
             const allMarkets = await api.getAllMarkets();
-            console.log('PredictionMarketContext: Received markets:', allMarkets);
 
             // Update market status based on global counter
             const marketsWithUpdatedStatus = allMarkets.map(market => {

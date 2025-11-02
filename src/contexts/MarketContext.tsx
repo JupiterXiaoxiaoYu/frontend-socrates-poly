@@ -29,7 +29,8 @@ interface MarketContextType {
   currentMarket: Market | null;
   orders: Order[]; // 当前市场的订单
   userAllOrders: Order[]; // 用户所有订单（用于 Portfolio）
-  trades: Trade[];
+  trades: Trade[]; // 当前市场的成交
+  userAllTrades: Trade[]; // 用户所有成交（用于 Portfolio）
   positions: Position[];
   globalState: GlobalState | null;
   playerId: PlayerId | null;
@@ -77,7 +78,8 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [currentMarket, setCurrentMarket] = useState<Market | null>(null);
   const [orders, setOrders] = useState<Order[]>([]); // 当前市场的订单
   const [userAllOrders, setUserAllOrders] = useState<Order[]>([]); // 用户所有订单
-  const [trades, setTrades] = useState<Trade[]>([]);
+  const [trades, setTrades] = useState<Trade[]>([]); // 当前市场的成交
+  const [userAllTrades, setUserAllTrades] = useState<Trade[]>([]); // 用户所有成交
   const [positions, setPositions] = useState<Position[]>([]);
   const [globalState, setGlobalState] = useState<GlobalState | null>(null);
   const [playerId, setPlayerId] = useState<PlayerId | null>(null);
@@ -102,25 +104,20 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const initializeAPI = () => {
     if (!l2Account?.getPrivateKey()) {
-      console.warn('No L2 account private key available');
       return;
     }
 
     if (apiInitializing || playerClient) {
-      console.log('API already initializing or initialized');
       return;
     }
 
     setApiInitializing(true);
-    console.log('Initializing player API client...');
 
     try {
       const rpc = new ZKWasmAppRpc(API_BASE_URL);
       const client = new ExchangePlayer(l2Account.getPrivateKey(), rpc);
       setPlayerClient(client);
-      console.log('Player API client initialized');
     } catch (error) {
-      console.error('Failed to initialize API:', error);
       toast({
         title: 'Initialization Failed',
         description: 'Failed to initialize API client',
@@ -137,7 +134,6 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   useEffect(() => {
     // 只在 l2Account 断开时重置用户相关状态
     if (!l2Account && playerClient) {
-      console.log('L2 disconnected, resetting user state...');
       setPlayerClient(null);
       setPlayerId(null);
       setIsPlayerInstalled(false);
@@ -150,7 +146,6 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   useEffect(() => {
     if (l2Account && !isPlayerInstalled && playerClient) {
-      console.log('Auto-installing player...');
       autoInstallPlayer();
     }
   }, [l2Account, isPlayerInstalled, playerClient]);
@@ -160,15 +155,12 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     setIsLoading(true);
     try {
-      console.log('Registering player...');
       const response = await playerClient.register();
-      console.log('Registration response:', response);
 
       // 生成 Player ID
       const generatedPlayerId = generatePlayerIdFromL2();
       if (generatedPlayerId) {
         setPlayerId(generatedPlayerId);
-        console.log('Player ID set:', generatedPlayerId);
       }
 
       setIsPlayerInstalled(true);
@@ -185,7 +177,6 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         });
       }
     } catch (error) {
-      console.error('Auto-install failed:', error);
       toast({
         title: 'Connection Failed',
         description: 'Failed to auto-connect player',
@@ -205,10 +196,8 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const pkeyArray = leHexBN.toU64Array();
       const playerId: PlayerId = [pkeyArray[1].toString(), pkeyArray[2].toString()];
       
-      console.log('Generated player ID from L2:', playerId);
       return playerId;
     } catch (error) {
-      console.error('Failed to generate player ID:', error);
       return null;
     }
   };
@@ -222,9 +211,7 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     setIsLoading(true);
     try {
-      console.log('Installing player...');
       const response = await playerClient.register();
-      console.log('Registration response:', response);
 
       const generatedPlayerId = generatePlayerIdFromL2();
       if (generatedPlayerId) {
@@ -242,7 +229,6 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           : 'Successfully created new player!',
       });
     } catch (error) {
-      console.error('Install player failed:', error);
       toast({
         title: 'Installation Failed',
         description: 'Failed to install player',
@@ -296,12 +282,11 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   // ==================== 数据加载 ====================
 
   const loadInitialData = async () => {
-    console.log('Loading initial data...');
     setIsLoading(true);
     try {
       await refreshData();
     } catch (error) {
-      console.error('Failed to load initial data:', error);
+      // Error handled in refreshData
     } finally {
       setIsLoading(false);
     }
@@ -312,7 +297,6 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       // 1. 获取所有市场（公开数据，不需要登录）
       const marketsData = await apiClient.getMarkets();
       setMarkets(marketsData);
-      console.log('Loaded markets:', marketsData.length);
 
       // 2. 批量获取活跃市场的最新成交价格（只获取未 Resolved 的市场）
       const activeMarkets = marketsData.filter(m => m.status === 0 || m.status === 1 || m.status === 3);
@@ -327,21 +311,19 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
               priceMap.set(market.marketId, latestPrice);
             }
           } catch (error) {
-            console.warn(`Failed to load trades for market ${market.marketId}`);
+            // Silently skip failed market
           }
         })
       );
       
       setMarketPrices(priceMap);
-      console.log('Loaded market prices:', priceMap.size);
 
       // 3. 获取全局状态
       try {
         const stateData = await apiClient.getGlobalState();
         setGlobalState(stateData);
-        console.log('Loaded global state, counter:', stateData.counter);
       } catch (error) {
-        console.warn('Failed to load global state:', error);
+        // Silently skip global state
       }
 
       // 4. 如果有当前市场，获取订单和成交（只获取当前市场的）
@@ -355,15 +337,12 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         setCurrentMarket(marketData);
         setOrders(ordersData); // 只包含当前市场的订单
         setTrades(tradesData);
-        console.log('Loaded market detail:', currentMarketId);
       } else {
         // 如果没有选中市场，清空订单和成交
         setOrders([]);
         setTrades([]);
       }
     } catch (error) {
-      console.error('Failed to refresh market data:', error);
-      
       // 只在初次加载失败时显示错误
       if (!markets.length) {
         toast({
@@ -380,18 +359,18 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (!playerId) return;
 
     try {
-      // 加载用户持仓和所有订单（用于 Portfolio 页面）
-      const [positionsData, userOrdersData] = await Promise.all([
+      // 加载用户持仓、所有订单和所有成交（用于 Portfolio 页面）
+      const [positionsData, userOrdersData, userTradesData] = await Promise.all([
         apiClient.getPositions(playerId),
-        apiClient.getPlayerOrders(playerId, { limit: 100 })
+        apiClient.getPlayerOrders(playerId, { limit: 100 }),
+        apiClient.getPlayerTrades(playerId, 200) // 获取用户的所有成交
       ]);
       
       setPositions(positionsData);
-      setUserAllOrders(userOrdersData); // 保存用户所有订单
-      console.log('Loaded user positions:', positionsData.length);
-      console.log('Loaded user all orders:', userOrdersData.length);
+      setUserAllOrders(userOrdersData);
+      setUserAllTrades(userTradesData);
     } catch (error) {
-      console.error('Failed to load user data:', error);
+      // Silently skip user data errors
     }
   }, [playerId]);
 
@@ -404,7 +383,6 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     setIsLoading(true);
     try {
-      console.log('Placing order:', params);
       await playerClient.placeOrder(params);
       
       toast({
@@ -418,7 +396,6 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         playerId ? loadUserData() : Promise.resolve() // 同时刷新用户所有订单
       ]);
     } catch (error) {
-      console.error('Place order failed:', error);
       toast({
         title: 'Order Failed',
         description: 'Failed to place order',
@@ -437,7 +414,6 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     setIsLoading(true);
     try {
-      console.log('Cancelling order:', orderId);
       await playerClient.cancelOrder(orderId);
       
       // 乐观更新：立即从本地状态中移除订单
@@ -455,10 +431,9 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         Promise.all([
           refreshData(),
           playerId ? loadUserData() : Promise.resolve()
-        ]).catch(console.error);
+        ]).catch(() => {});
       }, 1000);
     } catch (error) {
-      console.error('Cancel order failed:', error);
       toast({
         title: 'Cancel Failed',
         description: 'Failed to cancel order',
@@ -477,7 +452,6 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     setIsLoading(true);
     try {
-      console.log('Claiming from market:', marketId);
       await playerClient.claim(marketId);
       
       toast({
@@ -487,7 +461,6 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       await refreshData();
     } catch (error) {
-      console.error('Claim failed:', error);
       toast({
         title: 'Claim Failed',
         description: 'Failed to claim winnings',
@@ -507,6 +480,7 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     orders,
     userAllOrders,
     trades,
+    userAllTrades,
     positions,
     globalState,
     playerId,

@@ -90,7 +90,7 @@ const TradingDashboard: React.FC<TradingDashboardProps> = ({
       const marketStats = calculateMarketStats(tradesData);
       setStats(marketStats);
     } catch (error) {
-      console.error('Failed to load market data:', error);
+      // Silently handle error
     } finally {
       setLoading(false);
     }

@@ -168,11 +168,17 @@ const PositionTabs = () => {
     
     userTrades.forEach(trade => {
       if (trade.direction === 'UP') {
-        if (trade.action === 'Buy') upBuys.push(trade);
-        else upSells.push(trade);
+        if (trade.action === 'Buy') {
+          upBuys.push(trade);
+        } else {
+          upSells.push(trade);
+        }
       } else {
-        if (trade.action === 'Buy') downBuys.push(trade);
-        else downSells.push(trade);
+        if (trade.action === 'Buy') {
+          downBuys.push(trade);
+        } else {
+          downSells.push(trade);
+        }
       }
     });
 
@@ -191,18 +197,30 @@ const PositionTabs = () => {
       costMap.set('UP', {
         avgPrice: upBuyCost / upBuyShares,
         totalCost: upBuyCost,
-        totalShares: upNetShares, // 净持仓
+        totalShares: upNetShares,
+      });
+    } else if (upSellShares > 0) {
+      // 只有卖出
+      costMap.set('UP', {
+        avgPrice: 0,
+        totalCost: 0,
+        totalShares: -upSellShares,
       });
     }
 
     // 计算 DOWN 的数据
+    // Buy DOWN → 获得 DOWN 份额
+    // Sell UP → 获得 DOWN 份额
     const downBuyShares = downBuys.reduce((sum, t) => sum + parseFloat(t.amount), 0);
+    const downFromSellUp = upSells.reduce((sum, t) => sum + parseFloat(t.amount), 0);
     const downSellShares = downSells.reduce((sum, t) => sum + parseFloat(t.amount), 0);
-    const downNetShares = downBuyShares - downSellShares;
+    const downNetShares = downBuyShares + downFromSellUp - downSellShares;
     
-    if (downBuyShares > 0) {
+    if (downBuys.length > 0) {
       const downBuyCost = downBuys.reduce((sum, t) => {
-        const price = parseFloat(t.price) / 100;
+        const priceStr = t.price.replace('%', '');
+        const pricePercent = parseFloat(priceStr);
+        const price = pricePercent / 100;
         const shares = parseFloat(t.amount);
         return sum + (shares * price);
       }, 0);
@@ -210,7 +228,30 @@ const PositionTabs = () => {
       costMap.set('DOWN', {
         avgPrice: downBuyCost / downBuyShares,
         totalCost: downBuyCost,
-        totalShares: downNetShares, // 净持仓
+        totalShares: downNetShares,
+      });
+    } else if (downFromSellUp > 0) {
+      // 通过 Sell UP 获得 DOWN 份额
+      // Sell UP @ 48% → 成本是互补价格 (1 - 0.48) = 0.52
+      const downCostFromSellUp = upSells.reduce((sum, t) => {
+        const priceStr = t.price.replace('%', '');
+        const sellPrice = parseFloat(priceStr) / 100;
+        const costPrice = 1 - sellPrice;
+        const shares = parseFloat(t.amount);
+        return sum + (shares * costPrice);
+      }, 0);
+      
+      costMap.set('DOWN', {
+        avgPrice: downCostFromSellUp / downFromSellUp,
+        totalCost: downCostFromSellUp,
+        totalShares: downFromSellUp,
+      });
+    } else if (downSellShares > 0) {
+      // 只有 Sell DOWN
+      costMap.set('DOWN', {
+        avgPrice: 0,
+        totalCost: 0,
+        totalShares: -downSellShares,
       });
     }
 
@@ -221,22 +262,12 @@ const PositionTabs = () => {
     if (!currentMarket) return [];
     
     const currentMarketId = parseInt(currentMarket.marketId);
-    console.log('[Position Filter] Current Market ID:', currentMarketId);
-    console.log('[Position Filter] All positions:', positions.map(p => ({
-      tokenIdx: p.tokenIdx,
-      marketId: parseTokenIdx(parseInt(p.tokenIdx))?.marketId,
-      direction: parseTokenIdx(parseInt(p.tokenIdx))?.direction,
-    })));
 
     return positions
       .filter((p) => {
         if (p.tokenIdx === "0") return false; // 排除 USDC
         const tokenInfo = parseTokenIdx(parseInt(p.tokenIdx));
         const match = tokenInfo && tokenInfo.marketId === currentMarketId;
-        console.log(`[Position Filter] tokenIdx ${p.tokenIdx}:`, {
-          marketId: tokenInfo?.marketId,
-          match,
-        });
         return match; // 只显示当前市场
       })
       .map((p) => {
@@ -245,6 +276,7 @@ const PositionTabs = () => {
 
         // 优先使用交易历史计算的份额，否则使用 API 的 balance
         const costInfo = positionCostMap.get(tokenInfo.direction);
+        
         const shares = costInfo?.totalShares || fromUSDCPrecision(p.balance);
         const avgPrice = costInfo?.avgPrice || null;
         const cost = costInfo?.totalCost || 0;
@@ -321,7 +353,6 @@ const PositionTabs = () => {
         description: `Successfully claimed ${formatCurrency(claimableInfo.amount)}!`,
       });
     } catch (error) {
-      console.error('Claim failed:', error);
       toast({
         title: 'Claim Failed',
         description: error instanceof Error ? error.message : 'Failed to claim',
@@ -344,7 +375,6 @@ const PositionTabs = () => {
         description: "Successfully cancelled order",
       });
     } catch (error) {
-      console.error("Cancel order failed:", error);
       toast({
         title: "Cancel Failed",
         description: error instanceof Error ? error.message : "Failed to cancel order",

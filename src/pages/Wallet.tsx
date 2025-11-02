@@ -155,7 +155,7 @@ const Wallet = () => {
         const data = await apiClient.getFinancialActivity(playerId, 50);
         setTransactions(data);
       } catch (error) {
-        console.error("Failed to load transactions:", error);
+        // Silently handle error
       }
     };
 

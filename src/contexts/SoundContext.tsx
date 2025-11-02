@@ -83,7 +83,7 @@ export const SoundProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     try {
       (audioRef as any).current?.play();
     } catch (err) {
-      console.log('Failed to play sound:', err);
+      // Silently fail if sound cannot play
     }
   };
 

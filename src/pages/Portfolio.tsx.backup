@@ -19,7 +19,7 @@ import { useToast } from "../hooks/use-toast";
 
 const Portfolio = () => {
   const navigate = useNavigate();
-  const { positions = [], markets = [], userAllOrders = [], cancelOrder } = useMarket();
+  const { positions = [], markets = [], userAllOrders = [], userAllTrades = [], cancelOrder, playerId, marketPrices } = useMarket();
   const { toast } = useToast();
   const [timePeriod, setTimePeriod] = useState("1D");
   const [positionFilter, setPositionFilter] = useState("All");
@@ -31,7 +31,13 @@ const Portfolio = () => {
     return usdcPosition ? fromUSDCPrecision(usdcPosition.balance) : 0;
   }, [positions]);
 
-  // 转换持仓数据
+
+  // 从 userAllTrades 计算每个 position 的成本
+  const portfolioCostMap = useMemo(() => {
+    const costMap = new Map<string, { avgPrice: number; totalCost: number }>();
+    
+    if (!userAllTrades.length) return costMap;
+
   const displayPositions = useMemo(() => {
     return positions
       .filter((p) => p.tokenIdx !== "0") // 排除 USDC
@@ -51,17 +57,41 @@ const Portfolio = () => {
           marketTitle = generateMarketTitle(asset as any, targetPrice, parseInt(market.oracleStartTime), market.windowMinutes);
         }
 
+        // 从成本映射获取数据
+        const key = `${marketId}-${tokenInfo.direction}`;
+        const costData = portfolioCostMap.get(key);
+        const avgPrice = costData?.avgPrice || 0;
+        const cost = costData?.totalCost || 0;
+        
+        // 当前价格
+        let currentPrice = 0.5;
+        if (market?.status === MarketStatus.Resolved) {
+          const isWinner = 
+            (market.winningOutcome === 1 && tokenInfo.direction === 'UP') ||
+            (market.winningOutcome === 0 && tokenInfo.direction === 'DOWN');
+          currentPrice = isWinner ? 1.0 : 0.0;
+        } else {
+          const latestPrice = marketPrices.get(market?.marketId || '');
+          currentPrice = latestPrice ? latestPrice / 100 : 0.5;
+        }
+        
+        const estValue = shares * currentPrice;
+        const unrealizedPnL = estValue - cost;
+        const unrealizedPnLPercent = cost > 0 ? (unrealizedPnL / cost) * 100 : 0;
+
         return {
           id: p.tokenIdx,
           marketId,
           market: marketTitle,
           side: tokenInfo.direction,
           shares,
-          avg: 50, // TODO: 从历史计算
-          now: 50,
-          cost: formatCurrency(shares * 0.5),
-          estValue: formatCurrency(shares * 0.5),
-          unrealizedPnL: "$0.00 (0%)",
+          avg: avgPrice,
+          now: currentPrice,
+          cost: formatCurrency(cost),
+          estValue: formatCurrency(estValue),
+          unrealizedPnL: cost > 0 
+            ? `${unrealizedPnL >= 0 ? '+' : ''}${formatCurrency(Math.abs(unrealizedPnL))} (${unrealizedPnLPercent >= 0 ? '+' : ''}${unrealizedPnLPercent.toFixed(1)}%)`
+            : "-",
           isResolved: market?.status === MarketStatus.Resolved,
           canClaim:
             market?.status === MarketStatus.Resolved &&
@@ -70,7 +100,32 @@ const Portfolio = () => {
         };
       })
       .filter(Boolean);
-  }, [positions.length, markets.length]); // 只在数量变化时更新
+    // 按市场和方向分组计算
+    userAllTrades.forEach(trade => {
+      const marketId = trade.marketId;
+      const direction = trade.direction === 1 ? 'UP' : 'DOWN';
+      
+      // 判断是买方还是卖方
+      const userOrderIds = new Set(userAllOrders.map(o => o.orderId));
+      const isBuyer = userOrderIds.has(trade.buyOrderId);
+      
+      if (isBuyer) {
+        const key = `${marketId}-${direction}`;
+        const price = parseInt(trade.price) / 10000;
+        const shares = fromUSDCPrecision(trade.amount);
+        const cost = shares * price;
+        
+        const existing = costMap.get(key) || { avgPrice: 0, totalCost: 0, totalShares: 0 };
+        costMap.set(key, {
+          avgPrice: (existing.totalCost + cost) / ((existing.totalShares || 0) + shares),
+          totalCost: existing.totalCost + cost,
+          totalShares: (existing.totalShares || 0) + shares,
+        } as any);
+      }
+    });
+    
+    return costMap;
+  }, [userAllTrades, userAllOrders]);
 
   // 计算活跃订单（用户的所有订单）
   const activeOrders = useMemo(() => {
@@ -92,6 +147,7 @@ const Portfolio = () => {
         description: "Successfully cancelled order",
       });
     } catch (error) {
+      console.error("Cancel order failed:", error);
       toast({
         title: "Cancel Failed",
         description: error instanceof Error ? error.message : "Failed to cancel order",
@@ -232,15 +288,15 @@ const Portfolio = () => {
                 <table className="w-full">
                   <thead className="border-b border-border bg-muted/30">
                     <tr>
-                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Market</th>
-                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Shares</th>
-                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Avg</th>
-                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Now</th>
-                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Cost</th>
-                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Est.Value</th>
-                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Unrealized P&L</th>
-                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Action</th>
-                    </tr>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Market</th>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Shares</th>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Avg</th>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Now</th>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Cost</th>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Est.Value</th>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">P&L</th>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Action</th>
+                </tr>
                   </thead>
                   <tbody>
                     {displayPositions.length === 0 ? (
@@ -255,7 +311,12 @@ const Portfolio = () => {
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2">
                               <span className="text-sm text-foreground">{position.market}</span>
-                              <Badge variant="default" className="bg-success text-white text-xs">
+                              <Badge 
+                                variant="default" 
+                                className={`text-white text-xs ${
+                                  position.side === 'UP' ? 'bg-success' : 'bg-danger'
+                                }`}
+                              >
                                 {position.side}
                               </Badge>
                             </div>
@@ -266,11 +327,15 @@ const Portfolio = () => {
                           <td className="px-4 py-3 text-sm text-foreground">{position.cost}</td>
                           <td className="px-4 py-3 text-sm text-foreground">{position.estValue}</td>
                           <td className="px-4 py-3 text-sm text-success">{position.unrealizedPnL}</td>
-                          <td className="px-4 py-3">
-                            <Button variant="link" className="text-primary h-auto p-0 text-sm">
-                              Sell
-                            </Button>
-                          </td>
+                    <td className="px-4 py-3">
+                      <Button 
+                        variant="link" 
+                        className="text-primary h-auto p-0 text-sm"
+                        onClick={() => navigate(`/market/${position.marketId}`)}
+                      >
+                        View
+                      </Button>
+                    </td>
                         </tr>
                       ))
                     )}

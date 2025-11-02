@@ -171,15 +171,12 @@ export class SocratesOracleClient {
    */
   connectWebSocket(symbol: string = this.config.symbol): void {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      console.log('[Oracle] WebSocket already connected');
       return;
     }
 
-    console.log(`[Oracle] Connecting to WebSocket: ${this.config.wsUrl}`);
     this.ws = new WebSocket(this.config.wsUrl);
 
     this.ws.onopen = () => {
-      console.log(`[Oracle] WebSocket connected, subscribing to ${symbol}`);
       this.reconnectAttempts = 0;
 
       // 订阅价格更新
@@ -200,30 +197,26 @@ export class SocratesOracleClient {
           this.subscribers.forEach(callback => callback(data));
         }
       } catch (error) {
-        console.error('[Oracle] Failed to parse WebSocket message:', error);
+        // Silently handle parse errors
       }
     };
 
     this.ws.onclose = (event) => {
-      console.log(`[Oracle] WebSocket disconnected: ${event.code} ${event.reason}`);
       this.statusCallbacks.forEach(callback => callback('disconnected'));
 
       // 自动重连
       if (this.reconnectAttempts < this.config.maxReconnectAttempts) {
         this.reconnectAttempts++;
-        console.log(`[Oracle] Attempting to reconnect (${this.reconnectAttempts}/${this.config.maxReconnectAttempts})`);
 
         setTimeout(() => {
           this.connectWebSocket(symbol);
         }, this.config.reconnectInterval);
       } else {
-        console.error('[Oracle] Max reconnect attempts reached');
         this.statusCallbacks.forEach(callback => callback('error'));
       }
     };
 
     this.ws.onerror = (error) => {
-      console.error('[Oracle] WebSocket error:', error);
       this.statusCallbacks.forEach(callback => callback('error'));
     };
   }

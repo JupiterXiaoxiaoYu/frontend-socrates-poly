@@ -82,7 +82,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
       setMarkets(marketsData);
       setGlobalState(stateData);
     } catch (error) {
-      console.error('Failed to load admin data:', error);
+      // Silently handle error
     }
   };
 
@@ -95,7 +95,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
       setShowCreateDialog(false);
       await loadData();
     } catch (error) {
-      console.error('Failed to create market pair:', error);
+      // Silently handle error
     } finally {
       setLoading(false);
     }
@@ -112,7 +112,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
       setShowTickDialog(false);
       await loadData();
     } catch (error) {
-      console.error('Failed to execute tick:', error);
+      // Silently handle error
     } finally {
       setLoading(false);
     }
@@ -131,7 +131,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
       setSelectedMarkets([]);
       await loadData();
     } catch (error) {
-      console.error(`Failed to ${action}:`, error);
+      // Silently handle error
     } finally {
       setLoading(false);
     }

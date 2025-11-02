@@ -82,7 +82,6 @@ class WebSocketService {
     this.isManualClose = false;
 
     try {
-      console.log('Connecting to WebSocket:', this.url);
       this.ws = new WebSocket(this.url);
 
       await new Promise<void>((resolve, reject) => {
@@ -94,7 +93,6 @@ class WebSocketService {
 
         this.ws!.onopen = () => {
           clearTimeout(timeout);
-          console.log('WebSocket connected');
           this.isConnecting = false;
           this.reconnectAttempts = 0;
           this.startPing();
@@ -103,7 +101,6 @@ class WebSocketService {
 
         this.ws!.onclose = (event) => {
           clearTimeout(timeout);
-          console.log('WebSocket disconnected:', event.code, event.reason);
           this.isConnecting = false;
           this.stopPing();
 
@@ -114,7 +111,6 @@ class WebSocketService {
 
         this.ws!.onerror = (error) => {
           clearTimeout(timeout);
-          console.error('WebSocket error:', error);
           this.isConnecting = false;
           reject(error);
         };
@@ -143,13 +139,12 @@ class WebSocketService {
 
   private scheduleReconnect(): void {
     const delay = this.reconnectInterval * Math.pow(2, this.reconnectAttempts);
-    console.log(`Scheduling reconnect attempt ${this.reconnectAttempts + 1} in ${delay}ms`);
 
     setTimeout(() => {
       if (!this.isManualClose) {
         this.reconnectAttempts++;
-        this.connect().catch(error => {
-          console.error('Reconnect failed:', error);
+        this.connect().catch(() => {
+          // Silently handle reconnect failure
         });
       }
     }, delay);
@@ -182,7 +177,6 @@ class WebSocketService {
       }
 
       if (message.type === 'error') {
-        console.error('WebSocket server error:', message.data);
         this.notifySubscribers('error', message.data);
         return;
       }
@@ -190,7 +184,7 @@ class WebSocketService {
       // Route message to appropriate subscribers
       this.routeMessage(message);
     } catch (error) {
-      console.error('Failed to parse WebSocket message:', error);
+      // Silently handle parse errors
     }
   }
 
@@ -259,7 +253,7 @@ class WebSocketService {
         try {
           callback(data);
         } catch (error) {
-          console.error(`Error in subscriber callback for ${channel}:`, error);
+          // Silently handle callback errors
         }
       });
     }
@@ -324,8 +318,6 @@ class WebSocketService {
   sendMessage(message: any): void {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
       this.ws.send(JSON.stringify(message));
-    } else {
-      console.warn('WebSocket not connected, cannot send message:', message);
     }
   }
 
@@ -354,11 +346,9 @@ class MockWebSocketService extends WebSocketService {
 
   constructor() {
     super('mock://websocket');
-    console.log('Using mock WebSocket service');
   }
 
   async connect(): Promise<void> {
-    console.log('Mock WebSocket connected');
     this.startMockDataStreams();
   }
 

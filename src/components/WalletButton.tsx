@@ -14,14 +14,7 @@ export function WalletButton() {
 
   // 监听 L2 连接状态变化
   useEffect(() => {
-    console.log("🔄 Wallet state changed:", {
-      isConnected,
-      isL2Connected,
-      hasL1Account: !!l1Account,
-      l1Address: l1Account?.address,
-      hasL2Account: !!l2Account,
-      address,
-    });
+    // Wallet state monitoring
   }, [isConnected, isL2Connected, l1Account, l2Account, address]);
 
   const formatAddress = (address: string) => {
@@ -33,11 +26,9 @@ export function WalletButton() {
     try {
       if (!isConnected) {
         // Open Rainbow Kit connection modal
-        console.log("Opening connect modal...");
         openConnectModal?.();
       } else if (!isL2Connected) {
         // Connect L2 layer
-        console.log("Connecting to L2...");
         toast({
           title: "Connecting to App...",
           description: "Please sign the message to connect to the prediction market",
@@ -49,7 +40,6 @@ export function WalletButton() {
         });
       }
     } catch (error) {
-      console.error("Failed to connect wallet:", error);
       toast({
         title: "Connection Failed",
         description: "Failed to connect. Please try again.",
