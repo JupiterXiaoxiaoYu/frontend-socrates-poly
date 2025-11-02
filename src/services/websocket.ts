@@ -67,7 +67,9 @@ class WebSocketService {
   }
 
   private getWebSocketUrl(): string {
-    const apiBaseUrl = import.meta.env.REACT_APP_URL || 'http://localhost:3000';
+    // Use centralized API config
+    const { API_CONFIG } = require('../config/api');
+    const apiBaseUrl = API_CONFIG.serverUrl;
     const wsUrl = apiBaseUrl.replace('http', 'ws');
     return `${wsUrl}/ws`;
   }

@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { DelphinusReactProvider } from 'zkwasm-minirollup-browser';
 import { PredictionMarketProvider, MarketProvider, SoundProvider } from './contexts';
+import { API_CONFIG } from './config/api';
 import ErrorBoundary from "./components/ErrorBoundary";
 import Index from "./pages/Index";
 import MarketDetail from "./pages/MarketDetail";
@@ -18,10 +19,10 @@ import TradingViewDemo from "./pages/TradingViewDemo";
 
 const queryClient = new QueryClient();
 
-// 配置保留以兼容 PredictionMarketProvider
+// Prediction Market configuration from API config
 const predictionMarketConfig = {
-  serverUrl: process.env.REACT_APP_URL || "http://localhost:3000",
-  privkey: undefined
+  serverUrl: API_CONFIG.serverUrl,
+  privkey: API_CONFIG.privateKey // This will be overridden by wallet context
 };
 
 const App = () => (

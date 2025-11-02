@@ -7,6 +7,8 @@ import { useState, useMemo, useEffect } from "react";
 import { useMarket } from "../contexts";
 import { fromUSDCPrecision, formatCurrency } from "../lib/calculations";
 import { useToast } from "../hooks/use-toast";
+import { DepositDialog } from "../components/DepositDialog";
+import { WithdrawDialog } from "../components/WithdrawDialog";
 
 interface Asset {
   id: string;
@@ -118,13 +120,15 @@ const mockTransactions: Transaction[] = [
 ];
 
 const Wallet = () => {
-  const { positions = [], playerId, apiClient } = useMarket();
+  const { positions = [], playerId, apiClient, deposit, withdraw } = useMarket();
   const { toast } = useToast();
   const [hideBalance, setHideBalance] = useState(false);
-  const [hideSmallBalances, setHideSmallBalances] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [copiedPid, setCopiedPid] = useState(false);
   const [transactions, setTransactions] = useState<any[]>([]);
+  const [showDepositDialog, setShowDepositDialog] = useState(false);
+  const [showWithdrawDialog, setShowWithdrawDialog] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const itemsPerPage = 6;
 
   // 计算 USDC 余额
@@ -224,6 +228,30 @@ const Wallet = () => {
     }
   };
 
+  // Handle deposit
+  const handleDeposit = async (amount: number) => {
+    setIsProcessing(true);
+    try {
+      // Convert to precision format (amount * 100)
+      const amountWithPrecision = BigInt(Math.round(amount * 100));
+      await deposit(amountWithPrecision);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // Handle withdrawal
+  const handleWithdraw = async (amount: number) => {
+    setIsProcessing(true);
+    try {
+      // Convert to precision format (amount * 100)
+      const amountWithPrecision = BigInt(Math.round(amount * 100));
+      await withdraw(amountWithPrecision);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -267,11 +295,20 @@ const Wallet = () => {
             </div>
 
             <div className="flex gap-3">
-              <Button className="flex flex-col items-center gap-1 h-auto py-3 px-4 bg-foreground text-background hover:bg-foreground/90">
+              <Button 
+                className="flex flex-col items-center gap-1 h-auto py-3 px-4 bg-foreground text-background hover:bg-foreground/90"
+                onClick={() => setShowDepositDialog(true)}
+                disabled={!playerId}
+              >
                 <Download className="w-5 h-5" />
                 <span className="text-xs">Deposit</span>
               </Button>
-              <Button variant="outline" className="flex flex-col items-center gap-1 h-auto py-3 px-4">
+              <Button 
+                variant="outline" 
+                className="flex flex-col items-center gap-1 h-auto py-3 px-4"
+                onClick={() => setShowWithdrawDialog(true)}
+                disabled={!playerId || usdcBalance === 0}
+              >
                 <Upload className="w-5 h-5" />
                 <span className="text-xs">Withdraw</span>
               </Button>
@@ -400,6 +437,24 @@ const Wallet = () => {
           )}
         </Card>
       </main>
+
+      {/* Deposit Dialog */}
+      <DepositDialog
+        open={showDepositDialog}
+        onOpenChange={setShowDepositDialog}
+        onConfirm={handleDeposit}
+        balance={usdcBalance}
+        isLoading={isProcessing}
+      />
+
+      {/* Withdraw Dialog */}
+      <WithdrawDialog
+        open={showWithdrawDialog}
+        onOpenChange={setShowWithdrawDialog}
+        onConfirm={handleWithdraw}
+        balance={usdcBalance}
+        isLoading={isProcessing}
+      />
     </div>
   );
 };

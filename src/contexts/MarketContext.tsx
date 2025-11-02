@@ -53,6 +53,8 @@ interface MarketContextType {
   placeOrder: (params: PlaceOrderParams) => Promise<void>;
   cancelOrder: (orderId: bigint) => Promise<void>;
   claim: (marketId: bigint) => Promise<void>;
+  deposit: (amount: bigint) => Promise<void>;
+  withdraw: (amount: bigint) => Promise<void>;
 }
 
 const MarketContext = createContext<MarketContextType | undefined>(undefined);
@@ -69,7 +71,7 @@ export const useMarket = () => {
 
 export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // Wallet state
-  const { l1Account, l2Account } = useWallet();
+  const { l2Account, deposit: walletDeposit } = useWallet();
   const { toast } = useToast();
   
   // Data state
@@ -472,6 +474,79 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   }, [playerClient, refreshData, toast]);
 
+  // ==================== Deposit ====================
+  
+  const deposit = useCallback(async (amount: bigint) => {
+    if (!walletDeposit || !playerId) {
+      throw new Error('Please connect wallet first');
+    }
+
+    setIsLoading(true);
+    try {
+      // Use SDK's deposit method
+      // Convert amount from bigint (precision format) to number
+      const amountInEther = Number(amount) / 100;
+      
+      await walletDeposit({
+        tokenIndex: 0, // USDC token index
+        amount: amountInEther
+      });
+      
+      toast({
+        title: 'Deposit Successful',
+        description: `Successfully deposited ${amountInEther} USDC`,
+      });
+
+      // Refresh data
+      await Promise.all([
+        refreshData(),
+        loadUserData()
+      ]);
+    } catch (error) {
+      toast({
+        title: 'Deposit Failed',
+        description: error instanceof Error ? error.message : 'Failed to deposit',
+        variant: 'destructive',
+      });
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [walletDeposit, playerId, refreshData, loadUserData, toast]);
+
+  // ==================== Withdraw ====================
+  
+  const withdraw = useCallback(async (amount: bigint) => {
+    if (!playerClient) {
+      throw new Error('API not ready');
+    }
+
+    setIsLoading(true);
+    try {
+      await playerClient.withdraw(amount);
+      
+      toast({
+        title: 'Withdraw Successful',
+        description: `Successfully withdrew ${Number(amount) / 100} USDC`,
+      });
+
+      // Refresh data
+      await Promise.all([
+        refreshData(),
+        loadUserData()
+      ]);
+    } catch (error) {
+      toast({
+        title: 'Withdraw Failed',
+        description: error instanceof Error ? error.message : 'Failed to withdraw',
+        variant: 'destructive',
+      });
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [playerClient, refreshData, loadUserData, toast]);
+
   // ==================== Context Value ====================
 
   const value: MarketContextType = {
@@ -495,6 +570,8 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     placeOrder,
     cancelOrder,
     claim,
+    deposit,
+    withdraw,
   };
 
   return (

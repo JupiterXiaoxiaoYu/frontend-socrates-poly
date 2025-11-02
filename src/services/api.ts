@@ -15,8 +15,9 @@ import type {
   PlayerId,
 } from '../types/api';
 
-// API Base URL
-export const API_BASE_URL = import.meta.env.REACT_APP_URL || 'http://localhost:3000';
+// API Base URL - use centralized config
+import { API_CONFIG } from '../config/api';
+export const API_BASE_URL = API_CONFIG.serverUrl;
 
 // 命令常量（与后端对应）
 const CMD_TICK = 0;
@@ -71,7 +72,7 @@ export class ExchangePlayer extends PlayerConvention {
     }
   }
 
-  // Admin 给目标玩家充值
+  // Admin 给目标玩家充值 (Admin only - not used in frontend)
   async depositTo(targetProcessingKey: string, amount: bigint): Promise<any> {
     const nonce = await this.getNonce();
     const targetPid = this.resolvePidFromProcessingKey(targetProcessingKey);

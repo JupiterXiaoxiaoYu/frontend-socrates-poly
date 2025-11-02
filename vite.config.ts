@@ -20,15 +20,8 @@ export default defineConfig({
     },
   },
   server: {
-    host: true, // Allow external connections (useful for WSL)
-    port: 5173, // Specify port
     watch: {
-      usePolling: true,
-      interval: 1000, // Poll every 1 second
-      ignored: ['**/node_modules/**', '**/.git/**'] // Ignore large directories
-    },
-    fs: {
-      strict: false // Allow serving files from project root
+      usePolling: true
     }
   },
   define: {
