@@ -414,7 +414,23 @@ export function createAPIClient(baseUrl?: string): ExchangeAPI {
 
 // ==================== 兼容旧的导出名称 ====================
 
-// 为了兼容 PredictionMarketContext，添加旧的导出名称
-export const createPredictionMarketAPI = createPlayerClient;
+// Combined API interface for PredictionMarketContext compatibility
+export interface PredictionMarketAPI extends ExchangePlayer {
+  getAllMarkets: () => Promise<any[]>;
+  rpc: ZKWasmAppRpc;
+}
+
+// Create combined API client with both player and REST capabilities
+export function createPredictionMarketAPI(params: { serverUrl: string; privkey: string }): PredictionMarketAPI {
+  const rpc = new ZKWasmAppRpc(params.serverUrl);
+  const playerClient = new ExchangePlayer(params.privkey, rpc);
+  const restClient = new ExchangeAPI(params.serverUrl);
+  
+  // Combine player client with REST API methods
+  return Object.assign(playerClient, {
+    getAllMarkets: () => restClient.getMarkets(),
+    rpc: rpc
+  }) as PredictionMarketAPI;
+}
+
 export const createRESTAPI = createAPIClient;
-export { ExchangePlayer as PredictionMarketAPI };
