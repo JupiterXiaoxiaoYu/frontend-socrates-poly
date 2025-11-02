@@ -14,14 +14,14 @@ const Header = () => {
 
   return (
     <>
-      <header className="sticky top-0 z-40 w-full border-b border-border bg-background text-foreground">
+      <header className="sticky top-0 z-40 w-full border-b border-border bg-black text-white">
         <div className="container flex h-16 items-center justify-between px-4">
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="sm" className="md:hidden p-2" onClick={() => setIsMobileMenuOpen(true)}>
               <Menu className="w-5 h-5" />
             </Button>
             <Link to="/" className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center">
+              <div className="w-8 h-8 rounded-lg bg-gray-800 flex items-center justify-center">
                 <span className="text-lg font-bold">?</span>
               </div>
               <span className="text-xl font-bold">socrates</span>
@@ -29,16 +29,16 @@ const Header = () => {
           </div>
 
           <nav className="hidden md:flex items-center gap-6">
-            <Link to="/" className="text-sm font-medium hover:text-muted-foreground transition-colors">
+            <Link to="/" className="text-sm font-medium hover:text-gray-300 transition-colors">
               Market
             </Link>
-            <Link to="/portfolio" className="text-sm font-medium hover:text-muted-foreground transition-colors">
+            <Link to="/portfolio" className="text-sm font-medium hover:text-gray-300 transition-colors">
               Portfolio
             </Link>
-            <Link to="/rewards" className="text-sm font-medium hover:text-muted-foreground transition-colors">
+            <Link to="/rewards" className="text-sm font-medium hover:text-gray-300 transition-colors">
               Rewards
             </Link>
-            <Link to="/wallet" className="text-sm font-medium hover:text-muted-foreground transition-colors">
+            <Link to="/wallet" className="text-sm font-medium hover:text-gray-300 transition-colors">
               Wallet
             </Link>
           </nav>

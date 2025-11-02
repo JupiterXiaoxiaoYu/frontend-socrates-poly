@@ -68,7 +68,10 @@ export function WalletButton() {
     <div className="flex items-center gap-3">
       {/* 显示 L1 地址 */}
       {isConnected && displayAddress && (
-        <Badge variant="secondary" className="hidden sm:flex font-mono text-xs">
+        <Badge
+          variant="secondary"
+          className="hidden sm:flex font-mono text-xs bg-gray-800 text-gray-100 border border-gray-700"
+        >
           {formatAddress(displayAddress)}
         </Badge>
       )}
@@ -77,7 +80,9 @@ export function WalletButton() {
         variant="outline"
         size="sm"
         onClick={handleWalletClick}
-        className={`font-mono ${isConnected && isReallyL2Connected ? "border-success text-success" : ""}`}
+        className={`font-mono bg-transparent border-gray-600 text-white hover:border-gray-300 hover:text-gray-200 ${
+          isConnected && isReallyL2Connected ? "border-success text-success hover:text-success" : ""
+        }`}
       >
         <Wallet className="h-4 w-4 mr-2" />
         <span className="hidden sm:inline">

@@ -60,8 +60,8 @@ export const TradingViewChart: React.FC<TradingViewChartProps> = ({
   const candlestickSeriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
   const volumeSeriesRef = useRef<ISeriesApi<"Histogram"> | null>(null);
   const maSeriesRef = useRef<ISeriesApi<"Line">[]>([]);
-  const { theme, resolvedTheme } = useTheme();
-  const isDark = (theme ?? resolvedTheme) === "dark";
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
 
   const { currentPrice, priceHistory, loading, error, connected, refresh } = useOraclePrice({
     symbol,

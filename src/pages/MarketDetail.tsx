@@ -95,7 +95,12 @@ const MarketDetail = () => {
     // 生成标题
     const asset = currentMarket.assetId === "1" ? "BTC" : "ETH";
     const targetPrice = fromPricePrecision(currentMarket.oracleStartPrice);
-    const title = generateMarketTitle(asset as "BTC" | "ETH", targetPrice, parseInt(currentMarket.oracleStartTime));
+    const title = generateMarketTitle(
+      asset as "BTC" | "ETH",
+      targetPrice,
+      parseInt(currentMarket.oracleStartTime),
+      currentMarket.windowMinutes
+    );
 
     // 转换为 TradingPanel 所需的格式
     return {

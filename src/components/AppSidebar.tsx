@@ -4,7 +4,12 @@ import { formatCompactNumber } from "../lib/formatters";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useMarket, useSound } from "../contexts";
-import { calculateProbabilities, fromUSDCPrecision, fromPricePrecision } from "../lib/calculations";
+import {
+  calculateProbabilities,
+  fromUSDCPrecision,
+  fromPricePrecision,
+  generateMarketTitle,
+} from "../lib/calculations";
 
 interface DisplayMarket {
   marketId: string;
@@ -45,17 +50,15 @@ export function AppSidebar() {
       const totalVolume =
         fromUSDCPrecision(market.upMarket?.volume || "0") + fromUSDCPrecision(market.downMarket?.volume || "0");
 
-      // 生成标题（使用当地时区，英文格式，24小时制）
+      // 生成标题（统一函数，带窗口）
       const asset = market.assetId === "1" ? "BTC" : "ETH";
       const targetPrice = fromPricePrecision(market.oracleStartPrice);
-      const time = new Date(parseInt(market.oracleStartTime) * 1000).toLocaleString("en-US", {
-        hour: "2-digit",
-        minute: "2-digit",
-        month: "short",
-        day: "numeric",
-        hour12: false,
-      });
-      const title = `Will ${asset} be above $${targetPrice.toLocaleString()} at ${time}?`;
+      const title = generateMarketTitle(
+        asset as "BTC" | "ETH",
+        targetPrice,
+        parseInt(market.oracleStartTime),
+        market.windowMinutes
+      );
 
       return {
         marketId: market.marketId,
