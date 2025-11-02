@@ -200,10 +200,17 @@ export function formatCompactNumber(value: number): string {
 export function generateMarketTitle(
   asset: 'BTC' | 'ETH',
   targetPrice: number,
-  startTime: number
+  startTime: number,
+  windowMinutes?: number
 ): string {
   const price = formatCurrency(targetPrice, 2);
-  const time = new Date(startTime * 1000).toLocaleString('en-US', {
+  
+  // 如果提供了窗口时间，使用结束时间；否则使用开始时间
+  const displayTime = windowMinutes 
+    ? startTime + (windowMinutes * 60)
+    : startTime;
+    
+  const time = new Date(displayTime * 1000).toLocaleString('en-US', {
     hour: '2-digit',
     minute: '2-digit',
     month: 'short',

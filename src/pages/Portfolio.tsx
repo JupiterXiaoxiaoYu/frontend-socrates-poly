@@ -48,7 +48,7 @@ const Portfolio = () => {
         if (market) {
           const asset = market.assetId === "1" ? "BTC" : "ETH";
           const targetPrice = fromPricePrecision(market.oracleStartPrice);
-          marketTitle = generateMarketTitle(asset as any, targetPrice, parseInt(market.oracleStartTime));
+          marketTitle = generateMarketTitle(asset as any, targetPrice, parseInt(market.oracleStartTime), market.windowMinutes);
         }
 
         return {
