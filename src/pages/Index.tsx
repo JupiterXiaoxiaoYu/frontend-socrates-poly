@@ -45,7 +45,9 @@ const Index = () => {
       // 生成标题（使用当地时区，英文格式，24小时制）
       const asset = market.assetId === '1' ? 'BTC' : 'ETH';
       const targetPrice = fromPricePrecision(market.oracleStartPrice);
-      const time = new Date(parseInt(market.oracleStartTime) * 1000).toLocaleString('en-US', {
+      // 使用结束时间（开始时间 + 窗口时间）
+      const endTime = parseInt(market.oracleStartTime) + (market.windowMinutes * 60);
+      const time = new Date(endTime * 1000).toLocaleString('en-US', {
         hour: '2-digit',
         minute: '2-digit',
         month: 'short',
