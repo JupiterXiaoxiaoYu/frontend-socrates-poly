@@ -67,9 +67,8 @@ class WebSocketService {
   }
 
   private getWebSocketUrl(): string {
-    // Use centralized API config
-    const { API_CONFIG } = require('../config/api');
-    const apiBaseUrl = API_CONFIG.serverUrl;
+    // Use import.meta.env directly (Vite environment variable)
+    const apiBaseUrl = import.meta.env.REACT_APP_URL || 'http://localhost:3000';
     const wsUrl = apiBaseUrl.replace('http', 'ws');
     return `${wsUrl}/ws`;
   }
