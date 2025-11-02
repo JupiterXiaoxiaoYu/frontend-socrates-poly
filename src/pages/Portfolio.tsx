@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import PortfolioPnLChart from "@/components/PortfolioPnLChart";
+import TradesHistory from "@/components/TradesHistory";
 import { useMarket } from "../contexts";
 import {
   fromUSDCPrecision,
@@ -19,7 +20,7 @@ import { useToast } from "../hooks/use-toast";
 
 const Portfolio = () => {
   const navigate = useNavigate();
-  const { positions = [], markets = [], userAllOrders = [], cancelOrder } = useMarket();
+  const { positions = [], markets = [], userAllOrders = [], userAllTrades = [], playerId, cancelOrder } = useMarket();
   const { toast } = useToast();
   const [timePeriod, setTimePeriod] = useState("1D");
   const [positionFilter, setPositionFilter] = useState("All");
@@ -30,6 +31,39 @@ const Portfolio = () => {
     const usdcPosition = positions.find((p) => p.tokenIdx === "0");
     return usdcPosition ? fromUSDCPrecision(usdcPosition.balance) : 0;
   }, [positions]);
+
+  // Calculate average cost and PnL from trades
+  const positionCosts = useMemo(() => {
+    if (!userAllTrades || !playerId) return new Map();
+
+    const costs = new Map<string, { totalCost: number; totalShares: number; avgPrice: number }>();
+
+    userAllTrades.forEach(trade => {
+      const shares = fromUSDCPrecision(trade.amount);
+      const price = parseInt(trade.price) / 100; // BPS to percent
+      const cost = shares * (price / 100); // Convert price to decimal
+
+      // Create position key (marketId + direction)
+      const direction = trade.direction === 1 ? 'UP' : 'DOWN';
+      const key = `${trade.marketId}-${direction}`;
+
+      const existing = costs.get(key) || { totalCost: 0, totalShares: 0, avgPrice: 0 };
+
+      // All trades contribute to average cost calculation
+      // Assume trades always increase position (we don't track buy/sell separately)
+      existing.totalCost += cost;
+      existing.totalShares += shares;
+
+      // Calculate weighted average price
+      if (existing.totalShares > 0) {
+        existing.avgPrice = (existing.totalCost / existing.totalShares) * 100; // Convert back to percent
+      }
+
+      costs.set(key, existing);
+    });
+
+    return costs;
+  }, [userAllTrades, playerId]);
 
   // 转换持仓数据
   const displayPositions = useMemo(() => {
@@ -51,17 +85,41 @@ const Portfolio = () => {
           marketTitle = generateMarketTitle(asset as any, targetPrice, parseInt(market.oracleStartTime), market.windowMinutes);
         }
 
+        // Get cost data from trades
+        const costKey = `${marketId}-${tokenInfo.direction}`;
+        const costData = positionCosts.get(costKey);
+        const avgPrice = costData?.avgPrice || 50;
+        const totalCost = costData?.totalCost || shares * 0.5;
+
+        // Calculate current price based on market outcome
+        let currentPrice = 50; // Default for active markets
+        
+        if (market?.status === MarketStatus.Resolved) {
+          // Market is resolved, check if this side won
+          const isWinner = (market.winningOutcome === 1 && tokenInfo.direction === "UP") ||
+                          (market.winningOutcome === 0 && tokenInfo.direction === "DOWN");
+          currentPrice = isWinner ? 100 : 0; // Winner gets 100%, loser gets 0%
+        }
+
+        const currentValue = shares * (currentPrice / 100);
+
+        // Calculate PnL
+        const unrealizedPnL = currentValue - totalCost;
+        const unrealizedPnLPercent = totalCost > 0 ? (unrealizedPnL / totalCost) * 100 : 0;
+        const pnlColor = unrealizedPnL >= 0 ? 'text-success' : 'text-destructive';
+
         return {
           id: p.tokenIdx,
           marketId,
           market: marketTitle,
           side: tokenInfo.direction,
           shares,
-          avg: 50, // TODO: 从历史计算
-          now: 50,
-          cost: formatCurrency(shares * 0.5),
-          estValue: formatCurrency(shares * 0.5),
-          unrealizedPnL: "$0.00 (0%)",
+          avg: avgPrice,
+          now: currentPrice,
+          cost: formatCurrency(totalCost),
+          estValue: formatCurrency(currentValue),
+          unrealizedPnL: `${unrealizedPnL >= 0 ? '+' : ''}${formatCurrency(unrealizedPnL)} (${unrealizedPnLPercent >= 0 ? '+' : ''}${unrealizedPnLPercent.toFixed(2)}%)`,
+          pnlColor,
           isResolved: market?.status === MarketStatus.Resolved,
           canClaim:
             market?.status === MarketStatus.Resolved &&
@@ -70,7 +128,15 @@ const Portfolio = () => {
         };
       })
       .filter(Boolean);
-  }, [positions.length, markets.length]); // 只在数量变化时更新
+  }, [positions, markets, positionCosts]); // 依赖 positionCosts
+
+  // Filter positions based on selected filter
+  const filteredPositions = useMemo(() => {
+    if (positionFilter === "All") {
+      return displayPositions;
+    }
+    return displayPositions.filter((p: any) => p.side === positionFilter);
+  }, [displayPositions, positionFilter]);
 
   // 计算活跃订单（用户的所有订单）
   const activeOrders = useMemo(() => {
@@ -193,7 +259,7 @@ const Portfolio = () => {
                     value="positions"
                     className="border-b-2 border-transparent data-[state=active]:border-primary rounded-none bg-transparent px-4 py-3"
                   >
-                    Positions({displayPositions.length})
+                    Positions({filteredPositions.length})
                   </TabsTrigger>
                   <TabsTrigger
                     value="orders"
@@ -235,40 +301,69 @@ const Portfolio = () => {
                       <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Market</th>
                       <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Shares</th>
                       <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Avg</th>
-                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Now</th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Result</th>
                       <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Cost</th>
-                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Est.Value</th>
-                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Unrealized P&L</th>
-                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Action</th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Value</th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">P&L</th>
+                      <th className="text-right px-4 py-3 text-xs font-medium text-muted-foreground">Action</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {displayPositions.length === 0 ? (
+                    {filteredPositions.length === 0 ? (
                       <tr>
-                        <td colSpan={7} className="py-12 text-center text-muted-foreground">
-                          No positions yet
+                        <td colSpan={8} className="py-12 text-center text-muted-foreground">
+                          {positionFilter === "All" 
+                            ? "No positions yet" 
+                            : `No ${positionFilter} positions`}
                         </td>
                       </tr>
                     ) : (
-                      (displayPositions as any[]).map((position) => (
+                      (filteredPositions as any[]).map((position) => (
                         <tr key={position.id} className="border-b border-border hover:bg-muted/20">
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2">
                               <span className="text-sm text-foreground">{position.market}</span>
-                              <Badge variant="default" className="bg-success text-white text-xs">
+                              <Badge 
+                                variant={position.side === 'UP' ? 'default' : 'secondary'}
+                                className={
+                                  position.side === 'UP'
+                                    ? 'bg-success text-white text-xs'
+                                    : 'bg-destructive text-white text-xs'
+                                }
+                              >
                                 {position.side}
                               </Badge>
                             </div>
                           </td>
-                          <td className="px-4 py-3 text-sm text-foreground">{position.shares} ¢</td>
-                          <td className="px-4 py-3 text-sm text-foreground">{position.avg} ¢</td>
-                          <td className="px-4 py-3 text-sm text-foreground">{position.now} ¢</td>
+                          <td className="px-4 py-3 text-sm text-foreground">{position.shares.toFixed(2)}</td>
+                          <td className="px-4 py-3 text-sm text-foreground">{position.avg.toFixed(1)}%</td>
+                          <td className="px-4 py-3">
+                            {position.isResolved ? (
+                              <Badge 
+                                variant={position.now === 100 ? 'default' : 'secondary'}
+                                className={
+                                  position.now === 100
+                                    ? 'bg-success text-white'
+                                    : 'bg-muted text-muted-foreground'
+                                }
+                              >
+                                {position.now === 100 ? 'Won' : 'Lost'}
+                              </Badge>
+                            ) : (
+                              <span className="text-sm text-muted-foreground">Active</span>
+                            )}
+                          </td>
                           <td className="px-4 py-3 text-sm text-foreground">{position.cost}</td>
                           <td className="px-4 py-3 text-sm text-foreground">{position.estValue}</td>
-                          <td className="px-4 py-3 text-sm text-success">{position.unrealizedPnL}</td>
-                          <td className="px-4 py-3">
-                            <Button variant="link" className="text-primary h-auto p-0 text-sm">
-                              Sell
+                          <td className={`px-4 py-3 text-sm font-medium ${position.pnlColor}`}>{position.unrealizedPnL}</td>
+                          <td className="px-4 py-3 text-right">
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              className="h-auto p-0 text-xs text-primary hover:text-primary/80"
+                              onClick={() => navigate(`/market/${position.marketId}`)}
+                            >
+                              View
                             </Button>
                           </td>
                         </tr>
@@ -356,8 +451,13 @@ const Portfolio = () => {
             </TabsContent>
 
             {/* History Tab */}
-            <TabsContent value="history" className="m-0 p-8 text-center text-muted-foreground">
-              No trading history
+            <TabsContent value="history" className="m-0 p-4">
+              <TradesHistory 
+                trades={userAllTrades || []} 
+                markets={markets}
+                orders={userAllOrders || []}
+                playerId={playerId}
+              />
             </TabsContent>
           </Tabs>
         </Card>

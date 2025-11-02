@@ -415,8 +415,19 @@ export function createAPIClient(baseUrl?: string): ExchangeAPI {
 // ==================== 兼容旧的导出名称 ====================
 
 // Combined API interface for PredictionMarketContext compatibility
-export interface PredictionMarketAPI extends ExchangePlayer {
-  getAllMarkets: () => Promise<any[]>;
+export interface PredictionMarketAPI {
+  // Player methods
+  register: () => Promise<any>;
+  withdraw: (amount: bigint) => Promise<any>;
+  placeOrder: (params: PlaceOrderParams) => Promise<any>;
+  cancelOrder: (orderId: bigint) => Promise<any>;
+  claim: (marketId: bigint) => Promise<any>;
+  getNonce: () => Promise<bigint>;
+  
+  // REST API methods
+  getAllMarkets: () => Promise<Market[]>;
+  
+  // RPC instance
   rpc: ZKWasmAppRpc;
 }
 
@@ -426,11 +437,24 @@ export function createPredictionMarketAPI(params: { serverUrl: string; privkey: 
   const playerClient = new ExchangePlayer(params.privkey, rpc);
   const restClient = new ExchangeAPI(params.serverUrl);
   
-  // Combine player client with REST API methods
-  return Object.assign(playerClient, {
+  // Create combined API object
+  const combinedAPI: PredictionMarketAPI = {
+    // Player methods
+    register: () => playerClient.register(),
+    withdraw: (amount: bigint) => playerClient.withdraw(amount),
+    placeOrder: (params: PlaceOrderParams) => playerClient.placeOrder(params),
+    cancelOrder: (orderId: bigint) => playerClient.cancelOrder(orderId),
+    claim: (marketId: bigint) => playerClient.claim(marketId),
+    getNonce: () => playerClient.getNonce(),
+    
+    // REST API methods
     getAllMarkets: () => restClient.getMarkets(),
+    
+    // RPC instance
     rpc: rpc
-  }) as PredictionMarketAPI;
+  };
+  
+  return combinedAPI;
 }
 
 export const createRESTAPI = createAPIClient;
