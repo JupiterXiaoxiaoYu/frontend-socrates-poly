@@ -7,7 +7,7 @@ import { useMemo, useState, useCallback } from "react";
 import { useToast } from "../hooks/use-toast";
 
 interface Position {
-  side: "up" | "down";
+  side: "yes" | "no";
   shares: number;
   avg: string;
   now: string;
@@ -18,7 +18,7 @@ interface Position {
 }
 
 interface OpenOrder {
-  side: "up" | "down";
+  side: "yes" | "no";
   type: string;
   price: string;
   shares: number;
@@ -28,7 +28,7 @@ interface OpenOrder {
 
 const mockPositions: Position[] = [
   {
-    side: "up",
+    side: "yes",
     shares: 24,
     avg: "$55",
     now: "$55",
@@ -38,7 +38,7 @@ const mockPositions: Position[] = [
     pnlPercent: "+41%",
   },
   {
-    side: "down",
+    side: "no",
     shares: 100,
     avg: "$55",
     now: "$100.00",
@@ -51,7 +51,7 @@ const mockPositions: Position[] = [
 
 const mockOpenOrders: OpenOrder[] = [
   {
-    side: "up",
+    side: "yes",
     type: "Limit",
     price: "$0.65",
     shares: 100,
@@ -87,7 +87,7 @@ const PositionTabs = () => {
 
         return {
           orderId: o.orderId,
-          side: o.direction === 1 ? "up" : ("down" as "up" | "down"),
+          side: o.direction === 1 ? "yes" : ("no" as "yes" | "no"),
           type: o.orderType === 0 ? "Limit" : o.orderType === 1 ? "Limit" : "Market",
           action,
           price: `${pricePercent.toFixed(2)}%`, // 显示为百分比，例如 "50.00%"
@@ -117,9 +117,9 @@ const PositionTabs = () => {
         // 判断用户是买方还是卖方
         const isBuyer = userOrderIds.has(t.buyOrderId);
 
-        // trade.direction 表示成交发生在哪个子市场（UP 或 DOWN）
+        // trade.direction 表示成交发生在哪个子市场（YES 或 NO）
         // 买方获得该方向的份额，卖方获得相反方向的份额
-        const tradeDirection = t.direction === 1 ? "UP" : "DOWN";
+        const tradeDirection = t.direction === 1 ? "YES" : "NO";
 
         let userAction: string;
         let userDirection: string;
@@ -165,7 +165,7 @@ const PositionTabs = () => {
     const downSells: any[] = [];
 
     userTrades.forEach((trade) => {
-      if (trade.direction === "UP") {
+      if (trade.direction === "YES") {
         if (trade.action === "Buy") {
           upBuys.push(trade);
         } else {
@@ -180,7 +180,7 @@ const PositionTabs = () => {
       }
     });
 
-    // 计算 UP 的数据
+    // 计算 YES 的数据
     const upBuyShares = upBuys.reduce((sum, t) => sum + parseFloat(t.amount), 0);
     const upSellShares = upSells.reduce((sum, t) => sum + parseFloat(t.amount), 0);
     const upNetShares = upBuyShares - upSellShares;
@@ -192,23 +192,23 @@ const PositionTabs = () => {
         return sum + shares * price;
       }, 0);
 
-      costMap.set("UP", {
+      costMap.set("YES", {
         avgPrice: upBuyCost / upBuyShares,
         totalCost: upBuyCost,
         totalShares: upNetShares,
       });
     } else if (upSellShares > 0) {
       // 只有卖出
-      costMap.set("UP", {
+      costMap.set("YES", {
         avgPrice: 0,
         totalCost: 0,
         totalShares: -upSellShares,
       });
     }
 
-    // 计算 DOWN 的数据
-    // Buy DOWN → 获得 DOWN 份额
-    // Sell UP → 获得 DOWN 份额
+    // 计算 NO 的数据
+    // Buy NO → 获得 NO 份额
+    // Sell YES → 获得 NO 份额
     const downBuyShares = downBuys.reduce((sum, t) => sum + parseFloat(t.amount), 0);
     const downFromSellUp = upSells.reduce((sum, t) => sum + parseFloat(t.amount), 0);
     const downSellShares = downSells.reduce((sum, t) => sum + parseFloat(t.amount), 0);
@@ -223,14 +223,14 @@ const PositionTabs = () => {
         return sum + shares * price;
       }, 0);
 
-      costMap.set("DOWN", {
+      costMap.set("NO", {
         avgPrice: downBuyCost / downBuyShares,
         totalCost: downBuyCost,
         totalShares: downNetShares,
       });
     } else if (downFromSellUp > 0) {
-      // 通过 Sell UP 获得 DOWN 份额
-      // Sell UP @ 48% → 成本是互补价格 (1 - 0.48) = 0.52
+      // 通过 Sell YES 获得 NO 份额
+      // Sell YES @ 48% → 成本是互补价格 (1 - 0.48) = 0.52
       const downCostFromSellUp = upSells.reduce((sum, t) => {
         const priceStr = t.price.replace("%", "");
         const sellPrice = parseFloat(priceStr) / 100;
@@ -239,14 +239,14 @@ const PositionTabs = () => {
         return sum + shares * costPrice;
       }, 0);
 
-      costMap.set("DOWN", {
+      costMap.set("NO", {
         avgPrice: downCostFromSellUp / downFromSellUp,
         totalCost: downCostFromSellUp,
         totalShares: downFromSellUp,
       });
     } else if (downSellShares > 0) {
-      // 只有 Sell DOWN
-      costMap.set("DOWN", {
+      // 只有 Sell NO
+      costMap.set("NO", {
         avgPrice: 0,
         totalCost: 0,
         totalShares: -downSellShares,
@@ -299,7 +299,7 @@ const PositionTabs = () => {
         const unrealizedPnLPercent = cost > 0 ? (unrealizedPnL / cost) * 100 : 0;
 
         return {
-          side: tokenInfo.direction.toLowerCase() as "up" | "down",
+          side: (tokenInfo.direction === "UP" ? "yes" : "no") as "yes" | "no",
           shares,
           avg: avgPrice ? formatCurrency(avgPrice) : "-",
           now: formatCurrency(currentPrice),
@@ -338,7 +338,7 @@ const PositionTabs = () => {
     return {
       canClaim: !!winningPosition && fromUSDCPrecision(winningPosition.balance) > 0,
       amount: winningPosition ? fromUSDCPrecision(winningPosition.balance) : 0,
-      direction: winningOutcome === 1 ? "UP" : winningOutcome === 0 ? "DOWN" : "TIE",
+      direction: winningOutcome === 1 ? "YES" : winningOutcome === 0 ? "NO" : "TIE",
     };
   }, [currentMarket, positions]);
 
@@ -445,10 +445,10 @@ const PositionTabs = () => {
                       <td className="py-3">
                         <span
                           className={`inline-block px-2 py-1 rounded text-xs font-medium ${
-                            position.side === "up" ? "bg-success text-white" : "bg-danger text-white"
+                            position.side === "yes" ? "bg-success text-white" : "bg-danger text-white"
                           }`}
                         >
-                          {position.side === "up" ? "UP" : "DOWN"}
+                          {position.side === "yes" ? "YES" : "NO"}
                         </span>
                       </td>
                       <td className="text-right py-3 font-semibold">{position.shares.toFixed(2)}</td>
@@ -503,12 +503,12 @@ const PositionTabs = () => {
                           <Badge variant={order.action === "Buy" ? "default" : "secondary"}>{order.action}</Badge>
                           <Badge
                             className={
-                              order.side === "up"
+                              order.side === "yes"
                                 ? "bg-success text-success-foreground border-transparent"
                                 : "bg-danger text-danger-foreground border-transparent"
                             }
                           >
-                            {order.side === "up" ? "UP" : "DOWN"}
+                            {order.side === "yes" ? "YES" : "NO"}
                           </Badge>
                           <span className="text-muted-foreground">{order.type}</span>
                         </div>
@@ -561,7 +561,7 @@ const PositionTabs = () => {
                           <Badge variant={trade.action === "Buy" ? "default" : "secondary"}>{trade.action}</Badge>
                           <Badge
                             className={
-                              trade.direction === "UP"
+                              trade.direction === "YES"
                                 ? "bg-success text-success-foreground border-transparent"
                                 : "bg-danger text-danger-foreground border-transparent"
                             }

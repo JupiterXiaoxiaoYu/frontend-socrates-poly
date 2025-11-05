@@ -30,7 +30,7 @@ export default function TradesHistory({ trades, markets, orders, playerId }: Tra
       const isSeller = !!userSellOrder;
       
       // Determine side (market direction) and action (buy/sell)
-      const side = trade.direction === 1 ? 'UP' : 'DOWN';
+      const side = trade.direction === 1 ? 'YES' : 'NO';
       let action = 'TRADE';
       
       if (isBuyer) {
@@ -115,9 +115,9 @@ export default function TradesHistory({ trades, markets, orders, playerId }: Tra
                 </td>
                 <td className="p-3">
                   <Badge
-                    variant={trade.side === 'UP' ? 'default' : 'secondary'}
+                    variant={trade.side === 'YES' ? 'default' : 'secondary'}
                     className={
-                      trade.side === 'UP'
+                      trade.side === 'YES'
                         ? 'bg-success text-white hover:bg-success/90'
                         : 'bg-destructive text-white hover:bg-destructive/90'
                     }

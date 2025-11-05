@@ -310,9 +310,9 @@ const MarketDetail = () => {
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-muted-foreground">Probability:</span>
-                <span className="text-success font-semibold">{marketData.yesChance}% UP</span>
+                <span className="text-success font-semibold">{marketData.yesChance}% YES</span>
                 <span className="text-muted-foreground">/</span>
-                <span className="text-danger font-semibold">{marketData.noChance}% DOWN</span>
+                <span className="text-danger font-semibold">{marketData.noChance}% NO</span>
               </div>
             </div>
 
@@ -388,8 +388,8 @@ const MarketDetail = () => {
 
                     <TabsContent value="rules" className="flex-1 p-4 m-0 overflow-auto">
                       <div className="space-y-2 text-sm text-muted-foreground">
-                        <p>• Market resolves UP if BTC price &gt; ${marketData.targetPrice.toLocaleString()}</p>
-                        <p>• Market resolves DOWN if BTC price &lt; ${marketData.targetPrice.toLocaleString()}</p>
+                        <p>• Market resolves YES if BTC price &gt; ${marketData.targetPrice.toLocaleString()}</p>
+                        <p>• Market resolves NO if BTC price &lt; ${marketData.targetPrice.toLocaleString()}</p>
                         <p>• Market resolves TIE if BTC price = ${marketData.targetPrice.toLocaleString()}</p>
                         <p>• Oracle: Binance API (submitted by Oracle at market end)</p>
                         <p>• Each winning share pays $1.00 USDC</p>
@@ -456,12 +456,12 @@ const MarketDetail = () => {
                         className="flex-1 h-12 bg-success hover:bg-success/90 text-white font-semibold text-base rounded-full"
                         onClick={handleTradingClick}
                       >
-                        Up
+                        Yes
                       </Button>
                     </SheetTrigger>
                     <SheetContent side="bottom" className="h-[90vh] p-0">
                       <SheetHeader className="px-6 py-4 border-b border-border">
-                        <SheetTitle>Buy Up Shares</SheetTitle>
+                        <SheetTitle>Buy Yes Shares</SheetTitle>
                       </SheetHeader>
                       <div className="h-[calc(90vh-73px)] overflow-auto">
                         <TradingPanel
@@ -481,7 +481,7 @@ const MarketDetail = () => {
                     className="flex-1 h-12 bg-danger hover:bg-danger/90 text-white font-semibold text-base rounded-full"
                     onClick={handleTradingClick}
                   >
-                    Down
+                    No
                   </Button>
                 </>
               ) : (

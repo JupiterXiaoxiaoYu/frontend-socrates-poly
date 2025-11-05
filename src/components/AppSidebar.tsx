@@ -1,7 +1,6 @@
 import { Bookmark } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { formatCompactNumber } from "../lib/formatters";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useMarket, useSound } from "../contexts";
 import {
@@ -22,7 +21,6 @@ interface DisplayMarket {
 export function AppSidebar() {
   const { markets, marketPrices } = useMarket();
   const { playNewMarketSound } = useSound();
-  const [selectedToken, setSelectedToken] = useState("BTC");
   const [selectedDuration, setSelectedDuration] = useState("all");
   const previousMarketCountRef = useRef<number>(0);
 
@@ -37,9 +35,9 @@ export function AppSidebar() {
     }
   }, [markets.length, playNewMarketSound]);
 
-  // 转换 API 数据为显示格式
+  // 转换 API 数据为显示格式 - 只保留BTC市场
   const displayMarkets = useMemo(() => {
-    return markets.map((market: any) => {
+    return markets.filter((market: any) => market.assetId === "1").map((market: any) => {
       // 从最新成交价格计算概率
       const latestPrice = marketPrices.get(market.marketId);
       const { yesChance } = latestPrice 
@@ -98,28 +96,51 @@ export function AppSidebar() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Select value={selectedToken} onValueChange={setSelectedToken}>
-            <SelectTrigger className="flex-1 h-7 text-xs">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="BTC">BTC</SelectItem>
-              <SelectItem value="ETH">ETH</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Select value={selectedDuration} onValueChange={setSelectedDuration}>
-            <SelectTrigger className="flex-1 h-7 text-xs">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All</SelectItem>
-              <SelectItem value="1">1m</SelectItem>
-              <SelectItem value="3">3m</SelectItem>
-              <SelectItem value="5">5m</SelectItem>
-            </SelectContent>
-          </Select>
+        {/* Duration Tabs */}
+        <div className="flex flex-col gap-2">
+          <span className="text-xs text-muted-foreground">Duration</span>
+          <div className="grid grid-cols-4 gap-1 p-1 bg-muted/30 rounded-md">
+            <button
+              onClick={() => setSelectedDuration("all")}
+              className={`px-2 py-1.5 text-xs font-medium rounded transition-colors ${
+                selectedDuration === "all"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+              }`}
+            >
+              All
+            </button>
+            <button
+              onClick={() => setSelectedDuration("1")}
+              className={`px-2 py-1.5 text-xs font-medium rounded transition-colors ${
+                selectedDuration === "1"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+              }`}
+            >
+              1m
+            </button>
+            <button
+              onClick={() => setSelectedDuration("3")}
+              className={`px-2 py-1.5 text-xs font-medium rounded transition-colors ${
+                selectedDuration === "3"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+              }`}
+            >
+              3m
+            </button>
+            <button
+              onClick={() => setSelectedDuration("5")}
+              className={`px-2 py-1.5 text-xs font-medium rounded transition-colors ${
+                selectedDuration === "5"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+              }`}
+            >
+              5m
+            </button>
+          </div>
         </div>
       </div>
 
@@ -145,8 +166,8 @@ export function AppSidebar() {
                   <h3 className="text-xs font-medium text-foreground line-clamp-2">{market.title}</h3>
 
                   <div className="flex justify-between text-xs">
-                    <span className="text-success font-semibold">{market.yesChance}% Up</span>
-                    <span className="text-danger font-semibold">Down {100 - market.yesChance}%</span>
+                    <span className="text-success font-semibold">{market.yesChance}% Yes</span>
+                    <span className="text-danger font-semibold">No {100 - market.yesChance}%</span>
                   </div>
 
                   <div className="h-1 bg-muted rounded-full overflow-hidden flex">

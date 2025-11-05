@@ -69,13 +69,14 @@ const TradingPanel = ({
   onDirectionChange,
   className,
 }: TradingPanelProps) => {
-  const [direction, setDirection] = useState<"up" | "down">("up");
+  const [direction, setDirection] = useState<"yes" | "no">("yes");
   const [action, setAction] = useState<"buy" | "sell">("buy");
 
   // 包装 setDirection，立即通知父组件
-  const handleDirectionChange = (newDirection: "up" | "down") => {
+  const handleDirectionChange = (newDirection: "yes" | "no") => {
     setDirection(newDirection);
-    onDirectionChange?.(newDirection.toUpperCase() as "UP" | "DOWN");
+    // 将yes/no映射回UP/DOWN供后端使用
+    onDirectionChange?.(newDirection === "yes" ? "UP" : "DOWN");
   };
   const [orderType, setOrderType] = useState<"market" | "limit">("market");
   const [amount, setAmount] = useState(0);
@@ -116,7 +117,7 @@ const TradingPanel = ({
     }
 
     // Simplified price impact calculation
-    const relevantOrders = direction === "up" ? book.asks : book.bids;
+    const relevantOrders = direction === "yes" ? book.asks : book.bids;
     let remainingAmount = tradeAmount;
     let totalCost = 0;
 
@@ -204,7 +205,7 @@ const TradingPanel = ({
 
       await onPlaceOrder({
         marketId: market.marketId,
-        direction: direction.toUpperCase(), // 传递当前选中的方向
+        direction: direction === "yes" ? "UP" : "DOWN", // 将yes/no映射为UP/DOWN
         orderType: orderTypeValue,
         price: orderPrice,
         amount: Math.round(estimatedShares * 100),
@@ -309,26 +310,26 @@ const TradingPanel = ({
         )}
       </div>
 
-      {/* Direction Tabs (UP/DOWN) */}
+      {/* Direction Tabs (YES/NO) */}
       <Tabs
         value={direction}
-        onValueChange={(v) => handleDirectionChange(v as "up" | "down")}
+        onValueChange={(v) => handleDirectionChange(v as "yes" | "no")}
         className="space-y-4 flex-1 flex flex-col"
       >
         <TabsList className="grid w-full grid-cols-2 h-12 bg-muted">
           <TabsTrigger
-            value="up"
+            value="yes"
             className="data-[state=active]:bg-success data-[state=active]:text-white font-semibold"
           >
             <TrendingUp className="w-4 h-4 mr-2" />
-            UP
+            YES
           </TabsTrigger>
           <TabsTrigger
-            value="down"
+            value="no"
             className="data-[state=active]:bg-danger data-[state=active]:text-white font-semibold"
           >
             <TrendingDown className="w-4 h-4 mr-2" />
-            DOWN
+            NO
           </TabsTrigger>
         </TabsList>
 
@@ -368,7 +369,7 @@ const TradingPanel = ({
                               : "text-warning"
                           }`}
                         >
-                          {winningOutcome === 1 ? "🔼 UP" : winningOutcome === 0 ? "🔽 DOWN" : "↔️ TIE"}
+                          {winningOutcome === 1 ? "✓ YES" : winningOutcome === 0 ? "✗ NO" : "↔️ TIE"}
                         </span>
                       </div>
                     </div>
@@ -551,7 +552,7 @@ const TradingPanel = ({
                   size="lg"
                   className={cn(
                     "w-full h-12 font-semibold text-base mt-auto",
-                    direction === "up"
+                    direction === "yes"
                       ? "bg-success hover:bg-success/90 text-white"
                       : "bg-danger hover:bg-danger/90 text-white"
                   )}
@@ -594,8 +595,8 @@ const TradingPanel = ({
               </div>
               <div>
                 <span className="text-muted-foreground">Action:</span>
-                <div className="font-medium capitalize">
-                  {action} {direction.toUpperCase()}
+                <div className="font-medium">
+                  {action === "buy" ? "Buy" : "Sell"} {direction.toUpperCase()}
                 </div>
               </div>
               <div>
@@ -659,7 +660,7 @@ const TradingPanel = ({
             <Button
               onClick={confirmOrder}
               disabled={isPlacingOrder}
-              className={cn(direction === "up" ? "bg-success hover:bg-success/90" : "bg-danger hover:bg-danger/90")}
+              className={cn(direction === "yes" ? "bg-success hover:bg-success/90" : "bg-danger hover:bg-danger/90")}
             >
               {isPlacingOrder ? "Placing Order..." : "Confirm Order"}
             </Button>

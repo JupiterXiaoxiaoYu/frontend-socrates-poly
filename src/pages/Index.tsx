@@ -1,6 +1,5 @@
 import Header from "../components/Header";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { useNavigate } from "react-router-dom";
 import { useState, useMemo } from "react";
 import { Bookmark } from "lucide-react";
@@ -28,12 +27,12 @@ interface DisplayMarket {
 const Index = () => {
   const navigate = useNavigate();
   const { markets, marketPrices, isLoading } = useMarket();
-  const [selectedToken, setSelectedToken] = useState("BTC");
   const [selectedDuration, setSelectedDuration] = useState("all");
 
   // 转换 API 数据为显示格式 - 优化依赖避免闪烁
   const displayMarkets = useMemo(() => {
-    return markets.map((market: any) => {
+    // 只保留BTC市场（assetId === "1"）
+    return markets.filter((market: any) => market.assetId === "1").map((market: any) => {
       // 从最新成交价格计算概率
       const latestPrice = marketPrices.get(market.marketId);
       const { yesChance, noChance } = latestPrice 
@@ -105,34 +104,50 @@ const Index = () => {
             </TabsTrigger>
           </TabsList>
 
-          {/* Dropdown filters */}
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">Token:</span>
-              <Select value={selectedToken} onValueChange={setSelectedToken}>
-                <SelectTrigger className="h-9 w-24 text-sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="BTC">BTC</SelectItem>
-                  <SelectItem value="ETH">ETH</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">Duration:</span>
-              <Select value={selectedDuration} onValueChange={setSelectedDuration}>
-                <SelectTrigger className="h-9 w-20 text-sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
-                  <SelectItem value="1">1m</SelectItem>
-                  <SelectItem value="3">3m</SelectItem>
-                  <SelectItem value="5">5m</SelectItem>
-                </SelectContent>
-              </Select>
+          {/* Duration Tabs */}
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">Duration:</span>
+            <div className="inline-flex items-center rounded-md border border-border bg-background p-1">
+              <button
+                onClick={() => setSelectedDuration("all")}
+                className={`px-3 py-1 text-sm font-medium rounded transition-colors ${
+                  selectedDuration === "all"
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                All
+              </button>
+              <button
+                onClick={() => setSelectedDuration("1")}
+                className={`px-3 py-1 text-sm font-medium rounded transition-colors ${
+                  selectedDuration === "1"
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                1m
+              </button>
+              <button
+                onClick={() => setSelectedDuration("3")}
+                className={`px-3 py-1 text-sm font-medium rounded transition-colors ${
+                  selectedDuration === "3"
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                3m
+              </button>
+              <button
+                onClick={() => setSelectedDuration("5")}
+                className={`px-3 py-1 text-sm font-medium rounded transition-colors ${
+                  selectedDuration === "5"
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                5m
+              </button>
             </div>
           </div>
 
@@ -157,8 +172,8 @@ const Index = () => {
                     <h3 className="text-sm font-medium text-foreground mb-3 line-clamp-2">{market.title}</h3>
 
                     <div className="flex justify-between text-xs mb-2">
-                      <span className="text-success font-semibold">{market.yesChance}% Up</span>
-                      <span className="text-danger font-semibold">Down {100 - market.yesChance}%</span>
+                      <span className="text-success font-semibold">{market.yesChance}% Yes</span>
+                      <span className="text-danger font-semibold">No {100 - market.yesChance}%</span>
                     </div>
 
                     <div className="h-1 bg-border rounded-full overflow-hidden flex mb-3">

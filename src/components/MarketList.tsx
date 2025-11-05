@@ -107,11 +107,14 @@ const MarketList: React.FC<MarketListProps> = ({
   const filteredMarkets = useMemo(() => {
     let filtered = [...markets];
 
+    // 只显示BTC市场（assetId === 1）
+    filtered = filtered.filter(market => market.assetId === 1);
+
     // Apply search filter
     if (searchTerm) {
       filtered = filtered.filter(market =>
         market.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        `${market.assetId === 1 ? 'BTC' : market.assetId === 2 ? 'ETH' : 'SOL'} ${market.outcomeType === OutcomeType.UP ? 'UP' : 'DOWN'}`
+        `BTC ${market.outcomeType === OutcomeType.UP ? 'YES' : 'NO'}`
           .toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
@@ -211,8 +214,6 @@ const MarketList: React.FC<MarketListProps> = ({
   const getAssetName = (assetId: number): string => {
     switch (assetId) {
       case 1: return 'BTC';
-      case 2: return 'ETH';
-      case 3: return 'SOL';
       default: return `Asset ${assetId}`;
     }
   };
@@ -310,29 +311,52 @@ const MarketList: React.FC<MarketListProps> = ({
                 </SelectContent>
               </Select>
 
-              <Select value={filterAsset} onValueChange={(value: FilterAsset) => setFilterAsset(value)}>
-                <SelectTrigger className="w-[100px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Assets</SelectItem>
-                  <SelectItem value="1">BTC</SelectItem>
-                  <SelectItem value="2">ETH</SelectItem>
-                  <SelectItem value="3">SOL</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Select value={filterDuration} onValueChange={(value: FilterDuration) => setFilterDuration(value)}>
-                <SelectTrigger className="w-[100px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Times</SelectItem>
-                  <SelectItem value="1">1 min</SelectItem>
-                  <SelectItem value="3">3 min</SelectItem>
-                  <SelectItem value="5">5 min</SelectItem>
-                </SelectContent>
-              </Select>
+              {/* Duration Tabs */}
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">Duration:</span>
+                <div className="inline-flex items-center rounded-md border border-border bg-background p-0.5">
+                  <button
+                    onClick={() => setFilterDuration("all")}
+                    className={`px-2 py-1 text-xs font-medium rounded transition-colors ${
+                      filterDuration === "all"
+                        ? "bg-primary text-primary-foreground"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    All
+                  </button>
+                  <button
+                    onClick={() => setFilterDuration("1")}
+                    className={`px-2 py-1 text-xs font-medium rounded transition-colors ${
+                      filterDuration === "1"
+                        ? "bg-primary text-primary-foreground"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    1m
+                  </button>
+                  <button
+                    onClick={() => setFilterDuration("3")}
+                    className={`px-2 py-1 text-xs font-medium rounded transition-colors ${
+                      filterDuration === "3"
+                        ? "bg-primary text-primary-foreground"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    3m
+                  </button>
+                  <button
+                    onClick={() => setFilterDuration("5")}
+                    className={`px-2 py-1 text-xs font-medium rounded transition-colors ${
+                      filterDuration === "5"
+                        ? "bg-primary text-primary-foreground"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    5m
+                  </button>
+                </div>
+              </div>
 
               <Select value={`${sortBy}-${sortOrder}`} onValueChange={(value) => {
                 const [field, order] = value.split('-') as [SortBy, SortOrder];
@@ -475,7 +499,7 @@ const MarketList: React.FC<MarketListProps> = ({
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
                             <h3 className="font-medium">
-                              {market.title || `${getAssetName(market.assetId)} ${market.outcomeType === OutcomeType.UP ? 'UP' : 'DOWN'}`}
+                              {market.title || `${getAssetName(market.assetId)} ${market.outcomeType === OutcomeType.UP ? 'YES' : 'NO'}`}
                             </h3>
                             <Badge variant="outline" className="text-xs">
                               {market.windowMinutes}min

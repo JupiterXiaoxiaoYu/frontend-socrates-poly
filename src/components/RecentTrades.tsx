@@ -5,7 +5,7 @@ import { fromUSDCPrecision } from "../lib/calculations";
 
 interface RecentTradesProps {
   marketId: number;
-  direction?: 'UP' | 'DOWN';
+  direction?: 'UP' | 'DOWN';  // 内部仍使用UP/DOWN以兼容后端
 }
 
 const RecentTrades = ({ marketId, direction = 'UP' }: RecentTradesProps) => {
@@ -38,7 +38,7 @@ const RecentTrades = ({ marketId, direction = 'UP' }: RecentTradesProps) => {
 
         return {
           id: t.tradeId,
-          side: t.direction === 1 ? 'BUY UP' : 'BUY DOWN',
+          side: t.direction === 1 ? 'BUY YES' : 'BUY NO',
           price,
           amount,
           time: timeAgo,
@@ -73,13 +73,13 @@ const RecentTrades = ({ marketId, direction = 'UP' }: RecentTradesProps) => {
                 <tr key={trade.id} className="border-b border-border hover:bg-muted/20 transition-colors">
                   <td className="px-3 py-2">
                     <div className="flex items-center gap-1">
-                      {trade.side.includes('UP') ? (
+                      {trade.side.includes('YES') ? (
                         <TrendingUp className="w-3 h-3 text-success" />
                       ) : (
                         <TrendingDown className="w-3 h-3 text-danger" />
                       )}
                       <span className={`font-medium font-mono ${
-                        trade.side.includes('UP') ? 'text-success' : 'text-danger'
+                        trade.side.includes('YES') ? 'text-success' : 'text-danger'
                       }`}>
                         {trade.price}%
                       </span>

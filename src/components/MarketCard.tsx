@@ -4,7 +4,7 @@ import CountdownTimer from "./CountdownTimer";
 import { TrendingUp, TrendingDown, Users, DollarSign, ArrowUpDown, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatCurrency, formatCompactNumber, formatPercent } from "@/lib/formatters";
-import { Market, MarketStatus, OutcomeType } from "@/types/market";
+import { Market, MarketStatus, OutcomeType, Outcome } from "@/types/market";
 
 interface MarketCardProps {
   market: Market;
@@ -89,7 +89,7 @@ const MarketCard = ({
               isUp ? "text-up" : "text-down"
             )}>
               {isUp ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
-              {isUp ? 'UP' : 'DOWN'}
+              {isUp ? 'YES' : 'NO'}
             </div>
           </div>
         </div>
@@ -113,16 +113,16 @@ const MarketCard = ({
           </div>
         )}
 
-        {/* Up/Down Chances */}
+        {/* Yes/No Chances */}
         <div className="flex gap-2">
           <div className="flex-1 rounded-lg bg-success/10 border border-success/20 p-2">
-            <div className="text-[10px] text-success-light mb-1">UP</div>
+            <div className="text-[10px] text-success-light mb-1">YES</div>
             <div className="text-lg font-bold text-success">
               {Math.round((market.yesChance || 0) * 100)}%
             </div>
           </div>
           <div className="flex-1 rounded-lg bg-danger/10 border border-danger/20 p-2">
-            <div className="text-[10px] text-danger-light mb-1">DOWN</div>
+            <div className="text-[10px] text-danger-light mb-1">NO</div>
             <div className="text-lg font-bold text-danger">
               {Math.round((market.noChance || 0) * 100)}%
             </div>
@@ -152,7 +152,7 @@ const MarketCard = ({
             </div>
             <div className="flex items-center justify-between text-xs">
               <span className="font-medium">
-                {pairedMarket.outcomeType === OutcomeType.UP ? 'UP' : 'DOWN'} Market
+                {pairedMarket.outcomeType === OutcomeType.UP ? 'YES' : 'NO'} Market
               </span>
               <span>{pairedMarket.windowMinutes}min</span>
             </div>
