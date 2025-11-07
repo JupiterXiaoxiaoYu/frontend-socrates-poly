@@ -164,6 +164,7 @@ const Referral = () => {
   const navigate = useNavigate();
   const [rebateTab, setRebateTab] = useState<"fee" | "mining">("fee");
   const [isDashboardOpen, setIsDashboardOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<ReferralRecord | null>(null);
 
   // 复制到剪贴板
   const copyToClipboard = (text: string, label: string) => {
@@ -481,6 +482,7 @@ const Referral = () => {
                   <div
                     key={record.id}
                     className="flex items-center justify-between py-3 border-b border-border last:border-0 cursor-pointer hover:bg-muted/50 transition-colors"
+                    onClick={() => setSelectedUser(record)}
                   >
                     {/* 左侧：头像和信息 */}
                     <div className="flex items-center gap-3 flex-1">
@@ -590,6 +592,45 @@ const Referral = () => {
                 </div>
               </div>
             </Card>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* 二级弹窗：用户的推荐记录 */}
+      <Dialog open={!!selectedUser} onOpenChange={(open) => !open && setSelectedUser(null)}>
+        <DialogContent className="max-w-md max-h-[calc(100vh-120px)] overflow-y-auto p-6">
+          <DialogHeader className="mb-4">
+            <div className="flex items-center gap-3">
+              <img
+                src={selectedUser?.avatar || ""}
+                alt={selectedUser?.userName || ""}
+                className="w-10 h-10 rounded-full bg-muted"
+              />
+              <DialogTitle className="text-base font-bold">{selectedUser?.userName}'s Referral Records</DialogTitle>
+            </div>
+          </DialogHeader>
+
+          <div>
+            <p className="text-sm font-bold text-foreground mb-4">Total referrals: 20</p>
+            
+            <div className="space-y-0">
+              {mockReferralRecords.slice(0, 5).map((record) => (
+                <div
+                  key={record.id}
+                  className="flex items-center justify-between py-3 border-b border-border last:border-0 cursor-pointer hover:bg-muted/50 transition-colors"
+                  onClick={() => setSelectedUser(record)}
+                >
+                  <div className="flex items-center gap-3 flex-1">
+                    <img src={record.avatar} alt={record.userName} className="w-11 h-11 rounded-full bg-muted" />
+                    <div className="flex-1">
+                      <p className="text-sm font-bold text-foreground">{record.userName}</p>
+                      <p className="text-xs text-muted-foreground">{record.timestamp}</p>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-6 h-6 text-muted-foreground" />
+                </div>
+              ))}
+            </div>
           </div>
         </DialogContent>
       </Dialog>
