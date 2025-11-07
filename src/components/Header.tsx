@@ -38,6 +38,9 @@ const Header = () => {
             <Link to="/rewards" className="text-sm font-medium hover:text-gray-300 transition-colors">
               Rewards
             </Link>
+            <Link to="/referral" className="text-sm font-medium hover:text-gray-300 transition-colors">
+              Referral
+            </Link>
             <Link to="/wallet" className="text-sm font-medium hover:text-gray-300 transition-colors">
               Wallet
             </Link>

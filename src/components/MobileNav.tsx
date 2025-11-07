@@ -56,6 +56,13 @@ const MobileNav = ({ isOpen, onClose }: MobileNavProps) => {
             Rewards
           </Link>
           <Link
+            to="/referral"
+            onClick={onClose}
+            className="flex items-center px-3 py-2 text-sm font-medium text-gray-700 rounded-md hover:bg-gray-100 hover:text-gray-900 transition-colors"
+          >
+            Referral
+          </Link>
+          <Link
             to="/wallet"
             onClick={onClose}
             className="flex items-center px-3 py-2 text-sm font-medium text-gray-700 rounded-md hover:bg-gray-100 hover:text-gray-900 transition-colors"

@@ -12,6 +12,8 @@ import Portfolio from "./pages/Portfolio";
 import Rewards from "./pages/Rewards";
 import Wallet from "./pages/Wallet";
 import Admin from "./pages/Admin";
+import Referral from "./pages/Referral";
+import ReferralRules from "./pages/ReferralRules";
 import NotFound from "./pages/NotFound";
 import OraclePriceDemo from "./pages/OraclePriceDemo";
 import TradingViewDemo from "./pages/TradingViewDemo";
@@ -42,6 +44,8 @@ const App = () => (
                     <Route path="/rewards" element={<Rewards />} />
                     <Route path="/wallet" element={<Wallet />} />
                     <Route path="/admin" element={<Admin />} />
+                    <Route path="/referral" element={<Referral />} />
+                    <Route path="/referral/rules" element={<ReferralRules />} />
                     <Route path="/oracle-demo" element={<OraclePriceDemo />} />
                     <Route path="/trading-view" element={<TradingViewDemo />} />
                     {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
