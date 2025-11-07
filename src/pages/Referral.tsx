@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Header from "../components/Header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -159,6 +160,7 @@ const mockReferralRecords: ReferralRecord[] = [
 
 const Referral = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [rebateTab, setRebateTab] = useState<"fee" | "mining">("fee");
 
   // 复制到剪贴板
@@ -225,7 +227,10 @@ const Referral = () => {
               </div>
 
               <div className="pt-3 border-t border-border">
-                <button className="flex items-center gap-2 text-sm text-foreground hover:text-muted-foreground transition-colors">
+                <button
+                  onClick={() => navigate("/referral/rules")}
+                  className="flex items-center gap-2 text-sm text-foreground hover:text-muted-foreground transition-colors"
+                >
                   <span>Rebate Reward Rules</span>
                   <ChevronRight className="w-4 h-4" />
                   <ChevronRight className="w-4 h-4 -ml-3" />
