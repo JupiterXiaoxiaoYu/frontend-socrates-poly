@@ -191,10 +191,56 @@ const Referral = () => {
     <div className="min-h-screen bg-background">
       <Header />
 
-      <main className="container mx-auto px-4 py-6 max-w-4xl pb-24 md:pb-6">
+      <main className="container mx-auto px-4 py-6 max-w-4xl pb-24 md:pb-6 relative">
+        {/* 背景装饰区域 - 绝对定位在页面顶部 */}
+        <div className="absolute left-1/2 -translate-x-1/2 top-0 pointer-events-none" style={{ width: '100vw' }}>
+          {/* referral.png 背景图 - 桌面端 */}
+          <div 
+            className="hidden md:block absolute top-0 left-0 right-0 h-64 bg-no-repeat bg-center"
+            style={{
+              backgroundImage: "url(/referral.png)",
+              backgroundSize: "auto 100%",
+              backgroundPosition: "center top",
+            }}
+          />
+          
+          {/* referral.png 背景图 - 移动端 */}
+          <div 
+            className="md:hidden absolute top-0 left-0 right-0 h-48 bg-no-repeat bg-center"
+            style={{
+              backgroundImage: "url(/referral.png)",
+              backgroundSize: "auto 100%",
+              backgroundPosition: "center top",
+            }}
+          />
+        </div>
+
         {/* 页面标题 - 桌面端显示 */}
-        <div className="mb-6 hidden md:block">
-          <h1 className="text-2xl font-bold text-foreground">Referral</h1>
+        <div className="mb-6 hidden md:block relative z-10">
+          <h1 className="text-2xl font-bold text-white">Referral</h1>
+        </div>
+
+        {/* 礼物图片容器 - 紧贴返佣统计卡片上方 */}
+        <div className="relative -mb-8 z-20">
+          {/* gift.png 礼物图片 - 桌面端 */}
+          <div className="hidden md:flex justify-center pointer-events-none md:-mb-20">
+            <img 
+              src="/gift.png" 
+              alt="" 
+              className="w-auto h-48 md:-translate-y-8"
+              style={{ filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.1))' }}
+            />
+          </div>
+          
+          {/* gift.png 礼物图片 - 移动端 */}
+          <div className="md:hidden flex justify-center pointer-events-none">
+            <img 
+              src="/gift.png" 
+              alt="" 
+              className="w-auto h-36"
+              style={{ filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.1))' }}
+            />
+          </div>
         </div>
 
         {/* 返佣统计卡片 */}

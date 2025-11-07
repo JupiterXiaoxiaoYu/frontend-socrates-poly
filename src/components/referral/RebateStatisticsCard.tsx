@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 // 返佣统计卡片组件
 const RebateStatisticsCard = () => {
   return (
-    <Card className="p-6 mb-4 border border-border">
+    <Card className="relative z-30 p-6 mb-4 border border-border bg-card">
       <div className="flex items-center justify-center gap-8">
         {/* Fee Rebate */}
         <div className="flex-1 text-center">
