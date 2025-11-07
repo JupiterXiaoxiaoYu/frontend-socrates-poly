@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Copy, ChevronRight, HelpCircle } from "lucide-react";
 import { useToast } from "../hooks/use-toast";
 
@@ -162,6 +163,7 @@ const Referral = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [rebateTab, setRebateTab] = useState<"fee" | "mining">("fee");
+  const [isDashboardOpen, setIsDashboardOpen] = useState(false);
 
   // 复制到剪贴板
   const copyToClipboard = (text: string, label: string) => {
@@ -169,6 +171,24 @@ const Referral = () => {
     toast({
       title: "Copied!",
       description: `${label} copied to clipboard`,
+    });
+  };
+
+  // Claim 按钮处理
+  const handleClaim = (type: "fee" | "mining", amount: number) => {
+    const minAmount = 10;
+    if (amount < minAmount) {
+      toast({
+        title: "Cannot Claim",
+        description: `Claimable once it reaches ${minAmount} ${type === "fee" ? "USDT" : "SOC"}`,
+        variant: "destructive",
+      });
+      return;
+    }
+    // 这里添加实际的 Claim 逻辑
+    toast({
+      title: "Success",
+      description: "Claimed successfully!",
     });
   };
 
@@ -250,7 +270,11 @@ const Referral = () => {
                     <span className="text-sm text-muted-foreground">Fee Rebate</span>
                     <span className="text-base font-bold text-foreground">220.32 USDT</span>
                   </div>
-                  <Button size="sm" className="bg-foreground text-background hover:bg-foreground/90 rounded-full px-4">
+                  <Button
+                    size="sm"
+                    className="bg-foreground text-background hover:bg-foreground/90 rounded-full px-4"
+                    onClick={() => handleClaim("fee", 220.32)}
+                  >
                     Claim
                   </Button>
                 </div>
@@ -260,7 +284,11 @@ const Referral = () => {
                     <span className="text-sm text-muted-foreground">Mining Rebate</span>
                     <span className="text-base font-bold text-foreground">9.32 SOC</span>
                   </div>
-                  <Button size="sm" className="bg-foreground text-background hover:bg-foreground/90 rounded-full px-4">
+                  <Button
+                    size="sm"
+                    className="bg-foreground text-background hover:bg-foreground/90 rounded-full px-4"
+                    onClick={() => handleClaim("mining", 9.32)}
+                  >
                     Claim
                   </Button>
                 </div>
@@ -270,7 +298,10 @@ const Referral = () => {
         </div>
 
         {/* Dashboard 按钮 */}
-        <Card className="p-4 mb-8 border border-border cursor-pointer hover:bg-muted/50 transition-colors">
+        <Card
+          className="p-4 mb-8 border border-border cursor-pointer hover:bg-muted/50 transition-colors"
+          onClick={() => setIsDashboardOpen(true)}
+        >
           <div className="flex items-center justify-between">
             <span className="text-base font-bold text-foreground">Dashboard</span>
             <div className="flex items-center text-muted-foreground">
@@ -469,6 +500,85 @@ const Referral = () => {
           )}
         </Card>
       </main>
+
+      {/* Dashboard 弹窗 */}
+      <Dialog open={isDashboardOpen} onOpenChange={setIsDashboardOpen}>
+        <DialogContent className="max-w-md max-h-[calc(100vh-120px)] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold">Dashboard</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {/* Referrals */}
+            <Card className="p-4 border border-border">
+              <h3 className="text-base font-bold text-foreground mb-4">Referrals</h3>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Direct Referrals</span>
+                  <span className="font-bold text-foreground">22</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Indirect Referrals</span>
+                  <span className="font-bold text-foreground">220</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Total Referrals</span>
+                  <span className="font-bold text-foreground">242</span>
+                </div>
+              </div>
+            </Card>
+
+            {/* Trading Volume */}
+            <Card className="p-4 border border-border">
+              <h3 className="text-base font-bold text-foreground mb-4">Trading Volume</h3>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Direct Referrals</span>
+                  <span className="font-bold text-foreground">22 USDT</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Indirect Referrals</span>
+                  <span className="font-bold text-foreground">220 USDT</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Total Referrals</span>
+                  <span className="font-bold text-foreground">242 USDT</span>
+                </div>
+              </div>
+            </Card>
+
+            {/* Fee Rebate */}
+            <Card className="p-4 border border-border">
+              <h3 className="text-base font-bold text-foreground mb-4">Fee Rebate</h3>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Direct Referrals</span>
+                  <span className="font-bold text-foreground">22 USDT</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Indirect Referrals</span>
+                  <span className="font-bold text-foreground">220 USDT</span>
+                </div>
+              </div>
+            </Card>
+
+            {/* Mining Rebate */}
+            <Card className="p-4 border border-border">
+              <h3 className="text-base font-bold text-foreground mb-4">Mining Rebate</h3>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Direct Referrals</span>
+                  <span className="font-bold text-foreground">22 SOC</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Indirect Referrals</span>
+                  <span className="font-bold text-foreground">220 SOC</span>
+                </div>
+              </div>
+            </Card>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
