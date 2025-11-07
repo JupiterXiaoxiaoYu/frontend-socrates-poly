@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Copy, ChevronRight } from "lucide-react";
+import { Copy, ChevronRight, HelpCircle } from "lucide-react";
 import { useToast } from "../hooks/use-toast";
 
 // 返佣记录数据类型
@@ -26,8 +26,8 @@ interface ReferralRecord {
   timestamp: string;
 }
 
-// 模拟数据
-const mockRebateRecords: RebateRecord[] = [
+// 模拟 Fee Rebate 数据
+const mockFeeRebateRecords: RebateRecord[] = [
   {
     id: "1",
     userName: "Jenny Wilson",
@@ -71,6 +71,55 @@ const mockRebateRecords: RebateRecord[] = [
     timestamp: "2025/12/12 12:23:12",
     amount: "10.12",
     currency: "USDT",
+    ratio: "8%",
+  },
+];
+
+// 模拟 Mining Rebate 数据
+const mockMiningRebateRecords: RebateRecord[] = [
+  {
+    id: "1",
+    userName: "Jenny Wilson",
+    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Jenny",
+    timestamp: "2025/12/12 12:23:12",
+    amount: "12.12",
+    currency: "SOC",
+    ratio: "56%",
+  },
+  {
+    id: "2",
+    userName: "Jenny",
+    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Jenny2",
+    timestamp: "2025/12/12 12:23:12",
+    amount: "10.12",
+    currency: "SOC",
+    ratio: "56%",
+  },
+  {
+    id: "3",
+    userName: "Wilson",
+    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Wilson",
+    timestamp: "2025/12/12 12:23:12",
+    amount: "10.12",
+    currency: "SOC",
+    ratio: "8%",
+  },
+  {
+    id: "4",
+    userName: "Wilson",
+    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Wilson2",
+    timestamp: "2025/12/12 12:23:12",
+    amount: "10.12",
+    currency: "SOC",
+    ratio: "8%",
+  },
+  {
+    id: "5",
+    userName: "Wilson",
+    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Wilson3",
+    timestamp: "2025/12/12 12:23:12",
+    amount: "10.12",
+    currency: "SOC",
     ratio: "8%",
   },
 ];
@@ -281,39 +330,96 @@ const Referral = () => {
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value={rebateTab} className="mt-0">
-              {/* 固定高度的滚动区域，最多显示5行 */}
-              <ScrollArea className="h-[340px] relative">
-                <div className="space-y-0">
-                  {mockRebateRecords.map((record) => (
-                    <div
-                      key={record.id}
-                      className="flex items-center justify-between py-3 border-b border-border last:border-0"
-                    >
-                      {/* 左侧：头像和信息 */}
-                      <div className="flex items-center gap-3">
-                        <img
-                          src={record.avatar}
-                          alt={record.userName}
-                          className="w-11 h-11 rounded-full bg-muted"
-                        />
-                        <div>
-                          <p className="text-sm font-bold text-foreground">{record.userName}</p>
-                          <p className="text-xs text-muted-foreground">{record.timestamp}</p>
+            {/* Fee Rebate Tab */}
+            <TabsContent value="fee" className="mt-0">
+              {mockFeeRebateRecords.length === 0 ? (
+                // 空状态
+                <div className="flex flex-col items-center justify-center py-16">
+                  <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
+                    <HelpCircle className="w-8 h-8 text-muted-foreground" />
+                  </div>
+                  <p className="text-sm text-muted-foreground">No data yet</p>
+                </div>
+              ) : (
+                // 固定高度的滚动区域，最多显示5行
+                <ScrollArea className="h-[340px] rounded-md pr-4">
+                  <div className="space-y-0">
+                    {mockFeeRebateRecords.map((record) => (
+                      <div
+                        key={record.id}
+                        className="flex items-center justify-between py-3 border-b border-border last:border-0"
+                      >
+                        {/* 左侧：头像和信息 */}
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={record.avatar}
+                            alt={record.userName}
+                            className="w-11 h-11 rounded-full bg-muted"
+                          />
+                          <div>
+                            <p className="text-sm font-bold text-foreground">{record.userName}</p>
+                            <p className="text-xs text-muted-foreground">{record.timestamp}</p>
+                          </div>
+                        </div>
+
+                        {/* 右侧：金额和比率 */}
+                        <div className="text-right">
+                          <p className="text-base font-bold text-foreground">
+                            {record.amount} {record.currency}
+                          </p>
+                          <p className="text-xs text-muted-foreground">Ratio {record.ratio}</p>
                         </div>
                       </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              )}
+            </TabsContent>
 
-                      {/* 右侧：金额和比率 */}
-                      <div className="text-right">
-                        <p className="text-base font-bold text-foreground">
-                          {record.amount} {record.currency}
-                        </p>
-                        <p className="text-xs text-muted-foreground">Ratio {record.ratio}</p>
-                      </div>
-                    </div>
-                  ))}
+            {/* Mining Rebate Tab */}
+            <TabsContent value="mining" className="mt-0">
+              {mockMiningRebateRecords.length === 0 ? (
+                // 空状态
+                <div className="flex flex-col items-center justify-center py-16">
+                  <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
+                    <HelpCircle className="w-8 h-8 text-muted-foreground" />
+                  </div>
+                  <p className="text-sm text-muted-foreground">No data yet</p>
                 </div>
-              </ScrollArea>
+              ) : (
+                // 固定高度的滚动区域，最多显示5行
+                <ScrollArea className="h-[340px] rounded-md pr-4">
+                  <div className="space-y-0">
+                    {mockMiningRebateRecords.map((record) => (
+                      <div
+                        key={record.id}
+                        className="flex items-center justify-between py-3 border-b border-border last:border-0"
+                      >
+                        {/* 左侧：头像和信息 */}
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={record.avatar}
+                            alt={record.userName}
+                            className="w-11 h-11 rounded-full bg-muted"
+                          />
+                          <div>
+                            <p className="text-sm font-bold text-foreground">{record.userName}</p>
+                            <p className="text-xs text-muted-foreground">{record.timestamp}</p>
+                          </div>
+                        </div>
+
+                        {/* 右侧：金额和比率 */}
+                        <div className="text-right">
+                          <p className="text-base font-bold text-foreground">
+                            {record.amount} {record.currency}
+                          </p>
+                          <p className="text-xs text-muted-foreground">Ratio {record.ratio}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              )}
             </TabsContent>
           </Tabs>
         </Card>
@@ -323,29 +429,39 @@ const Referral = () => {
           <h3 className="text-base font-bold text-foreground mb-2">Referral Records</h3>
           <p className="text-sm font-bold text-foreground mb-4">Total referrals: 20</p>
 
-          {/* 固定高度的滚动区域，最多显示5行 */}
-          <ScrollArea className="h-[340px] relative">
-            <div className="space-y-0">
-              {mockReferralRecords.map((record) => (
-                <div
-                  key={record.id}
-                  className="flex items-center justify-between py-3 border-b border-border last:border-0 cursor-pointer hover:bg-muted/50 transition-colors"
-                >
-                  {/* 左侧：头像和信息 */}
-                  <div className="flex items-center gap-3 flex-1">
-                    <img src={record.avatar} alt={record.userName} className="w-11 h-11 rounded-full bg-muted" />
-                    <div className="flex-1">
-                      <p className="text-sm font-bold text-foreground">{record.userName}</p>
-                      <p className="text-xs text-muted-foreground">{record.timestamp}</p>
-                    </div>
-                  </div>
-
-                  {/* 右侧：箭头 */}
-                  <ChevronRight className="w-6 h-6 text-muted-foreground" />
-                </div>
-              ))}
+          {mockReferralRecords.length === 0 ? (
+            // 空状态
+            <div className="flex flex-col items-center justify-center py-16">
+              <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
+                <HelpCircle className="w-8 h-8 text-muted-foreground" />
+              </div>
+              <p className="text-sm text-muted-foreground">No data yet</p>
             </div>
-          </ScrollArea>
+          ) : (
+            // 固定高度的滚动区域，最多显示5行
+            <ScrollArea className="h-[340px] rounded-md pr-4">
+              <div className="space-y-0">
+                {mockReferralRecords.map((record) => (
+                  <div
+                    key={record.id}
+                    className="flex items-center justify-between py-3 border-b border-border last:border-0 cursor-pointer hover:bg-muted/50 transition-colors"
+                  >
+                    {/* 左侧：头像和信息 */}
+                    <div className="flex items-center gap-3 flex-1">
+                      <img src={record.avatar} alt={record.userName} className="w-11 h-11 rounded-full bg-muted" />
+                      <div className="flex-1">
+                        <p className="text-sm font-bold text-foreground">{record.userName}</p>
+                        <p className="text-xs text-muted-foreground">{record.timestamp}</p>
+                      </div>
+                    </div>
+
+                    {/* 右侧：箭头 */}
+                    <ChevronRight className="w-6 h-6 text-muted-foreground" />
+                  </div>
+                ))}
+              </div>
+            </ScrollArea>
+          )}
         </Card>
       </main>
     </div>
