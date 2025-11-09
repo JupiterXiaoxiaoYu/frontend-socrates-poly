@@ -51,6 +51,14 @@ const Index = () => {
   const { markets, marketPrices, isLoading, setMarketQuery } = useMarket();
   const [selectedDuration, setSelectedDuration] = useState("1");
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>("all");
+  const carouselRef = useRef<HTMLDivElement>(null);
+
+  const scrollByCard = (dir: "left" | "right") => {
+    const el = carouselRef.current;
+    if (!el) return;
+    const cardWidth = 260; // match w-[240px] + gap
+    el.scrollBy({ left: dir === "left" ? -cardWidth : cardWidth, behavior: "smooth" });
+  };
 
   // 当前小时的 4 个 15 分钟刻度
   const timeSlots = useMemo(() => {
@@ -212,90 +220,79 @@ const Index = () => {
                 <p className="text-xs mt-2">Try changing the filters or wait for new markets to be created</p>
               </div>
             ) : (
-              (() => {
-                const carouselRef = useRef<HTMLDivElement>(null);
-                const scrollByCard = (dir: "left" | "right") => {
-                  const el = carouselRef.current;
-                  if (!el) return;
-                  const cardWidth = 260; // match w-[240px] + gap
-                  el.scrollBy({ left: dir === "left" ? -cardWidth : cardWidth, behavior: "smooth" });
-                };
-                return (
-                  <div className="relative">
-                    <button
-                      aria-label="Previous"
-                      onClick={() => scrollByCard("left")}
-                      className="absolute left-0 top-1/2 -translate-y-1/2 z-10 rounded-full bg-card/90 border border-border p-2 hover:bg-background shadow-sm"
-                    >
-                      <ChevronLeft className="w-5 h-5" />
-                    </button>
+              <div className="relative">
+                <button
+                  aria-label="Previous"
+                  onClick={() => scrollByCard("left")}
+                  className="absolute left-0 top-1/2 -translate-y-1/2 z-10 rounded-full bg-card/90 border border-border p-2 hover:bg-background shadow-sm"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+                <div
+                  ref={carouselRef}
+                  className="flex gap-3 overflow-x-auto snap-x snap-mandatory scroll-smooth pb-2 px-10"
+                >
+                  {filteredMarkets.map((market: DisplayMarket) => (
                     <div
-                      ref={carouselRef}
-                      className="flex gap-3 overflow-x-auto snap-x snap-mandatory scroll-smooth pb-2 px-10 overflow-x-hidden"
+                      key={market.marketId}
+                      onClick={() => navigate(`/market/${market.marketId}`)}
+                      className="p-4 border border-border rounded-lg bg-card hover:border-muted-foreground transition-colors cursor-pointer w-[240px] min-w-[240px] h-[360px] snap-start flex flex-col"
                     >
-                      {filteredMarkets.map((market: DisplayMarket) => (
-                        <div
-                          key={market.marketId}
-                          onClick={() => navigate(`/market/${market.marketId}`)}
-                          className="p-4 border border-border rounded-lg bg-card hover:border-muted-foreground transition-colors cursor-pointer w-[240px] min-w-[240px] h-[360px] snap-start flex flex-col"
-                        >
-                          <div className="mb-2 flex items-center justify-between">
-                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
-                              {market.status}
-                            </span>
-                            <span className="text-[10px] text-muted-foreground">{market.windowMinutes}m</span>
-                          </div>
-                          <h3 className="text-sm font-semibold text-foreground mb-2 line-clamp-3 h-[48px]">
-                            {market.title}
-                          </h3>
+                      <div className="mb-2 flex items-center justify-between">
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+                          {market.status}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground">{market.windowMinutes}m</span>
+                      </div>
+                      <h3 className="text-sm font-semibold text-foreground mb-2 line-clamp-3 h-[48px]">
+                        {market.title}
+                      </h3>
 
-                          <div className="mt-1">
-                            <div className="flex justify-between text-xs mb-1">
-                              <span className="text-success font-semibold">{market.yesChance}% Yes</span>
-                              <span className="text-danger font-semibold">No {100 - market.yesChance}%</span>
-                            </div>
-                            <div className="h-2 bg-border rounded-full overflow-hidden flex">
-                              <div className="bg-success" style={{ width: `${market.yesChance}%` }} />
-                              <div className="bg-danger" style={{ width: `${100 - market.yesChance}%` }} />
-                            </div>
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground mt-3">
-                            <div>
-                              <div className="text-[10px]">Target</div>
-                              <div className="text-foreground font-medium">${market.targetPrice.toFixed(2)}</div>
-                            </div>
-                            <div>
-                              <div className="text-[10px]">Volume</div>
-                              <div className="text-foreground font-medium">${formatCompactNumber(market.volume)}</div>
-                            </div>
-                            <div>
-                              <div className="text-[10px]">Slot</div>
-                              <div className="text-foreground font-medium">{market.slot}</div>
-                            </div>
-                            <div>
-                              <div className="text-[10px]">Market</div>
-                              <div className="text-foreground font-medium">#{market.marketId}</div>
-                            </div>
-                          </div>
-
-                          <div className="mt-auto pt-3 flex items-center justify-between">
-                            <span className="text-[10px] text-muted-foreground">Tap to view</span>
-                            <Bookmark className="w-4 h-4 text-muted-foreground" />
-                          </div>
+                      <div className="mt-1">
+                        <div className="flex justify-between text-xs mb-1">
+                          <span className="text-success font-semibold">{market.yesChance}% Yes</span>
+                          <span className="text-danger font-semibold">No {100 - market.yesChance}%</span>
                         </div>
-                      ))}
+                        <div className="h-2 bg-border rounded-full overflow-hidden flex">
+                          <div className="bg-success" style={{ width: `${market.yesChance}%` }} />
+                          <div className="bg-danger" style={{ width: `${100 - market.yesChance}%` }} />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground mt-3">
+                        <div>
+                          <div className="text-[10px]">Target</div>
+                          <div className="text-foreground font-medium">${market.targetPrice.toFixed(2)}</div>
+                        </div>
+                        <div>
+                          <div className="text-[10px]">Volume</div>
+                          <div className="text-foreground font-medium">${formatCompactNumber(market.volume)}</div>
+                        </div>
+                        <div>
+                          <div className="text-[10px]">Slot</div>
+                          <div className="text-foreground font-medium">{market.slot}</div>
+                        </div>
+                        <div>
+                          <div className="text-[10px]">Market</div>
+                          <div className="text-foreground font-medium">#{market.marketId}</div>
+                        </div>
+                      </div>
+
+                      <div className="mt-auto pt-3 flex items-center justify-between">
+                        <span className="text-[10px] text-muted-foreground">Tap to view</span>
+                        <Bookmark className="w-4 h-4 text-muted-foreground" />
+                      </div>
                     </div>
-                    <button
-                      aria-label="Next"
-                      onClick={() => scrollByCard("right")}
-                      className="absolute right-0 top-1/2 -translate-y-1/2 z-10 rounded-full bg-card/90 border border-border p-2 hover:bg-background shadow-sm"
-                    >
-                      <ChevronRight className="w-5 h-5" />
-                    </button>
-                  </div>
-                );
-              })()
+                  ))}
+                </div>
+                <button
+                  aria-label="Next"
+                  onClick={() => scrollByCard("right")}
+                  className="absolute right-0 top-1/2 -translate-y-1/2 z-10 rounded-full bg-card/90 border border-border p-2 hover:bg-background shadow-sm"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </div>
             )}
           </TabsContent>
 

@@ -1,8 +1,8 @@
 import react from "@vitejs/plugin-react-swc";
-import path from 'path'
-import { defineConfig } from 'vite'
-import { nodePolyfills } from 'vite-plugin-node-polyfills'
-import { VitePWA } from 'vite-plugin-pwa'
+import path from "path";
+import { defineConfig } from "vite";
+import { nodePolyfills } from "vite-plugin-node-polyfills";
+import { VitePWA } from "vite-plugin-pwa";
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -11,112 +11,114 @@ export default defineConfig({
     nodePolyfills({
       // Whether to polyfill `node:` protocol imports.
       protocolImports: true,
-      include: ['crypto', 'stream', 'buffer', 'process', 'util']
+      include: ["crypto", "stream", "buffer", "process", "util"],
     }),
     VitePWA({
-      registerType: 'autoUpdate',
+      registerType: "autoUpdate",
       devOptions: {
-        enabled: true
+        enabled: false,
       },
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'placeholder.svg'],
+      includeAssets: ["favicon.ico", "apple-touch-icon.png", "placeholder.svg"],
       manifest: {
-        name: 'Socrates - BTC Prediction Markets',
-        short_name: 'Socrates',
-        description: 'Trade on 1, 3, and 5-minute BTC price predictions. Real-time markets with instant settlement.',
-        theme_color: '#0b0e14',
-        background_color: '#0b0e14',
-        start_url: '/',
-        scope: '/',
-        display: 'standalone',
-        orientation: 'portrait',
+        name: "Socrates - BTC Prediction Markets",
+        short_name: "Socrates",
+        description: "Trade on 1, 3, and 5-minute BTC price predictions. Real-time markets with instant settlement.",
+        theme_color: "#0b0e14",
+        background_color: "#0b0e14",
+        start_url: "/",
+        scope: "/",
+        display: "standalone",
+        orientation: "portrait",
         icons: [
           {
-            src: 'pwa-192x192.png',
-            sizes: '192x192',
-            type: 'image/png'
+            src: "pwa-192x192.png",
+            sizes: "192x192",
+            type: "image/png",
           },
           {
-            src: 'pwa-512x512.png',
-            sizes: '512x512',
-            type: 'image/png'
+            src: "pwa-512x512.png",
+            sizes: "512x512",
+            type: "image/png",
           },
           {
-            src: 'pwa-512x512-maskable.png',
-            sizes: '512x512',
-            type: 'image/png',
-            purpose: 'any maskable'
-          }
-        ]
+            src: "pwa-512x512-maskable.png",
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "any maskable",
+          },
+        ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
-        navigateFallback: 'index.html',
+        globPatterns: ["**/*.{js,css,html,svg,png,ico,woff2}"],
+        navigateFallback: "index.html",
+        maximumFileSizeToCacheInBytes: 8 * 1024 * 1024,
         runtimeCaching: [
           {
-            urlPattern: ({ url }) => url.origin === self.origin && url.pathname.startsWith('/assets/'),
-            handler: 'StaleWhileRevalidate',
+            urlPattern: ({ url }) => url.origin === self.origin && url.pathname.startsWith("/assets/"),
+            handler: "StaleWhileRevalidate",
             options: {
-              cacheName: 'static-assets',
+              cacheName: "static-assets",
               expiration: {
                 maxEntries: 200,
-                maxAgeSeconds: 60 * 60 * 24 * 7
-              }
-            }
+                maxAgeSeconds: 60 * 60 * 24 * 7,
+              },
+            },
           },
           {
             urlPattern: /^https:\/\/fonts\.(?:googleapis|gstatic)\.com\/.*/i,
-            handler: 'CacheFirst',
+            handler: "CacheFirst",
             options: {
-              cacheName: 'google-fonts',
+              cacheName: "google-fonts",
               expiration: {
                 maxEntries: 30,
-                maxAgeSeconds: 60 * 60 * 24 * 365
-              }
-            }
+                maxAgeSeconds: 60 * 60 * 24 * 365,
+              },
+            },
           },
           {
             urlPattern: /^https:\/\/(cdn\.jsdelivr\.net|unpkg\.com|static\.assets\.)/i,
-            handler: 'CacheFirst',
+            handler: "CacheFirst",
             options: {
-              cacheName: 'cdn-assets',
+              cacheName: "cdn-assets",
               expiration: {
                 maxEntries: 100,
-                maxAgeSeconds: 60 * 60 * 24 * 30
-              }
-            }
+                maxAgeSeconds: 60 * 60 * 24 * 30,
+              },
+            },
           },
           {
-            urlPattern: ({ url }) => url.pathname.startsWith('/api') || url.hostname.includes('socrates') || url.hostname.includes('oracle'),
-            handler: 'NetworkFirst',
+            urlPattern: ({ url }) =>
+              url.pathname.startsWith("/api") || url.hostname.includes("socrates") || url.hostname.includes("oracle"),
+            handler: "NetworkFirst",
             options: {
-              cacheName: 'api-cache',
+              cacheName: "api-cache",
               networkTimeoutSeconds: 10,
               cacheableResponse: { statuses: [0, 200] },
               expiration: {
                 maxEntries: 200,
-                maxAgeSeconds: 60 * 60 * 24
-              }
-            }
-          }
-        ]
-      }
-    })
+                maxAgeSeconds: 60 * 60 * 24,
+              },
+            },
+          },
+        ],
+      },
+    }),
   ],
   resolve: {
     alias: {
       // Allow importing source files from parent directory
-      '@': path.resolve(__dirname, './src'),
+      "@": path.resolve(__dirname, "./src"),
     },
   },
   server: {
     watch: {
-      usePolling: true
-    }
+      usePolling: true,
+    },
   },
   define: {
-    global: 'globalThis',
+    global: "globalThis",
   },
-  envPrefix: ['VITE_', 'REACT_APP_'], // Support REACT_APP environment variables
+  envPrefix: ["VITE_", "REACT_APP_"], // Support REACT_APP environment variables
   build: {
     // // Disable code minification
     // minify: false,
@@ -132,5 +134,5 @@ export default defineConfig({
     // },
     // // Generate source map for debugging
     // sourcemap: true
-  }
-}) 
+  },
+});
