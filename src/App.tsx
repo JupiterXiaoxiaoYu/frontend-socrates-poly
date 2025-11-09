@@ -17,6 +17,8 @@ import ReferralRules from "./pages/ReferralRules";
 import NotFound from "./pages/NotFound";
 import OraclePriceDemo from "./pages/OraclePriceDemo";
 import TradingViewDemo from "./pages/TradingViewDemo";
+import Rebate from "./pages/Rebate";
+import RebateRecords from "./pages/RebateRecords";
 
 const queryClient = new QueryClient();
 
@@ -46,6 +48,8 @@ const App = () => (
                     <Route path="/admin" element={<Admin />} />
                     <Route path="/referral" element={<Referral />} />
                     <Route path="/referral/rules" element={<ReferralRules />} />
+                    <Route path="/rebate" element={<Rebate />} />
+                    <Route path="/rebate/records" element={<RebateRecords />} />
                     <Route path="/oracle-demo" element={<OraclePriceDemo />} />
                     <Route path="/trading-view" element={<TradingViewDemo />} />
                     {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
