@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { ChevronRight, HelpCircle } from "lucide-react";
 import Header from "@/components/Header";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
 import { getMockMiningList, getMockFeeList } from "@/mocks/rebate";
+import RankBadge from "@/components/rebate/RankBadge";
+import VerifiedIcon from "@/components/rebate/VerifiedIcon";
 
 const Rebate = () => {
   const navigate = useNavigate();
@@ -47,53 +49,75 @@ const Rebate = () => {
       <Header />
 
       <main className="container mx-auto px-4 py-6 max-w-5xl">
-        <h1 className="text-2xl font-bold mb-6 text-foreground">My Points</h1>
+        {/* 页面标题 */}
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl font-bold text-foreground">Mining</h1>
+          <button
+            onClick={() => navigate("/rebate/rules")}
+            className="flex items-center justify-center w-8 h-8 rounded-full border border-border hover:bg-muted transition-colors"
+          >
+            <HelpCircle className="w-5 h-5 text-muted-foreground" />
+          </button>
+        </div>
 
-        {/* Current user points card */}
-        <Card className="p-6 border border-border mb-6 bg-gradient-to-br from-card to-card/80">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <div className="text-5xl font-bold text-foreground mb-2">{currentUser.points.toFixed(2)}</div>
-              <div className="text-sm text-muted-foreground">Current Period</div>
-              <div className="text-xs text-muted-foreground">{currentUser.period}</div>
+        {/* My Points 卡片 */}
+        <Card
+          className="p-4 border border-border mb-4 cursor-pointer hover:bg-muted/30 transition-colors"
+          onClick={() => navigate("/rebate/points-history")}
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <div className="text-sm text-muted-foreground mb-1">My Points</div>
+              <div className="text-3xl font-bold text-foreground">{currentUser.points.toFixed(2)}</div>
             </div>
-            <div className="text-right">
-              <Badge variant="secondary" className="text-2xl px-4 py-2 mb-2">
-                {currentUser.rank}
-              </Badge>
-              <div className="text-xs text-muted-foreground">Current Rank</div>
-            </div>
+            <ChevronRight className="w-6 h-6 text-muted-foreground" />
+          </div>
+        </Card>
+
+        {/* Current user stats card */}
+        <Card className="p-6 border border-border mb-6">
+          {/* 本期时间 */}
+          <div className="mb-4">
+            <div className="text-sm text-muted-foreground mb-1">Current Period</div>
+            <div className="text-sm font-medium text-foreground">{currentUser.period}</div>
           </div>
 
+          {/* Point Pool */}
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div>
               <div className="text-xs text-muted-foreground mb-1">Maker Point Pool</div>
-              <div className="text-lg font-semibold text-foreground">{currentUser.makerPool}</div>
+              <div className="text-lg font-semibold text-foreground">{currentUser.makerPool.toLocaleString()}</div>
             </div>
             <div>
               <div className="text-xs text-muted-foreground mb-1">Taker Point Pool</div>
-              <div className="text-lg font-semibold text-foreground">{currentUser.takerPool}</div>
+              <div className="text-lg font-semibold text-foreground">{currentUser.takerPool.toLocaleString()}</div>
             </div>
           </div>
 
-          <div className="border-t border-border pt-4">
+          {/* 分割线 */}
+          <div className="border-t border-border my-4" />
+
+          {/* 我的预计积分 */}
+          <div className="mb-4">
             <div className="text-sm text-muted-foreground mb-2">My Estimated Points</div>
-            <div className="text-3xl font-bold text-foreground mb-4">{currentUser.expectedPoints.toFixed(2)}</div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <div className="text-xs text-muted-foreground mb-1">Maker Volume</div>
-                <div className="text-base font-semibold text-foreground">${currentUser.makerVolume.toFixed(2)}</div>
-              </div>
-              <div>
-                <div className="text-xs text-muted-foreground mb-1">Taker Volume</div>
-                <div className="text-base font-semibold text-foreground">${currentUser.takerVolume.toFixed(2)}</div>
-              </div>
+            <div className="text-3xl font-bold text-foreground">{currentUser.expectedPoints.toFixed(2)}</div>
+          </div>
+
+          {/* 成交量 */}
+          <div className="grid grid-cols-2 gap-4 mb-4">
+            <div>
+              <div className="text-xs text-muted-foreground mb-1">Maker Volume</div>
+              <div className="text-lg font-semibold text-foreground">${currentUser.makerVolume.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+            </div>
+            <div>
+              <div className="text-xs text-muted-foreground mb-1">Taker Volume</div>
+              <div className="text-lg font-semibold text-foreground">${currentUser.takerVolume.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
             </div>
           </div>
 
           <div
-            className="mt-4 text-xs text-[#f59e0b] cursor-pointer hover:underline"
-            onClick={() => navigate("/rebate/records")}
+            className="text-sm text-[#f59e0b] cursor-pointer hover:underline"
+            onClick={() => navigate("/rebate/volume-records")}
           >
             View Records
           </div>
@@ -126,80 +150,55 @@ const Rebate = () => {
             </div>
 
             <TabsContent value="points" className="p-0 m-0">
-              <div className="p-4 text-sm text-muted-foreground border-b border-border">
-                Estimated points ranking for this period. Final points will be calculated and confirmed after the period
-                ends.
+              <div className="p-4 text-sm text-muted-foreground">
+                Estimated points ranking for this period. Final points will be calculated and confirmed after the period ends.
               </div>
 
               {/* Current user highlighted row */}
-              <div className="bg-primary/5 border-y-2 border-primary/20">
-                <div className="flex items-center gap-4 p-4">
-                  <div className="w-12 text-center">
-                    <Badge variant="secondary" className="text-base px-2 py-1">
-                      {currentUser.rank}
-                    </Badge>
+              <div className="bg-[#FFF9E6] dark:bg-[#2A2416] px-4 py-3 mb-2">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 flex items-center justify-center">
+                    <RankBadge rank={currentUser.rank} />
                   </div>
                   <Avatar className="h-10 w-10">
                     <AvatarImage src={currentUser.avatar} />
                     <AvatarFallback>{currentUser.userName[0]}</AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
-                    <div className="font-medium text-foreground flex items-center gap-2">
+                    <div className="font-semibold text-foreground flex items-center gap-1.5">
                       {currentUser.userName}
-                      <Badge variant="outline" className="text-xs">
-                        ✓
-                      </Badge>
+                      <VerifiedIcon />
                     </div>
                     <div className="text-xs text-muted-foreground">@_username</div>
                   </div>
                   <div className="text-right">
-                    <div className="text-lg font-bold text-foreground">{currentUser.points.toLocaleString()}</div>
-                    <div className="text-xs text-muted-foreground">Point</div>
+                    <div className="text-base font-bold text-foreground">{currentUser.points.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
                   </div>
                 </div>
               </div>
 
               {/* Leaderboard header */}
-              <div className="flex items-center gap-4 p-4 border-b border-border bg-muted/30">
-                <div className="w-12 text-center text-xs font-semibold text-muted-foreground">Rank</div>
+              <div className="flex items-center gap-3 px-4 py-2">
+                <div className="w-9 text-xs font-semibold text-muted-foreground">Rank</div>
                 <div className="flex-1 text-xs font-semibold text-muted-foreground">Name</div>
-                <div className="text-right text-xs font-semibold text-muted-foreground">Point</div>
+                <div className="text-right text-xs font-semibold text-muted-foreground">Points</div>
               </div>
 
               {/* Leaderboard list */}
-              <div className="divide-y divide-border max-h-[600px] overflow-y-auto">
+              <div className="max-h-[600px] overflow-y-auto">
                 {allUsers.slice(0, 100).map((user) => (
-                  <div key={user.id} className="flex items-center gap-4 p-4 hover:bg-muted/20 transition-colors">
-                    <div className="w-12 text-center">
-                      {user.rank <= 3 ? (
-                        <Badge
-                          variant={user.rank === 1 ? "default" : "secondary"}
-                          className={`text-base px-2 py-1 ${
-                            user.rank === 1
-                              ? "bg-[#FFD700] text-black hover:bg-[#FFD700]/90"
-                              : user.rank === 2
-                              ? "bg-[#C0C0C0] text-black hover:bg-[#C0C0C0]/90"
-                              : "bg-[#CD7F32] text-white hover:bg-[#CD7F32]/90"
-                          }`}
-                        >
-                          {user.rank === 1 ? "🥇" : user.rank === 2 ? "🥈" : "🥉"}
-                        </Badge>
-                      ) : (
-                        <span className="text-sm text-muted-foreground">{user.rank}</span>
-                      )}
+                  <div key={user.id} className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors">
+                    <div className="w-9 flex items-center justify-center">
+                      <RankBadge rank={user.rank} />
                     </div>
                     <Avatar className="h-10 w-10">
                       <AvatarImage src={user.avatar} />
                       <AvatarFallback>{user.userName[0]}</AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
-                      <div className="font-medium text-foreground flex items-center gap-2">
+                      <div className="font-semibold text-foreground flex items-center gap-1.5">
                         {user.userName}
-                        {user.rank <= 10 && (
-                          <Badge variant="outline" className="text-xs">
-                            ✓
-                          </Badge>
-                        )}
+                        {user.rank <= 10 && <VerifiedIcon />}
                       </div>
                       <div className="text-xs text-muted-foreground">@_username</div>
                     </div>
@@ -214,7 +213,70 @@ const Rebate = () => {
             </TabsContent>
 
             <TabsContent value="transactions" className="p-0 m-0">
-              <div className="p-8 text-center text-muted-foreground">Volume leaderboard data coming soon</div>
+              <div className="p-4 text-sm text-muted-foreground">
+                Get the highest Maker and Taker trading volume during the period.
+              </div>
+
+              {/* Current user highlighted row */}
+              <div className="bg-[#FFF9E6] dark:bg-[#2A2416] px-4 py-3 mb-2">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 flex items-center justify-center">
+                    <RankBadge rank={currentUser.rank} />
+                  </div>
+                  <Avatar className="h-10 w-10">
+                    <AvatarImage src={currentUser.avatar} />
+                    <AvatarFallback>{currentUser.userName[0]}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-semibold text-foreground flex items-center gap-1.5">
+                      {currentUser.userName}
+                      <VerifiedIcon />
+                    </div>
+                    <div className="text-xs text-muted-foreground">@_username</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-sm font-bold text-foreground">${currentUser.makerVolume.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+                    <div className="text-sm font-bold text-foreground">${currentUser.takerVolume.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Leaderboard header */}
+              <div className="flex items-center gap-3 px-4 py-2">
+                <div className="w-9 text-xs font-semibold text-muted-foreground">Rank</div>
+                <div className="flex-1 text-xs font-semibold text-muted-foreground">Name</div>
+                <div className="text-right text-xs font-semibold text-muted-foreground">Maker / Taker</div>
+              </div>
+
+              {/* Leaderboard list */}
+              <div className="max-h-[600px] overflow-y-auto">
+                {allUsers.slice(0, 100).map((user) => (
+                  <div key={user.id} className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors">
+                    <div className="w-9 flex items-center justify-center">
+                      <RankBadge rank={user.rank} />
+                    </div>
+                    <Avatar className="h-10 w-10">
+                      <AvatarImage src={user.avatar} />
+                      <AvatarFallback>{user.userName[0]}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-foreground flex items-center gap-1.5">
+                        {user.userName}
+                        {user.rank <= 10 && <VerifiedIcon />}
+                      </div>
+                      <div className="text-xs text-muted-foreground">@_username</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-sm font-semibold text-foreground">
+                        ${(user.points * 10).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                      </div>
+                      <div className="text-sm font-semibold text-foreground">
+                        ${(user.points * 10).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </TabsContent>
           </Tabs>
         </Card>
