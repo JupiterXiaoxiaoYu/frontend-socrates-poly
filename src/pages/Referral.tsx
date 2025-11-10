@@ -157,6 +157,7 @@ const Referral = () => {
   const [rebateTab, setRebateTab] = useState<"fee" | "mining">("fee");
   const [isDashboardOpen, setIsDashboardOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<ReferralRecord | null>(null);
+  const [referralRecordsHistory, setReferralRecordsHistory] = useState<ReferralRecord[]>([]);
   const [isRebateRecordsOpen, setIsRebateRecordsOpen] = useState(false);
   const [isReferralRecordsOpen, setIsReferralRecordsOpen] = useState(false);
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
@@ -185,6 +186,32 @@ const Referral = () => {
       title: "Success",
       description: "Claimed successfully!",
     });
+  };
+
+  // 处理推荐记录点击（支持多级导航）
+  const handleReferralRecordClick = (record: ReferralRecord) => {
+    if (selectedUser) {
+      // 如果已经有选中的用户，说明这是二级点击，将当前用户加入历史记录
+      setReferralRecordsHistory((prev) => [...prev, selectedUser]);
+    }
+    setSelectedUser(record);
+  };
+
+  // 返回上一级推荐记录
+  const handleReferralRecordsBack = () => {
+    if (referralRecordsHistory.length > 0) {
+      const previousUser = referralRecordsHistory[referralRecordsHistory.length - 1];
+      setSelectedUser(previousUser);
+      setReferralRecordsHistory((prev) => prev.slice(0, -1));
+    }
+  };
+
+  // 关闭推荐记录弹窗时重置历史记录
+  const handleReferralRecordsClose = (open: boolean) => {
+    if (!open) {
+      setSelectedUser(null);
+      setReferralRecordsHistory([]);
+    }
   };
 
   return (
@@ -280,7 +307,7 @@ const Referral = () => {
         <ReferralRecordsCard
           records={mockReferralRecords}
           totalReferrals={20}
-          onRecordClick={setSelectedUser}
+          onRecordClick={handleReferralRecordClick}
           onShowAllRecords={() => setIsReferralRecordsOpen(true)}
         />
       </main>
@@ -303,8 +330,10 @@ const Referral = () => {
         open={!!selectedUser}
         selectedUser={selectedUser}
         records={mockReferralRecords}
-        onOpenChange={(open) => !open && setSelectedUser(null)}
-        onRecordClick={setSelectedUser}
+        onOpenChange={handleReferralRecordsClose}
+        onRecordClick={handleReferralRecordClick}
+        onBack={handleReferralRecordsBack}
+        showBackButton={referralRecordsHistory.length > 0}
       />
 
       {/* 全部返佣记录页面（移动端） */}
@@ -323,7 +352,7 @@ const Referral = () => {
         onOpenChange={setIsReferralRecordsOpen}
         records={mockReferralRecords}
         totalReferrals={20}
-        onRecordClick={setSelectedUser}
+        onRecordClick={handleReferralRecordClick}
       />
 
       {/* 分享弹窗 */}

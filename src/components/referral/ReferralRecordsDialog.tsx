@@ -1,5 +1,5 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, ChevronLeft } from "lucide-react";
 import { ReferralRecord } from "./ReferralRecordsCard";
 
 interface ReferralRecordsDialogProps {
@@ -8,6 +8,8 @@ interface ReferralRecordsDialogProps {
   records: ReferralRecord[];
   onOpenChange: (open: boolean) => void;
   onRecordClick: (record: ReferralRecord) => void;
+  onBack: () => void;
+  showBackButton: boolean;
 }
 
 // 推荐记录详情弹窗组件（动态内容切换）
@@ -17,6 +19,8 @@ const ReferralRecordsDialog = ({
   records,
   onOpenChange,
   onRecordClick,
+  onBack,
+  showBackButton,
 }: ReferralRecordsDialogProps) => {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -24,12 +28,23 @@ const ReferralRecordsDialog = ({
         {/* 移动端标题栏 */}
         <div className="sticky top-0 z-10 bg-background border-b border-border md:hidden">
           <div className="flex items-center h-14 px-4">
-            <button
-              onClick={() => onOpenChange(false)}
-              className="flex items-center justify-center w-8 h-8 -ml-2"
-            >
-              <ChevronRight className="w-5 h-5 rotate-180 text-foreground" />
-            </button>
+            {showBackButton ? (
+              // 二级页面显示 Back 按钮
+              <button
+                onClick={onBack}
+                className="flex items-center justify-center w-8 h-8 -ml-2"
+              >
+                <ChevronLeft className="w-5 h-5 text-foreground" />
+              </button>
+            ) : (
+              // 一级页面显示关闭按钮
+              <button
+                onClick={() => onOpenChange(false)}
+                className="flex items-center justify-center w-8 h-8 -ml-2"
+              >
+                <ChevronRight className="w-5 h-5 rotate-180 text-foreground" />
+              </button>
+            )}
             <h2 className="flex-1 text-center text-base font-bold text-foreground pr-8">
               {selectedUser?.userName}'s Referral Records
             </h2>
@@ -39,6 +54,14 @@ const ReferralRecordsDialog = ({
         {/* 桌面端标题 */}
         <DialogHeader className="hidden md:flex md:mb-4 p-6 pb-4">
           <div className="flex items-center gap-3">
+            {showBackButton && (
+              <button
+                onClick={onBack}
+                className="flex items-center justify-center w-8 h-8 hover:bg-muted rounded-full transition-colors"
+              >
+                <ChevronLeft className="w-5 h-5 text-foreground" />
+              </button>
+            )}
             <img
               src={selectedUser?.avatar || ""}
               alt={selectedUser?.userName || ""}
@@ -57,8 +80,10 @@ const ReferralRecordsDialog = ({
             {records.slice(0, 5).map((record) => (
               <div
                 key={record.id}
-                className="flex items-center justify-between py-3 border-b border-border last:border-0 cursor-pointer hover:bg-muted/50 transition-colors"
-                onClick={() => onRecordClick(record)}
+                className={`flex items-center justify-between py-3 border-b border-border last:border-0 transition-colors ${
+                  showBackButton ? "" : "cursor-pointer hover:bg-muted/50"
+                }`}
+                onClick={showBackButton ? undefined : () => onRecordClick(record)}
               >
                 <div className="flex items-center gap-3 flex-1">
                   <img src={record.avatar} alt={record.userName} className="w-11 h-11 rounded-full bg-muted" />
@@ -67,7 +92,7 @@ const ReferralRecordsDialog = ({
                     <p className="text-xs text-muted-foreground">{record.timestamp}</p>
                   </div>
                 </div>
-                <ChevronRight className="w-6 h-6 text-muted-foreground" />
+                {!showBackButton && <ChevronRight className="w-6 h-6 text-muted-foreground" />}
               </div>
             ))}
           </div>
