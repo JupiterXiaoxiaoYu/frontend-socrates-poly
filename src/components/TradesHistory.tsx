@@ -1,6 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { fromUSDCPrecision, fromPricePrecision, generateMarketTitle } from "../lib/calculations";
 import { Trade, Market, Order } from "../types/api";
 
@@ -12,6 +13,8 @@ interface TradesHistoryProps {
 }
 
 export default function TradesHistory({ trades, markets, orders, playerId }: TradesHistoryProps) {
+  const { t } = useTranslation('portfolio');
+  
   // Process and enrich trades with market information
   const enrichedTrades = useMemo(() => {
     if (!trades || !playerId) return [];
@@ -72,8 +75,8 @@ export default function TradesHistory({ trades, markets, orders, playerId }: Tra
     return (
       <Card className="p-8 text-center border border-border">
         <div className="text-muted-foreground">
-          <p className="text-sm">No trade history yet</p>
-          <p className="text-xs mt-2">Your completed trades will appear here</p>
+          <p className="text-sm">{t('noTradeHistory')}</p>
+          <p className="text-xs mt-2">{t('noTradeHistoryDesc')}</p>
         </div>
       </Card>
     );
@@ -85,13 +88,13 @@ export default function TradesHistory({ trades, markets, orders, playerId }: Tra
         <table className="w-full">
           <thead className="border-b border-border bg-muted/50">
             <tr className="text-xs text-muted-foreground">
-              <th className="text-left p-3 font-medium">Time</th>
-              <th className="text-left p-3 font-medium">Market</th>
-              <th className="text-left p-3 font-medium">Side</th>
-              <th className="text-left p-3 font-medium">Action</th>
-              <th className="text-right p-3 font-medium">Shares</th>
-              <th className="text-right p-3 font-medium">Price</th>
-              <th className="text-right p-3 font-medium">Cost</th>
+              <th className="text-left p-3 font-medium">{t('time')}</th>
+              <th className="text-left p-3 font-medium">{t('market')}</th>
+              <th className="text-left p-3 font-medium">{t('side')}</th>
+              <th className="text-left p-3 font-medium">{t('action')}</th>
+              <th className="text-right p-3 font-medium">{t('shares')}</th>
+              <th className="text-right p-3 font-medium">{t('price')}</th>
+              <th className="text-right p-3 font-medium">{t('cost')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">

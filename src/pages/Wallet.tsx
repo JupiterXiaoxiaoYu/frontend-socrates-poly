@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Eye, EyeOff, Download, Upload, ChevronLeft, ChevronRight, Copy, Check } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useMarket } from "../contexts";
 import { fromUSDCPrecision, formatCurrency } from "../lib/calculations";
 import { useToast } from "../hooks/use-toast";
@@ -13,6 +14,7 @@ import { WithdrawDialog } from "../components/WithdrawDialog";
 // Transaction row shape for display is computed inline; no separate interface needed
 
 const Wallet = () => {
+  const { t } = useTranslation('wallet');
   const { positions = [], playerId, apiClient, deposit, withdraw } = useMarket();
   const { toast } = useToast();
   const [hideBalance, setHideBalance] = useState(false);
@@ -65,8 +67,8 @@ const Wallet = () => {
     navigator.clipboard.writeText(pidString);
     setCopiedPid(true);
     toast({
-      title: "Copied!",
-      description: "Player ID copied to clipboard",
+      title: t('copied'),
+      description: t('playerIdCopied'),
     });
     setTimeout(() => setCopiedPid(false), 2000);
   };
@@ -99,13 +101,13 @@ const Wallet = () => {
       let status: "Completed" | "Failed" | "Pending" = "Completed";
 
       if (tx.type === "deposit") {
-        type = "Deposit USDC";
+        type = t('depositUSDCType');
         amount = `+${fromUSDCPrecision(tx.amount).toFixed(4)} USDC`;
       } else if (tx.type === "withdrawal") {
-        type = "Withdraw USDC";
+        type = t('withdrawUSDCType');
         amount = `-${fromUSDCPrecision(tx.amount).toFixed(4)} USDC`;
       } else if (tx.type === "claim") {
-        type = `Claim from Market #${tx.marketId}`;
+        type = `${t('claimFromMarket')} #${tx.marketId}`;
         amount = `+${fromUSDCPrecision(tx.totalClaimed).toFixed(4)} USDC`;
       }
 
@@ -125,7 +127,7 @@ const Wallet = () => {
         status,
       };
     });
-  }, [transactions]);
+  }, [transactions, t]);
 
   // Pagination logic
   const totalPages = Math.ceil(displayTransactions.length / itemsPerPage);
@@ -178,14 +180,14 @@ const Wallet = () => {
       <Header />
 
       <main className="container mx-auto px-4 py-6 max-w-4xl">
-        <h1 className="text-2xl font-bold mb-6 text-foreground">Wallet</h1>
+        <h1 className="text-2xl font-bold mb-6 text-foreground">{t('title')}</h1>
 
         {/* Player ID Card */}
         {playerId && (
           <Card className="p-4 border border-border mb-4 bg-muted/20">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-xs text-muted-foreground mb-1">Player ID</div>
+                <div className="text-xs text-muted-foreground mb-1">{t('playerId')}</div>
                 <div className="font-mono text-sm text-foreground">
                   [{playerId[0]}, {playerId[1]}]
                 </div>
@@ -202,7 +204,7 @@ const Wallet = () => {
           <div className="flex items-start justify-between mb-4">
             <div>
               <div className="flex items-center gap-2 mb-2">
-                <span className="text-sm text-muted-foreground">USDC Balance</span>
+                <span className="text-sm text-muted-foreground">{t('usdcBalance')}</span>
                 <button
                   onClick={() => setHideBalance(!hideBalance)}
                   className="text-muted-foreground hover:text-foreground"
@@ -222,7 +224,7 @@ const Wallet = () => {
                 disabled={!playerId}
               >
                 <Download className="w-5 h-5" />
-                <span className="text-xs">Deposit</span>
+                <span className="text-xs">{t('deposit')}</span>
               </Button>
               <Button
                 variant="outline"
@@ -231,7 +233,7 @@ const Wallet = () => {
                 disabled={!playerId || usdcBalance === 0}
               >
                 <Upload className="w-5 h-5" />
-                <span className="text-xs">Withdraw</span>
+                <span className="text-xs">{t('withdraw')}</span>
               </Button>
               {/* <Button variant="outline" className="flex flex-col items-center gap-1 h-auto py-3 px-4">
                 <FileText className="w-5 h-5" />
@@ -244,24 +246,24 @@ const Wallet = () => {
         {/* Recent Transactions */}
         <Card className="border border-border">
           <div className="p-4 border-b border-border">
-            <h2 className="text-base font-semibold text-foreground">Recent Transactions</h2>
+            <h2 className="text-base font-semibold text-foreground">{t('recentTransactions')}</h2>
           </div>
 
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="border-b border-border bg-muted/30">
                 <tr>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Type</th>
-                  <th className="text-right px-4 py-3 text-xs font-medium text-muted-foreground">Amount</th>
-                  <th className="text-right px-4 py-3 text-xs font-medium text-muted-foreground">Date</th>
-                  <th className="text-right px-4 py-3 text-xs font-medium text-muted-foreground">Operate</th>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">{t('type')}</th>
+                  <th className="text-right px-4 py-3 text-xs font-medium text-muted-foreground">{t('amount')}</th>
+                  <th className="text-right px-4 py-3 text-xs font-medium text-muted-foreground">{t('date')}</th>
+                  <th className="text-right px-4 py-3 text-xs font-medium text-muted-foreground">{t('operate')}</th>
                 </tr>
               </thead>
               <tbody>
                 {currentTransactions.length === 0 ? (
                   <tr>
                     <td colSpan={4} className="py-12 text-center text-muted-foreground">
-                      No transaction history
+                      {t('noTransactionHistory')}
                     </td>
                   </tr>
                 ) : (
@@ -300,7 +302,7 @@ const Wallet = () => {
                           }
                           className="text-xs"
                         >
-                          {transaction.status}
+                          {transaction.status === "Completed" ? t('completed') : transaction.status === "Failed" ? t('failed') : t('pending')}
                         </Badge>
                       </td>
                     </tr>
@@ -315,8 +317,8 @@ const Wallet = () => {
             <div className="p-4 border-t border-border">
               <div className="flex items-center justify-between">
                 <div className="text-sm text-muted-foreground">
-                  Showing {startIndex + 1} to {Math.min(endIndex, displayTransactions.length)} of{" "}
-                  {displayTransactions.length} transactions
+                  {t('showing')} {startIndex + 1} {t('to')} {Math.min(endIndex, displayTransactions.length)} {t('of')}{" "}
+                  {displayTransactions.length} {t('transactions')}
                 </div>
                 <div className="flex items-center gap-2">
                   <Button

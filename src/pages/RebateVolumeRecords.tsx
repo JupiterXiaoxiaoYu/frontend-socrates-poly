@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import Header from "@/components/Header";
 import { Card } from "@/components/ui/card";
 
@@ -44,6 +45,7 @@ const mockVolumeRecords = [
 ];
 
 const RebateVolumeRecords = () => {
+  const { t } = useTranslation('rebate');
   const navigate = useNavigate();
 
   return (
@@ -59,7 +61,7 @@ const RebateVolumeRecords = () => {
           >
             <ChevronLeft className="w-5 h-5 text-foreground" />
           </button>
-          <h1 className="text-xl font-bold text-foreground">Volume Records</h1>
+          <h1 className="text-xl font-bold text-foreground">{t('volumeRecords')}</h1>
         </div>
 
         {/* 交易量记录列表 */}
@@ -69,13 +71,13 @@ const RebateVolumeRecords = () => {
               <div className="space-y-3">
                 {/* 日期 */}
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Date</span>
+                  <span className="text-sm text-muted-foreground">{t('date')}</span>
                   <span className="text-sm font-medium text-foreground">{record.date}</span>
                 </div>
 
                 {/* Maker */}
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Maker</span>
+                  <span className="text-sm text-muted-foreground">{t('maker')}</span>
                   <span className="text-sm font-semibold text-foreground">
                     ${record.maker.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
@@ -83,7 +85,7 @@ const RebateVolumeRecords = () => {
 
                 {/* Taker */}
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Taker</span>
+                  <span className="text-sm text-muted-foreground">{t('taker')}</span>
                   <span className="text-sm font-semibold text-foreground">
                     ${record.taker.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>

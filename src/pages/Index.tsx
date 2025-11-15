@@ -3,6 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs"
 import { useNavigate } from "react-router-dom";
 import { useState, useMemo, useEffect, useRef } from "react";
 import { Bookmark, ChevronLeft, ChevronRight } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { useMarket } from "../contexts";
 import {
   calculateProbabilities,
@@ -47,6 +48,7 @@ const slotLabelFromUnixSeconds = (seconds: string | number): string => {
 };
 
 const Index = () => {
+  const { t } = useTranslation('market');
   const navigate = useNavigate();
   const { markets, marketPrices, isLoading, setMarketQuery } = useMarket();
   const [selectedDuration, setSelectedDuration] = useState("1");
@@ -151,19 +153,19 @@ const Index = () => {
               value="trending"
               className="rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-3"
             >
-              Markets
+              {t('markets')}
             </TabsTrigger>
             <TabsTrigger
               value="favorites"
               className="rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-3"
             >
-              Favorites
+              {t('favorites')}
             </TabsTrigger>
           </TabsList>
 
           {/* Time Slots Tabs */}
           <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">Time:</span>
+            <span className="text-sm text-muted-foreground">{t('time')}:</span>
             <Tabs value={selectedTimeSlot} onValueChange={setSelectedTimeSlot} className="space-y-0">
               <TabsList className="bg-transparent border border-border rounded-md p-1 h-auto">
                 <TabsTrigger
@@ -171,7 +173,7 @@ const Index = () => {
                   value="all"
                   className="px-3 py-1 text-sm font-medium rounded transition-colors data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
                 >
-                  <span>All</span>
+                  <span>{t('all')}</span>
                 </TabsTrigger>
                 {timeSlots.map((slot) => (
                   <TabsTrigger
@@ -191,7 +193,7 @@ const Index = () => {
 
           {/* Duration Options */}
           <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">Duration:</span>
+            <span className="text-sm text-muted-foreground">{t('duration')}:</span>
             <div className="inline-flex items-center rounded-md border border-border bg-background p-1">
               {["1", "3", "5", "10", "15"].map((d) => (
                 <button
@@ -212,12 +214,12 @@ const Index = () => {
           <TabsContent value="trending" className="space-y-3 mt-4">
             {isLoading && filteredMarkets.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground">
-                <p>Loading markets...</p>
+                <p>{t('loadingMarkets')}</p>
               </div>
             ) : filteredMarkets.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground">
-                <p>No markets found</p>
-                <p className="text-xs mt-2">Try changing the filters or wait for new markets to be created</p>
+                <p>{t('noMarketsFound')}</p>
+                <p className="text-xs mt-2">{t('noMarketsFoundDesc')}</p>
               </div>
             ) : (
               <div className="relative">
@@ -250,8 +252,8 @@ const Index = () => {
 
                       <div className="mt-1">
                         <div className="flex justify-between text-xs mb-1">
-                          <span className="text-success font-semibold">{market.yesChance}% Yes</span>
-                          <span className="text-danger font-semibold">No {100 - market.yesChance}%</span>
+                          <span className="text-success font-semibold">{market.yesChance}% {t('yes')}</span>
+                          <span className="text-danger font-semibold">{t('no')} {100 - market.yesChance}%</span>
                         </div>
                         <div className="h-2 bg-border rounded-full overflow-hidden flex">
                           <div className="bg-success" style={{ width: `${market.yesChance}%` }} />
@@ -261,25 +263,25 @@ const Index = () => {
 
                       <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground mt-3">
                         <div>
-                          <div className="text-[10px]">Target</div>
+                          <div className="text-[10px]">{t('target')}</div>
                           <div className="text-foreground font-medium">${market.targetPrice.toFixed(2)}</div>
                         </div>
                         <div>
-                          <div className="text-[10px]">Volume</div>
+                          <div className="text-[10px]">{t('volume')}</div>
                           <div className="text-foreground font-medium">${formatCompactNumber(market.volume)}</div>
                         </div>
                         <div>
-                          <div className="text-[10px]">Slot</div>
+                          <div className="text-[10px]">{t('slot')}</div>
                           <div className="text-foreground font-medium">{market.slot}</div>
                         </div>
                         <div>
-                          <div className="text-[10px]">Market</div>
+                          <div className="text-[10px]">{t('market')}</div>
                           <div className="text-foreground font-medium">#{market.marketId}</div>
                         </div>
                       </div>
 
                       <div className="mt-auto pt-3 flex items-center justify-between">
-                        <span className="text-[10px] text-muted-foreground">Tap to view</span>
+                        <span className="text-[10px] text-muted-foreground">{t('tapToView')}</span>
                         <Bookmark className="w-4 h-4 text-muted-foreground" />
                       </div>
                     </div>
@@ -298,7 +300,7 @@ const Index = () => {
 
           <TabsContent value="favorites" className="mt-4">
             <div className="text-center py-12 text-muted-foreground">
-              <p>No favorites yet</p>
+              <p>{t('noFavorites')}</p>
             </div>
           </TabsContent>
         </Tabs>

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronRight, HelpCircle } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import Header from "@/components/Header";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -10,6 +11,7 @@ import RankBadge from "@/components/rebate/RankBadge";
 import VerifiedIcon from "@/components/rebate/VerifiedIcon";
 
 const Rebate = () => {
+  const { t } = useTranslation('rebate');
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<"points" | "transactions">("points");
 
@@ -51,7 +53,7 @@ const Rebate = () => {
       <main className="container mx-auto px-4 py-6 max-w-5xl">
         {/* 页面标题 */}
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-foreground">Mining</h1>
+          <h1 className="text-2xl font-bold text-foreground">{t('title')}</h1>
           <button
             onClick={() => navigate("/rebate/rules")}
             className="flex items-center justify-center w-8 h-8 rounded-full border border-border hover:bg-muted transition-colors"
@@ -67,7 +69,7 @@ const Rebate = () => {
         >
           <div className="flex items-center justify-between">
             <div className="flex-1">
-              <div className="text-sm text-muted-foreground mb-1">My Points</div>
+              <div className="text-sm text-muted-foreground mb-1">{t('myPoints')}</div>
               <div className="text-3xl font-bold text-foreground">{currentUser.points.toFixed(2)}</div>
             </div>
             <ChevronRight className="w-6 h-6 text-muted-foreground" />
@@ -78,18 +80,18 @@ const Rebate = () => {
         <Card className="p-6 border border-border mb-6">
           {/* 本期时间 */}
           <div className="mb-4">
-            <div className="text-sm text-muted-foreground mb-1">Current Period</div>
+            <div className="text-sm text-muted-foreground mb-1">{t('currentPeriod')}</div>
             <div className="text-sm font-medium text-foreground">{currentUser.period}</div>
           </div>
 
           {/* Point Pool */}
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div>
-              <div className="text-xs text-muted-foreground mb-1">Maker Point Pool</div>
+              <div className="text-xs text-muted-foreground mb-1">{t('makerPointPool')}</div>
               <div className="text-lg font-semibold text-foreground">{currentUser.makerPool.toLocaleString()}</div>
             </div>
             <div>
-              <div className="text-xs text-muted-foreground mb-1">Taker Point Pool</div>
+              <div className="text-xs text-muted-foreground mb-1">{t('takerPointPool')}</div>
               <div className="text-lg font-semibold text-foreground">{currentUser.takerPool.toLocaleString()}</div>
             </div>
           </div>
@@ -99,18 +101,18 @@ const Rebate = () => {
 
           {/* 我的预计积分 */}
           <div className="mb-4">
-            <div className="text-sm text-muted-foreground mb-2">My Estimated Points</div>
+            <div className="text-sm text-muted-foreground mb-2">{t('myEstimatedPoints')}</div>
             <div className="text-3xl font-bold text-foreground">{currentUser.expectedPoints.toFixed(2)}</div>
           </div>
 
           {/* 成交量 */}
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div>
-              <div className="text-xs text-muted-foreground mb-1">Maker Volume</div>
+              <div className="text-xs text-muted-foreground mb-1">{t('makerVolume')}</div>
               <div className="text-lg font-semibold text-foreground">${currentUser.makerVolume.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
             </div>
             <div>
-              <div className="text-xs text-muted-foreground mb-1">Taker Volume</div>
+              <div className="text-xs text-muted-foreground mb-1">{t('takerVolume')}</div>
               <div className="text-lg font-semibold text-foreground">${currentUser.takerVolume.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
             </div>
           </div>
@@ -119,7 +121,7 @@ const Rebate = () => {
             className="text-sm text-[#f59e0b] cursor-pointer hover:underline"
             onClick={() => navigate("/rebate/volume-records")}
           >
-            View Records
+            {t('common:button.viewRecords', 'View Records')}
           </div>
         </Card>
 
@@ -137,13 +139,13 @@ const Rebate = () => {
                     value="points"
                     className="border-b-2 border-transparent data-[state=active]:border-primary rounded-none bg-transparent px-4 py-3"
                   >
-                    Points Leaderboard
+                    {t('pointsLeaderboard')}
                   </TabsTrigger>
                   <TabsTrigger
                     value="transactions"
                     className="border-b-2 border-transparent data-[state=active]:border-primary rounded-none bg-transparent px-4 py-3"
                   >
-                    Volume Leaderboard
+                    {t('volumeLeaderboard')}
                   </TabsTrigger>
                 </TabsList>
               </div>
@@ -151,7 +153,7 @@ const Rebate = () => {
 
             <TabsContent value="points" className="p-0 m-0">
               <div className="p-4 text-sm text-muted-foreground">
-                Estimated points ranking for this period. Final points will be calculated and confirmed after the period ends.
+                {t('estimatedPointsRankingDesc')}
               </div>
 
               {/* Current user highlighted row */}
@@ -179,9 +181,9 @@ const Rebate = () => {
 
               {/* Leaderboard header */}
               <div className="flex items-center gap-3 px-4 py-2">
-                <div className="w-9 text-xs font-semibold text-muted-foreground">Rank</div>
-                <div className="flex-1 text-xs font-semibold text-muted-foreground">Name</div>
-                <div className="text-right text-xs font-semibold text-muted-foreground">Points</div>
+                <div className="w-9 text-xs font-semibold text-muted-foreground">{t('rank')}</div>
+                <div className="flex-1 text-xs font-semibold text-muted-foreground">{t('name')}</div>
+                <div className="text-right text-xs font-semibold text-muted-foreground">{t('points')}</div>
               </div>
 
               {/* Leaderboard list */}
@@ -214,7 +216,7 @@ const Rebate = () => {
 
             <TabsContent value="transactions" className="p-0 m-0">
               <div className="p-4 text-sm text-muted-foreground">
-                Get the highest Maker and Taker trading volume during the period.
+                {t('highestVolumeDesc')}
               </div>
 
               {/* Current user highlighted row */}
@@ -243,9 +245,9 @@ const Rebate = () => {
 
               {/* Leaderboard header */}
               <div className="flex items-center gap-3 px-4 py-2">
-                <div className="w-9 text-xs font-semibold text-muted-foreground">Rank</div>
-                <div className="flex-1 text-xs font-semibold text-muted-foreground">Name</div>
-                <div className="text-right text-xs font-semibold text-muted-foreground">Maker / Taker</div>
+                <div className="w-9 text-xs font-semibold text-muted-foreground">{t('rank')}</div>
+                <div className="flex-1 text-xs font-semibold text-muted-foreground">{t('name')}</div>
+                <div className="text-right text-xs font-semibold text-muted-foreground">{t('makerTaker')}</div>
               </div>
 
               {/* Leaderboard list */}

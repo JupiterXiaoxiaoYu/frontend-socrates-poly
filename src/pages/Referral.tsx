@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { useToast } from "../hooks/use-toast";
 import Header from "../components/Header";
@@ -150,6 +151,7 @@ const mockReferralRecords: ReferralRecord[] = [
 ];
 
 const Referral = () => {
+  const { t } = useTranslation('referral');
   const { toast } = useToast();
   const navigate = useNavigate();
   
@@ -166,8 +168,8 @@ const Referral = () => {
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
     toast({
-      title: "Copied!",
-      description: `${label} copied to clipboard`,
+      title: t('copied'),
+      description: `${label} ${t('copiedToClipboard')}`,
     });
   };
 
@@ -176,15 +178,15 @@ const Referral = () => {
     const minAmount = 10;
     if (amount < minAmount) {
       toast({
-        title: "Cannot Claim",
-        description: `Claimable once it reaches ${minAmount} ${type === "fee" ? "USDT" : "SOC"}`,
+        title: t('cannotClaim'),
+        description: `${t('claimableOnce')} ${minAmount} ${type === "fee" ? "USDT" : "SOC"}`,
         variant: "destructive",
       });
       return;
     }
     toast({
-      title: "Success",
-      description: "Claimed successfully!",
+      title: t('success'),
+      description: t('claimedSuccessfully'),
     });
   };
 
@@ -244,7 +246,7 @@ const Referral = () => {
 
         {/* 页面标题 - 桌面端显示 */}
         <div className="mb-6 hidden md:block relative z-10">
-          <h1 className="text-2xl font-bold text-white">Referral</h1>
+          <h1 className="text-2xl font-bold text-white">{t('title')}</h1>
         </div>
 
         {/* 礼物图片容器 - 紧贴返佣统计卡片上方 */}
@@ -318,7 +320,7 @@ const Referral = () => {
           className="w-full bg-foreground text-background hover:bg-foreground/90 font-bold text-base py-6 rounded-full"
           onClick={() => setIsShareDialogOpen(true)}
         >
-          Refer
+          {t('refer')}
         </Button>
       </div>
 

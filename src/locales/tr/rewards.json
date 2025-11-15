@@ -1,0 +1,18 @@
+{
+  "title": "Ödüller",
+  "cumulativeRewardsUSDC": "Toplam Ödüller USDC",
+  "currentClaimableUSDC": "Şu An Talep Edilebilir USDC",
+  "claim": "Talep Et",
+  "rewardDetails": "Ödül Detayları",
+  "claimRecords": "Talep Kayıtları",
+  "viewRules": "Kuralları Görüntüle",
+  "claimable": "Talep Edilebilir",
+  "claimed": "Talep Edildi",
+  "noClaimRecords": "Henüz talep kaydı yok",
+  "rewardRules": "Ödül Kuralları",
+  "rule1": "Piyasa oluşturucular, işlem hacminin bir yüzdesini ödül olarak alacaktır",
+  "rule2": "Piyasa yapıcılar likidite sağlayarak ödül kazanır",
+  "rule3": "Ödüller USDC olarak dağıtılır ve istendiğinde talep edilebilir",
+  "rule4": "Talep edilen ödüller talep kayıtlarında görüntülenecektir"
+}
+

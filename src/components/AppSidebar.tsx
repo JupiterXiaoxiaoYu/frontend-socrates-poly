@@ -2,6 +2,7 @@ import { Bookmark } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { formatCompactNumber } from "../lib/formatters";
 import { useState, useMemo, useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { useMarket, useSound } from "../contexts";
 import {
   calculateProbabilities,
@@ -19,6 +20,7 @@ interface DisplayMarket {
 }
 
 export function AppSidebar() {
+  const { t } = useTranslation('market');
   const { markets, marketPrices } = useMarket();
   const { playNewMarketSound } = useSound();
   const [selectedDuration, setSelectedDuration] = useState("all");
@@ -87,18 +89,18 @@ export function AppSidebar() {
       {/* Fixed Header */}
       <div className="px-4 py-3 border-b border-border">
         <div className="flex items-center justify-between mb-3">
-          <span className="text-xs font-semibold text-muted-foreground">Market</span>
+          <span className="text-xs font-semibold text-muted-foreground">{t('market')}</span>
           <div className="flex items-center gap-2 text-xs">
             <button className="px-3 py-1 rounded bg-foreground text-primary-foreground hover:bg-foreground/90 transition-colors">
-              Trending
+              {t('trending')}
             </button>
-            <button className="text-muted-foreground hover:text-foreground transition-colors">Favorites</button>
+            <button className="text-muted-foreground hover:text-foreground transition-colors">{t('favorites')}</button>
           </div>
         </div>
 
         {/* Duration Tabs */}
         <div className="flex flex-col gap-2">
-          <span className="text-xs text-muted-foreground">Duration</span>
+          <span className="text-xs text-muted-foreground">{t('duration')}</span>
           <div className="grid grid-cols-4 gap-1 p-1 bg-muted/30 rounded-md">
             <button
               onClick={() => setSelectedDuration("all")}
@@ -108,7 +110,7 @@ export function AppSidebar() {
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
               }`}
             >
-              All
+              {t('all')}
             </button>
             <button
               onClick={() => setSelectedDuration("1")}
@@ -148,7 +150,7 @@ export function AppSidebar() {
       <div className="h-[calc(100vh-200px)] overflow-y-auto p-2" style={{ maxHeight: "calc(100vh - 200px)" }}>
         {filteredMarkets.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground text-xs">
-            <p>No markets found</p>
+            <p>{t('noMarketsFoundSidebar')}</p>
           </div>
         ) : (
           <div className="space-y-2">
@@ -166,8 +168,8 @@ export function AppSidebar() {
                   <h3 className="text-xs font-medium text-foreground line-clamp-2">{market.title}</h3>
 
                   <div className="flex justify-between text-xs">
-                    <span className="text-success font-semibold">{market.yesChance}% Yes</span>
-                    <span className="text-danger font-semibold">No {100 - market.yesChance}%</span>
+                    <span className="text-success font-semibold">{market.yesChance}% {t('yes')}</span>
+                    <span className="text-danger font-semibold">{t('no')} {100 - market.yesChance}%</span>
                   </div>
 
                   <div className="h-1 bg-muted rounded-full overflow-hidden flex">
@@ -176,7 +178,7 @@ export function AppSidebar() {
                   </div>
 
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">Vol. ${formatCompactNumber(market.volume)}</span>
+                    <span className="text-xs text-muted-foreground">{t('volume')} ${formatCompactNumber(market.volume)}</span>
                     <Bookmark className="w-3 h-3 text-muted-foreground" />
                   </div>
                 </div>

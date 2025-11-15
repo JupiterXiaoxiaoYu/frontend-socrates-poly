@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatCountdown, formatCountdownVerbose } from '@/lib/formatters';
@@ -24,6 +25,7 @@ const CountdownTimer = ({
   onExpire,
   className,
 }: CountdownTimerProps) => {
+  const { t } = useTranslation('market');
   // 计算初始剩余时间
   const calculateInitialTime = (): number => {
     if (targetTimestamp) {
@@ -69,7 +71,7 @@ const CountdownTimer = ({
   if (timeRemaining < 0) {
     return (
       <span className={cn('text-muted-foreground', className)}>
-        Awaiting Resolution
+        {t('awaitingResolution')}
       </span>
     );
   }

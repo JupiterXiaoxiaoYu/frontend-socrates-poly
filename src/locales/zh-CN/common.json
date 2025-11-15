@@ -1,0 +1,33 @@
+{
+  "nav": {
+    "market": "市场",
+    "portfolio": "投资组合",
+    "wallet": "钱包",
+    "rewards": "奖励",
+    "referral": "推荐",
+    "settings": "设置",
+    "language": "语言",
+    "appearance": "外观"
+  },
+  "button": {
+    "connect": "连接",
+    "back": "返回",
+    "close": "关闭",
+    "cancel": "取消",
+    "confirm": "确认",
+    "copy": "复制",
+    "share": "分享",
+    "viewAll": "查看全部",
+    "viewRecords": "查看记录"
+  },
+  "theme": {
+    "light": "浅色",
+    "dark": "深色"
+  },
+  "notFound": {
+    "title": "404",
+    "message": "糟糕！页面未找到",
+    "returnHome": "返回首页"
+  }
+}
+

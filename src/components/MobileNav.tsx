@@ -4,7 +4,6 @@ import {
   Wallet, 
   Gift, 
   Settings, 
-  Globe, 
   Moon, 
   Sun, 
   Copy,
@@ -15,6 +14,8 @@ import {
 import { WalletButton } from "@/components/WalletButton";
 import { useTheme } from "next-themes";
 import { Switch } from "@/components/ui/switch";
+import { useTranslation } from "react-i18next";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 interface MobileNavProps {
   isOpen: boolean;
@@ -22,6 +23,7 @@ interface MobileNavProps {
 }
 
 const MobileNav = ({ isOpen, onClose }: MobileNavProps) => {
+  const { t } = useTranslation('common');
   const { theme, setTheme, resolvedTheme } = useTheme();
   const isDark = (theme ?? resolvedTheme) === "dark";
 
@@ -76,7 +78,7 @@ const MobileNav = ({ isOpen, onClose }: MobileNavProps) => {
               className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted/50 transition-colors"
             >
               <Store className="w-5 h-5" />
-              <span className="flex-1">Market</span>
+              <span className="flex-1">{t('nav.market')}</span>
               <ChevronRight className="w-5 h-5 text-muted-foreground" />
             </Link>
 
@@ -87,7 +89,7 @@ const MobileNav = ({ isOpen, onClose }: MobileNavProps) => {
               className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted/50 transition-colors"
             >
               <PieChart className="w-5 h-5" />
-              <span className="flex-1">Portfolio</span>
+              <span className="flex-1">{t('nav.portfolio')}</span>
               <ChevronRight className="w-5 h-5 text-muted-foreground" />
             </Link>
 
@@ -98,7 +100,7 @@ const MobileNav = ({ isOpen, onClose }: MobileNavProps) => {
               className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted/50 transition-colors"
             >
               <Wallet className="w-5 h-5" />
-              <span className="flex-1">Wallet</span>
+              <span className="flex-1">{t('nav.wallet')}</span>
               <ChevronRight className="w-5 h-5 text-muted-foreground" />
             </Link>
 
@@ -109,7 +111,7 @@ const MobileNav = ({ isOpen, onClose }: MobileNavProps) => {
               className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted/50 transition-colors"
             >
               <Award className="w-5 h-5" />
-              <span className="flex-1">Rewards</span>
+              <span className="flex-1">{t('nav.rewards')}</span>
               <ChevronRight className="w-5 h-5 text-muted-foreground" />
             </Link>
 
@@ -120,7 +122,7 @@ const MobileNav = ({ isOpen, onClose }: MobileNavProps) => {
               className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted/50 transition-colors"
             >
               <Gift className="w-5 h-5" />
-              <span className="flex-1">Referral</span>
+              <span className="flex-1">{t('nav.referral')}</span>
               <ChevronRight className="w-5 h-5 text-muted-foreground" />
             </Link>
 
@@ -130,23 +132,19 @@ const MobileNav = ({ isOpen, onClose }: MobileNavProps) => {
             {/* Settings */}
             <div className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-foreground cursor-pointer hover:bg-muted/50 transition-colors">
               <Settings className="w-5 h-5" />
-              <span className="flex-1">Settings</span>
+              <span className="flex-1">{t('nav.settings')}</span>
               <ChevronRight className="w-5 h-5 text-muted-foreground" />
             </div>
 
             {/* Language */}
-            <div className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-foreground">
-              <Globe className="w-5 h-5" />
-              <span className="flex-1">Language</span>
-              <span className="text-xs text-muted-foreground">English</span>
-            </div>
+            <LanguageSwitcher variant="mobile" />
 
             {/* Appearance */}
             <div className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-foreground">
               <div className="w-5 h-5 flex items-center justify-center">
                 {isDark ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
               </div>
-              <span className="flex-1">Appearance</span>
+              <span className="flex-1">{t('nav.appearance')}</span>
               <Switch
                 checked={isDark}
                 onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")}

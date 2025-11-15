@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Dialog,
   DialogContent,
@@ -22,6 +23,7 @@ interface DepositDialogProps {
 }
 
 export function DepositDialog({ open, onOpenChange, onConfirm, balance = 0, isLoading = false }: DepositDialogProps) {
+  const { t } = useTranslation('wallet');
   const [amount, setAmount] = useState("");
   const [error, setError] = useState("");
 
@@ -47,17 +49,17 @@ export function DepositDialog({ open, onOpenChange, onConfirm, balance = 0, isLo
     const numAmount = parseFloat(amount);
 
     if (!amount || isNaN(numAmount)) {
-      setError("Please enter a valid amount");
+      setError(t('pleaseEnterValidAmount'));
       return;
     }
 
     if (numAmount <= 0) {
-      setError("Amount must be greater than 0");
+      setError(t('amountMustBeGreaterThanZero'));
       return;
     }
 
     if (numAmount < 1) {
-      setError("Minimum deposit amount is 1 USDC");
+      setError(t('minDepositAmountError'));
       return;
     }
 
@@ -67,7 +69,7 @@ export function DepositDialog({ open, onOpenChange, onConfirm, balance = 0, isLo
       setError("");
       onOpenChange(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Deposit failed");
+      setError(err instanceof Error ? err.message : t('depositFailed'));
     }
   };
 
@@ -81,25 +83,25 @@ export function DepositDialog({ open, onOpenChange, onConfirm, balance = 0, isLo
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Deposit USDC</DialogTitle>
-          <DialogDescription>Deposit USDC to your trading account</DialogDescription>
+          <DialogTitle>{t('depositUSDC')}</DialogTitle>
+          <DialogDescription>{t('depositUSDCDesc')}</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6 py-4">
           {/* Balance Display */}
           <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
             <div>
-              <div className="text-sm text-muted-foreground">Current Balance</div>
+              <div className="text-sm text-muted-foreground">{t('currentBalance')}</div>
               <div className="text-2xl font-bold">{balance.toFixed(2)} USDC</div>
             </div>
             <div className="text-right">
-              <div className="text-xs text-muted-foreground">Available for Trading</div>
+              <div className="text-xs text-muted-foreground">{t('availableForTrading')}</div>
             </div>
           </div>
 
           {/* Amount Input */}
           <div className="space-y-2">
-            <Label htmlFor="amount">Deposit Amount</Label>
+            <Label htmlFor="amount">{t('depositAmount')}</Label>
             <div className="relative">
               <Input
                 id="amount"
@@ -124,7 +126,7 @@ export function DepositDialog({ open, onOpenChange, onConfirm, balance = 0, isLo
 
           {/* Quick Amount */}
           <div className="space-y-2">
-            <Label>Quick Amount</Label>
+            <Label>{t('quickAmount')}</Label>
             <div className="grid grid-cols-4 gap-2">
               {[10, 50, 100, 500].map((value) => (
                 <Button
@@ -146,9 +148,9 @@ export function DepositDialog({ open, onOpenChange, onConfirm, balance = 0, isLo
             <Info className="h-4 w-4" />
             <AlertDescription className="text-xs">
               <ul className="list-disc list-inside space-y-1">
-                <li>Minimum deposit amount: 1 USDC</li>
-                <li>Funds will be available immediately after deposit</li>
-                <li>Transaction requires signature confirmation</li>
+                <li>{t('minDepositAmount')}</li>
+                <li>{t('fundsAvailableImmediately')}</li>
+                <li>{t('transactionRequiresSignature')}</li>
               </ul>
             </AlertDescription>
           </Alert>
@@ -156,10 +158,10 @@ export function DepositDialog({ open, onOpenChange, onConfirm, balance = 0, isLo
 
         <DialogFooter>
           <Button variant="outline" onClick={handleClose} disabled={isLoading}>
-            Cancel
+            {t('cancel')}
           </Button>
           <Button onClick={handleConfirm} disabled={isLoading || !amount} className="min-w-[100px]">
-            {isLoading ? "Processing..." : "Confirm Deposit"}
+            {isLoading ? t('processing') : t('confirmDeposit')}
           </Button>
         </DialogFooter>
       </DialogContent>

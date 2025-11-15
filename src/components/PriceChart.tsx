@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { createChart, LineStyle, ColorType, AreaSeries as AreaSeriesType, Time } from "lightweight-charts";
 import { useTheme } from "next-themes";
 import { Card } from "@/components/ui/card";
@@ -12,6 +13,7 @@ interface PriceChartProps {
 }
 
 const PriceChart = ({ targetPrice, currentPrice, onPriceUpdate }: PriceChartProps) => {
+  const { t } = useTranslation('market');
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const [latestPrice, setLatestPrice] = useState<number | null>(currentPrice || null);
   const { resolvedTheme } = useTheme();
@@ -288,10 +290,10 @@ const PriceChart = ({ targetPrice, currentPrice, onPriceUpdate }: PriceChartProp
     <Card className="p-4 border border-border bg-card h-full flex flex-col">
       <div className="mb-3 flex items-center justify-between flex-shrink-0">
         <div>
-          <div className="text-xs text-muted-foreground mb-1">Current Price</div>
+          <div className="text-xs text-muted-foreground mb-1">{t('currentPrice')}</div>
           <div className="text-xl font-bold text-foreground">
             {isLoading ? (
-              <span className="text-muted-foreground">Loading...</span>
+              <span className="text-muted-foreground">{t('loading')}</span>
             ) : latestPrice ? (
               `$${latestPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
             ) : (
@@ -303,7 +305,7 @@ const PriceChart = ({ targetPrice, currentPrice, onPriceUpdate }: PriceChartProp
           </div>
         </div>
         <div className="text-right">
-          <div className="text-xs font-semibold text-blue-600 mb-1">Price to Beat</div>
+          <div className="text-xs font-semibold text-blue-600 mb-1">{t('priceToBeat')}</div>
           <div className="text-lg font-bold text-blue-700">
             ${targetPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>

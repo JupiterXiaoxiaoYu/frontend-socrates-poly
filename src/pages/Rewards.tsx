@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { HelpCircle } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface RewardItem {
   id: number;
@@ -42,32 +43,34 @@ const mockRewards: RewardItem[] = [
 ];
 
 const Rewards = () => {
+  const { t } = useTranslation('rewards');
+  
   return (
     <div className="min-h-screen bg-background">
       <Header />
 
       <main className="container mx-auto px-4 py-6 max-w-5xl">
-        <h1 className="text-2xl font-bold mb-6 text-foreground">Rewards</h1>
+        <h1 className="text-2xl font-bold mb-6 text-foreground">{t('title')}</h1>
 
         {/* Summary Card */}
         <Card className="p-6 border border-border mb-6">
           <div className="flex items-start justify-between gap-6 flex-wrap">
             <div className="flex-1 min-w-[200px]">
               <div className="flex items-center gap-2 mb-2">
-                <span className="text-sm text-muted-foreground">Cumulative Rewards USDC</span>
+                <span className="text-sm text-muted-foreground">{t('cumulativeRewardsUSDC')}</span>
                 <HelpCircle className="w-4 h-4 text-muted-foreground" />
               </div>
               <div className="text-3xl font-bold text-foreground">3,950.22</div>
             </div>
 
             <div className="flex-1 min-w-[200px]">
-              <div className="text-sm text-muted-foreground mb-2">Current Claimable USDC</div>
+              <div className="text-sm text-muted-foreground mb-2">{t('currentClaimableUSDC')}</div>
               <div className="text-3xl font-bold text-foreground">123.12</div>
             </div>
 
             <div className="flex items-center">
               <Button className="bg-foreground text-background hover:bg-foreground/90 px-12 h-12 text-base">
-                Claim
+                {t('claim')}
               </Button>
             </div>
           </div>
@@ -83,19 +86,19 @@ const Rewards = () => {
                     value="details"
                     className="border-b-2 border-transparent data-[state=active]:border-primary rounded-none bg-transparent px-4 py-3"
                   >
-                    Reward Details
+                    {t('rewardDetails')}
                   </TabsTrigger>
                   <TabsTrigger
                     value="records"
                     className="border-b-2 border-transparent data-[state=active]:border-primary rounded-none bg-transparent px-4 py-3"
                   >
-                    Claim Records
+                    {t('claimRecords')}
                   </TabsTrigger>
                   <TabsTrigger
                     value="rules"
                     className="border-b-2 border-transparent data-[state=active]:border-primary rounded-none bg-transparent px-4 py-3"
                   >
-                    View Rules
+                    {t('viewRules')}
                   </TabsTrigger>
                 </TabsList>
               </div>
@@ -119,10 +122,10 @@ const Rewards = () => {
                       <div className="flex-shrink-0">
                         {reward.status === "待领取" ? (
                           <Button variant="link" className="text-foreground h-auto p-0 text-sm">
-                            Claimable
+                            {t('claimable')}
                           </Button>
                         ) : (
-                          <span className="text-sm text-muted-foreground">Claimed</span>
+                          <span className="text-sm text-muted-foreground">{t('claimed')}</span>
                         )}
                       </div>
                     </div>
@@ -132,16 +135,16 @@ const Rewards = () => {
             </TabsContent>
 
             <TabsContent value="records" className="p-8">
-              <div className="text-center text-muted-foreground">No claim records yet</div>
+              <div className="text-center text-muted-foreground">{t('noClaimRecords')}</div>
             </TabsContent>
 
             <TabsContent value="rules" className="p-8">
               <div className="space-y-4 text-sm text-foreground">
-                <h3 className="font-semibold text-base">Reward Rules</h3>
-                <p>1. Market creators will receive a percentage of trading volume as rewards</p>
-                <p>2. Market makers earn rewards by providing liquidity</p>
-                <p>3. Rewards are distributed in USDC and can be claimed at any time</p>
-                <p>4. Claimed rewards will be displayed in the claim records</p>
+                <h3 className="font-semibold text-base">{t('rewardRules')}</h3>
+                <p>1. {t('rule1')}</p>
+                <p>2. {t('rule2')}</p>
+                <p>3. {t('rule3')}</p>
+                <p>4. {t('rule4')}</p>
               </div>
             </TabsContent>
           </Tabs>
