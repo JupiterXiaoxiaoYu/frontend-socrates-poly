@@ -26,7 +26,7 @@ const mockFeeRebateRecords: RebateRecord[] = [
     avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Jenny",
     timestamp: "2025/12/12 12:23:12",
     amount: "9.12",
-    currency: "USDT",
+    currency: "USDC",
     ratio: "56%",
   },
   {
@@ -35,7 +35,7 @@ const mockFeeRebateRecords: RebateRecord[] = [
     avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Jenny2",
     timestamp: "2025/12/12 12:23:12",
     amount: "10.12",
-    currency: "USDT",
+    currency: "USDC",
     ratio: "56%",
   },
   {
@@ -44,7 +44,7 @@ const mockFeeRebateRecords: RebateRecord[] = [
     avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Wilson",
     timestamp: "2025/12/12 12:23:12",
     amount: "10.12",
-    currency: "USDT",
+    currency: "USDC",
     ratio: "56%",
   },
   {
@@ -53,7 +53,7 @@ const mockFeeRebateRecords: RebateRecord[] = [
     avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Wilson2",
     timestamp: "2025/12/12 12:23:12",
     amount: "10.12",
-    currency: "USDT",
+    currency: "USDC",
     ratio: "56%",
   },
   {
@@ -62,7 +62,7 @@ const mockFeeRebateRecords: RebateRecord[] = [
     avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Wilson3",
     timestamp: "2025/12/12 12:23:12",
     amount: "10.12",
-    currency: "USDT",
+    currency: "USDC",
     ratio: "8%",
   },
 ];
@@ -179,7 +179,7 @@ const Referral = () => {
     if (amount < minAmount) {
       toast({
         title: t('cannotClaim'),
-        description: `${t('claimableOnce')} ${minAmount} ${type === "fee" ? "USDT" : "SOC"}`,
+        description: `${t('claimableOnce')} ${minAmount} ${type === "fee" ? "USDC" : "SOC"}`,
         variant: "destructive",
       });
       return;

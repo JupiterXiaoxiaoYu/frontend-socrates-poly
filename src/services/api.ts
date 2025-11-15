@@ -294,7 +294,7 @@ export class ExchangeAPI {
       direction: "YES" | "NO";
       type: "LIMIT" | "MARKET";
       price?: string; // decimal between 0 and 1 for LIMIT
-      amount: string; // shares as decimal
+      amount: string; // shares as decimal (will be sent as-is to gateway)
     },
     userId: string
   ): Promise<any> {
@@ -312,11 +312,16 @@ export class ExchangeAPI {
       idempotencyKey = `${idempotencyKey}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
     }
 
+    // Note: Gateway expects:
+    // - price: decimal string "0.5" for 50% (0-1 range)
+    // - amount: decimal string "10" for 10 shares (NOT USDC amount)
+    // - direction: "YES" or "NO" (backend validation requires this field)
+    // The caller (MarketContext) should convert from internal precision to decimal strings
     const body = {
       client_order_id: clientOrderId,
       market_id: params.marketId,
       side: params.side,
-      direction: params.direction,
+      direction: params.direction, // Backend requires "direction" field
       type: params.type,
       price: params.price ?? "",
       amount: params.amount,
@@ -338,18 +343,172 @@ export class ExchangeAPI {
     return json;
   }
 
+  // ========== 订单簿相关 ==========
+
+  /**
+   * 获取市场订单簿深度（同时返回 YES 和 NO 两个子市场）
+   * @param marketId 市场ID（不带 -YES/-NO 后缀）
+   * @param levels 深度层数
+   * @returns 包含 YES 和 NO 两个子市场的订单簿数据
+   */
+  async getOrderBookDepth(
+    marketId: string,
+    levels: number = 20
+  ): Promise<{
+    market_id: string;
+    levels: number;
+    yes: {
+      bids: Array<{ price: string; quantity: string }>;
+      asks: Array<{ price: string; quantity: string }>;
+      timestamp: number;
+    };
+    no: {
+      bids: Array<{ price: string; quantity: string }>;
+      asks: Array<{ price: string; quantity: string }>;
+      timestamp: number;
+    };
+  }> {
+    try {
+      const res = await fetch(
+        `${this.baseUrl}/v1/markets/${encodeURIComponent(marketId)}/depth?levels=${levels}`
+      );
+      
+      // If market doesn't exist or has no depth, return empty order book
+      if (!res.ok) {
+        console.warn(`Order book not available for market ${marketId}`);
+        return {
+          market_id: marketId,
+          levels: 0,
+          yes: { bids: [], asks: [], timestamp: Date.now() },
+          no: { bids: [], asks: [], timestamp: Date.now() },
+        };
+      }
+      
+      const json = await res.json();
+      
+      // Handle error response from gateway
+      if (json.code && json.code !== 0) {
+        console.warn(`Order book error for market ${marketId}:`, json.message);
+        return {
+          market_id: marketId,
+          levels: 0,
+          yes: { bids: [], asks: [], timestamp: Date.now() },
+          no: { bids: [], asks: [], timestamp: Date.now() },
+        };
+      }
+      
+      return {
+        market_id: json.market_id || marketId,
+        levels: json.levels || levels,
+        yes: {
+          bids: json.yes?.bids || [],
+          asks: json.yes?.asks || [],
+          timestamp: json.yes?.timestamp || Date.now(),
+        },
+        no: {
+          bids: json.no?.bids || [],
+          asks: json.no?.asks || [],
+          timestamp: json.no?.timestamp || Date.now(),
+        },
+      };
+    } catch (error) {
+      console.warn(`Failed to fetch order book for market ${marketId}:`, error);
+      return {
+        market_id: marketId,
+        levels: 0,
+        yes: { bids: [], asks: [], timestamp: Date.now() },
+        no: { bids: [], asks: [], timestamp: Date.now() },
+      };
+    }
+  }
+
+  async getTicker(
+    marketId: string,
+    direction: "YES" | "NO"
+  ): Promise<{
+    market_id: string;
+    best_bid: string;
+    best_ask: string;
+    spread: string;
+    mid_price: string;
+  }> {
+    const fullMarketId = `${marketId}-${direction}`;
+    const res = await fetch(`${this.baseUrl}/v1/markets/${encodeURIComponent(fullMarketId)}/ticker`);
+    if (!res.ok) {
+      throw new Error("Failed to fetch ticker");
+    }
+    const json = await res.json();
+    return {
+      market_id: json.market_id || fullMarketId,
+      best_bid: json.best_bid || "0",
+      best_ask: json.best_ask || "0",
+      spread: json.spread || "0",
+      mid_price: json.mid_price || "0",
+    };
+  }
+
   // ========== 订单相关 ==========
 
+  /**
+   * 获取用户订单列表
+   * @param userId 用户ID (格式: "pid1:pid2")
+   * @param params 查询参数
+   */
+  async getUserOrders(
+    userId: string,
+    params?: {
+      symbol?: string; // 市场过滤，格式: "marketId-YES" 或 "marketId-NO"
+      status?: "OPEN" | "FILLED" | "CANCELLED" | "PARTIALLY_FILLED";
+      limit?: number;
+      offset?: number;
+    }
+  ): Promise<Order[]> {
+    const queryParams = new URLSearchParams();
+    if (params?.symbol) queryParams.append("symbol", params.symbol);
+    if (params?.status) queryParams.append("status", params.status);
+    if (params?.limit) queryParams.append("limit", params.limit.toString());
+    if (params?.offset) queryParams.append("offset", params.offset.toString());
+
+    const queryString = queryParams.toString();
+    const url = `${this.baseUrl}/v1/orders${queryString ? `?${queryString}` : ""}`;
+
+    try {
+      const res = await fetch(url, {
+        headers: {
+          "X-User-ID": userId,
+        },
+      });
+
+      if (!res.ok) {
+        console.warn(`Failed to fetch orders for user ${userId}`);
+        return [];
+      }
+
+      const json = await res.json();
+      if (json.code !== 0 || !json.data?.orders) {
+        return [];
+      }
+
+      return json.data.orders;
+    } catch (error) {
+      console.warn("Failed to fetch user orders:", error);
+      return [];
+    }
+  }
+
+  /**
+   * 获取市场订单（兼容旧接口）
+   */
   async getOrders(marketId: string): Promise<Order[]> {
     void marketId;
-    // Not available yet via gateway per-market; return empty to avoid breaking UI
-    // TODO: add /v1/markets/:market_id/orders when backend supports it
+    // Gateway API doesn't support per-market order query
+    // Use getUserOrders instead
     return [];
   }
 
   // ========== 余额 ==========
 
-  async getBalance(userId: string, currency: string = "USDT"): Promise<{ available: string; frozen: string }> {
+  async getBalance(userId: string, currency: string = "USDC"): Promise<{ available: string; frozen: string }> {
     const res = await fetch(`${this.baseUrl}/v1/balance?currency=${encodeURIComponent(currency)}`, {
       headers: {
         "X-User-ID": userId,
@@ -381,11 +540,42 @@ export class ExchangeAPI {
 
   // ========== 持仓相关 ==========
 
+  /**
+   * 获取用户持仓
+   * @param userId 用户ID (格式: "pid1:pid2")
+   */
+  async getUserPositions(userId: string): Promise<any[]> {
+    try {
+      const res = await fetch(`${this.baseUrl}/v1/users/${encodeURIComponent(userId)}/positions`, {
+        headers: {
+          "X-User-ID": userId,
+        },
+      });
+
+      if (!res.ok) {
+        console.warn(`Failed to fetch positions for user ${userId}`);
+        return [];
+      }
+
+      const json = await res.json();
+      if (json.code !== 0 || !json.data?.positions) {
+        return [];
+      }
+
+      return json.data.positions;
+    } catch (error) {
+      console.warn("Failed to fetch user positions:", error);
+      return [];
+    }
+  }
+
+  /**
+   * 获取持仓（兼容旧接口）
+   */
   async getPositions(_pid: PlayerId): Promise<Position[]> {
-    // Gateway expects user_id, not pid. Frontend needs a user_id source to call:
-    //   GET /v1/users/:user_id/positions
-    // Mark as unsupported until user_id wiring is decided.
-    throw new Error("Positions endpoint requires user_id via gateway; PID is not supported.");
+    // Use getUserPositions with userId instead
+    console.warn("getPositions(pid) is deprecated, use getUserPositions(userId) instead");
+    return [];
   }
 
   // 查询玩家订单

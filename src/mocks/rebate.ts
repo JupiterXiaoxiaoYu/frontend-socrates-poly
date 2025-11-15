@@ -10,7 +10,7 @@ export interface MockRebateListItem {
   userName: string;
   timestamp: string; // ISO or formatted string
   amount: string; // 格式化后的字符串，如 "12.345678"
-  currency: "USDT" | "SOC";
+  currency: "USDC" | "SOC";
   ratio: string; // 如 "36%"
   status: MockRebateStatus;
   tierLevel?: number | null; // 1 or 2
@@ -72,7 +72,7 @@ export function getMockFeeList(count = 10): MockRebateListItem[] {
       userName: `User_${2100 + i}`,
       timestamp: nowOffset(i * 11 + 5),
       amount,
-      currency: "USDT",
+      currency: "USDC",
       ratio,
       status: i % 3 === 0 ? "claimed" : "pending",
       tierLevel: tier,

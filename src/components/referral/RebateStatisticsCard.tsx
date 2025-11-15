@@ -11,7 +11,7 @@ const RebateStatisticsCard = () => {
         <div className="flex-1 text-center">
           <div className="flex items-baseline justify-center gap-1 mb-3">
             <span className="text-3xl font-bold text-foreground">220.32</span>
-            <span className="text-sm font-bold text-muted-foreground">USDT</span>
+            <span className="text-sm font-bold text-muted-foreground">USDC</span>
           </div>
           <p className="text-sm text-muted-foreground">{t('feeRebate')}</p>
         </div>

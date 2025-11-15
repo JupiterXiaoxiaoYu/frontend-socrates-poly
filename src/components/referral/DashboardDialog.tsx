@@ -58,15 +58,15 @@ const DashboardDialog = ({ open, onOpenChange }: DashboardDialogProps) => {
             <div className="space-y-3">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">{t('directReferrals')}</span>
-                <span className="font-bold text-foreground">22 USDT</span>
+                <span className="font-bold text-foreground">22 USDC</span>
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">{t('indirectReferrals')}</span>
-                <span className="font-bold text-foreground">220 USDT</span>
+                <span className="font-bold text-foreground">220 USDC</span>
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">{t('totalReferrals')}</span>
-                <span className="font-bold text-foreground">242 USDT</span>
+                <span className="font-bold text-foreground">242 USDC</span>
               </div>
             </div>
           </Card>
@@ -77,11 +77,11 @@ const DashboardDialog = ({ open, onOpenChange }: DashboardDialogProps) => {
             <div className="space-y-3">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">{t('directReferrals')}</span>
-                <span className="font-bold text-foreground">22 USDT</span>
+                <span className="font-bold text-foreground">22 USDC</span>
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">{t('indirectReferrals')}</span>
-                <span className="font-bold text-foreground">220 USDT</span>
+                <span className="font-bold text-foreground">220 USDC</span>
               </div>
             </div>
           </Card>

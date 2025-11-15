@@ -19,7 +19,7 @@ const ClaimableCard = ({ onClaim, className = "" }: ClaimableCardProps) => {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="text-sm text-muted-foreground">{t('feeRebate')}</span>
-              <span className="text-base font-bold text-foreground">220.32 USDT</span>
+              <span className="text-base font-bold text-foreground">220.32 USDC</span>
             </div>
             <Button
               size="sm"

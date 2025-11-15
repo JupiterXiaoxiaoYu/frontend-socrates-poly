@@ -89,16 +89,17 @@ const TradingPanel = ({
   const { playerId, apiClient } = useMarket();
   const [availableBalance, setAvailableBalance] = useState<number | null>(null);
 
-  // Load USDT balance from gateway, fallback to prop if unavailable
+  // Load USDC balance from gateway, fallback to prop if unavailable
   useEffect(() => {
     if (!playerId || !apiClient) return;
     const uid = `${playerId[0]}:${playerId[1]}`;
     let cancelled = false;
     const load = async () => {
       try {
-        const b = await apiClient.getBalance(uid, "USDT");
+        const b = await apiClient.getBalance(uid, "USDC");
         if (cancelled) return;
-        setAvailableBalance(fromUSDCPrecision(b.available));
+        // Gateway API now returns actual amount (not 2-decimal precision)
+        setAvailableBalance(parseFloat(b.available));
       } catch (_e) {
         // ignore and keep fallback balance
       }
