@@ -9,23 +9,27 @@ import React, { useRef, useEffect, useState, useCallback } from "react";
 import { useTheme } from "next-themes";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import {
   LineChart as ChartIcon,
   RefreshCw,
-  Settings,
-  Maximize2,
   TrendingUp,
   TrendingDown,
-  Activity,
 } from "lucide-react";
 import { useOraclePrice } from "@/hooks/useOraclePrice";
 
 // TradingView Lightweight Charts - 需要安装: npm install lightweight-charts
-import { createChart, IChartApi, ISeriesApi, Time, CrosshairMode, ColorType } from "lightweight-charts";
+import { 
+  createChart, 
+  IChartApi, 
+  ISeriesApi, 
+  Time, 
+  CrosshairMode, 
+  ColorType,
+  LineStyle,
+  LineType,
+  LastPriceAnimationMode,
+} from "lightweight-charts";
 
 interface ChartDataPoint {
   time: Time;
@@ -41,7 +45,6 @@ interface TradingViewChartProps {
   enableWebSocket?: boolean;
   height?: number;
   showVolume?: boolean;
-  showTechnicalIndicators?: boolean;
   autoUpdate?: boolean;
   className?: string;
 }
@@ -51,15 +54,13 @@ export const TradingViewChart: React.FC<TradingViewChartProps> = ({
   enableWebSocket = true,
   height = 500,
   showVolume = true,
-  showTechnicalIndicators = true,
   autoUpdate = true,
   className = "",
 }) => {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
-  const candlestickSeriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
+  const candlestickSeriesRef = useRef<ISeriesApi<"Line"> | null>(null);
   const volumeSeriesRef = useRef<ISeriesApi<"Histogram"> | null>(null);
-  const maSeriesRef = useRef<ISeriesApi<"Line">[]>([]);
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
 
@@ -69,14 +70,10 @@ export const TradingViewChart: React.FC<TradingViewChartProps> = ({
     autoConnect: true,
   });
 
-  const [chartType, setChartType] = useState<"candlestick" | "line" | "area">("candlestick");
-  const [timeframe, setTimeframe] = useState<"1" | "5" | "15" | "60" | "1D">("1");
-  const [showSettings, setShowSettings] = useState(false);
-  const [isFullscreen, setIsFullscreen] = useState(false);
   const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
-  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
-  const [isAutoUpdate, setIsAutoUpdate] = useState(autoUpdate);
-  const [isShowVolume, setIsShowVolume] = useState(showVolume);
+  const isInitializedRef = useRef(false);
+  const lastPriceRef = useRef<number | null>(null);
+  const lastTimeRef = useRef<number | null>(null);
 
   // 将Oracle价格数据转换为图表数据格式
   const convertToChartData = useCallback(
@@ -98,7 +95,7 @@ export const TradingViewChart: React.FC<TradingViewChartProps> = ({
         });
       } else {
         // 处理历史数据
-        priceHistory.forEach((item, index) => {
+        priceHistory.forEach((item) => {
           const price = parseFloat(item.price);
           const time = item.unix_time as Time;
 
@@ -140,11 +137,27 @@ export const TradingViewChart: React.FC<TradingViewChartProps> = ({
       },
       rightPriceScale: {
         borderColor: isDark ? "rgba(80, 80, 80, 1)" : "rgba(197, 203, 209, 1)",
+        autoScale: true,
+        scaleMargins: {
+          top: 0.2,
+          bottom: 0.2,
+        },
+        visible: true,
+        alignLabels: true,
+        borderVisible: true,
       },
       timeScale: {
         borderColor: isDark ? "rgba(80, 80, 80, 1)" : "rgba(197, 203, 209, 1)",
         timeVisible: true,
         secondsVisible: false,
+        rightOffset: 12,
+        barSpacing: 6,
+        fixLeftEdge: false,
+        fixRightEdge: false,
+        lockVisibleTimeRangeOnResize: true,
+        rightBarStaysOnScroll: true,
+        borderVisible: true,
+        visible: true,
       },
       localization: {
         locale: "en-US",
@@ -169,18 +182,33 @@ export const TradingViewChart: React.FC<TradingViewChartProps> = ({
       },
     });
 
-    // 添加价格线系列
-    const candlestickSeries = (chart as any).addCandlestickSeries({
-      upColor: "#26a69a",
-      downColor: "#ef5350",
-      borderVisible: false,
-      wickUpColor: "#26a69a",
-      wickDownColor: "#ef5350",
+    // 固定使用线图 - 平滑曲线（按照 lightweight-charts 示例）
+    const candlestickSeries = (chart as any).addLineSeries({
+      color: isDark ? "rgba(255, 193, 7, 1)" : "rgba(255, 193, 7, 1)",
+      lineWidth: 3,
+      lineType: LineType.Curved, // 平滑曲线
+      lineStyle: LineStyle.Solid,
+      lastPriceAnimation: LastPriceAnimationMode.OnDataUpdate, // 关键：启用价格动画
+      priceLineVisible: true,
+      priceLineWidth: 2,
+      priceLineColor: isDark ? "#2196F3" : "#2196F3",
+      priceLineStyle: LineStyle.Dashed,
+      lastValueVisible: true,
+      priceFormat: {
+        type: "price",
+        precision: 2,
+        minMove: 0.01,
+      },
+      crosshairMarkerVisible: true,
+      crosshairMarkerRadius: 6,
+      crosshairMarkerBorderWidth: 2,
+      crosshairMarkerBorderColor: isDark ? "#FFC107" : "#FFC107",
+      crosshairMarkerBackgroundColor: isDark ? "#FFC107" : "#FFC107",
     });
 
     // 添加成交量系列
     let volumeSeries: ISeriesApi<"Histogram"> | null = null;
-    if (isShowVolume) {
+    if (showVolume) {
       volumeSeries = (chart as any).addHistogramSeries({
         color: "rgba(76, 175, 80, 0.5)",
         priceFormat: {
@@ -197,6 +225,9 @@ export const TradingViewChart: React.FC<TradingViewChartProps> = ({
     chartRef.current = chart;
     candlestickSeriesRef.current = candlestickSeries;
     volumeSeriesRef.current = volumeSeries;
+    
+    // 重置初始化标志，允许重新加载数据
+    isInitializedRef.current = false;
 
     // 响应式处理
     const handleResize = () => {
@@ -213,7 +244,7 @@ export const TradingViewChart: React.FC<TradingViewChartProps> = ({
       window.removeEventListener("resize", handleResize);
       chart.remove();
     };
-  }, [height, isShowVolume]);
+  }, [height, showVolume, isDark]);
 
   // 主题变化时平滑更新图表样式
   useEffect(() => {
@@ -236,18 +267,26 @@ export const TradingViewChart: React.FC<TradingViewChartProps> = ({
     });
   }, [isDark]);
 
-  // 更新图表数据
+  // 初始化图表数据（只在初始化时使用 setData）
   useEffect(() => {
-    if (!candlestickSeriesRef.current) return;
+    if (!candlestickSeriesRef.current || isInitializedRef.current) return;
+    if (!priceHistory || priceHistory.length === 0) return;
 
     const newChartData = convertToChartData(priceHistory);
-    setChartData(newChartData);
-
+    
     if (newChartData.length > 0) {
-      candlestickSeriesRef.current.setData(newChartData);
+      // 转换为 LineSeries 格式 { time, value }
+      const lineData = newChartData.map((item) => ({
+        time: item.time,
+        value: item.close,
+      }));
+      
+      candlestickSeriesRef.current.setData(lineData);
+      setChartData(newChartData);
+      isInitializedRef.current = true;
 
-      // 更新成交量数据
-      if (volumeSeriesRef.current && isShowVolume) {
+      // 初始化成交量数据
+      if (volumeSeriesRef.current && showVolume) {
         const volumeData = newChartData.map((item) => ({
           time: item.time,
           value: item.volume || 0,
@@ -255,106 +294,62 @@ export const TradingViewChart: React.FC<TradingViewChartProps> = ({
         }));
         volumeSeriesRef.current.setData(volumeData);
       }
-
-      setLastUpdate(new Date());
     }
-  }, [priceHistory, currentPrice, convertToChartData, isShowVolume]);
+  }, [priceHistory, convertToChartData, showVolume]);
 
-  // 实时价格更新
+  // 实时价格更新（插值实现平滑动画）
   useEffect(() => {
-    if (!isAutoUpdate || !candlestickSeriesRef.current || !currentPrice) return;
+    if (!autoUpdate || !candlestickSeriesRef.current || !currentPrice || !isInitializedRef.current) return;
 
-    const price = parseFloat(currentPrice.price);
-    const time = Math.floor(Date.now() / 1000) as Time;
+    const targetPrice = parseFloat(currentPrice.price);
+    const currentTime = Date.now();
+    const time = Math.floor(currentTime / 1000) as Time;
 
-    // 更新最后一个数据点或添加新数据点
-    const lastDataPoint = chartData[chartData.length - 1];
-    if (lastDataPoint && Math.abs(Number(lastDataPoint.time) - Number(time)) < 60) {
-      // 更新当前时间段的数据
-      const updatedPoint = {
-        ...lastDataPoint,
-        close: price,
-        high: Math.max(lastDataPoint.high, price),
-        low: Math.min(lastDataPoint.low, price),
-      };
-
-      candlestickSeriesRef.current.update(updatedPoint);
-      setChartData((prev) => [...prev.slice(0, -1), updatedPoint]);
-    } else {
-      // 添加新的数据点
-      const newPoint: ChartDataPoint = {
-        time,
-        open: price,
-        high: price,
-        low: price,
-        close: price,
-        volume: 500000 + Math.random() * 1000000,
-      };
-
-      candlestickSeriesRef.current.update(newPoint);
-      setChartData((prev) => [...prev, newPoint]);
+    // 如果是第一次更新，直接设置
+    if (lastPriceRef.current === null || lastTimeRef.current === null) {
+      lastPriceRef.current = targetPrice;
+      lastTimeRef.current = currentTime;
+      candlestickSeriesRef.current.update({ time, value: targetPrice });
+      return;
     }
 
-    setLastUpdate(new Date());
-  }, [currentPrice, isAutoUpdate, chartData]);
+    // 计算插值步数（在1秒内插入1000个点实现超平滑）
+    const startPrice = lastPriceRef.current;
+    const priceDiff = targetPrice - startPrice;
+    const steps = 100000; // 1000个插值点
+    const stepDuration = 0.01; // 每0.1ms一个点，总共1秒
+    let currentStep = 0;
 
-  // 切换图表类型
-  const changeChartType = (type: "candlestick" | "line" | "area") => {
-    if (!chartRef.current || !candlestickSeriesRef.current) return;
+    const intervalId = setInterval(() => {
+      if (!candlestickSeriesRef.current) {
+        clearInterval(intervalId);
+        return;
+      }
 
-    // 移除当前系列
-    chartRef.current.removeSeries(candlestickSeriesRef.current);
+      currentStep++;
+      const progress = currentStep / steps;
+      
+      // 使用 easeOutQuad 缓动
+      const easeProgress = 1 - (1 - progress) * (1 - progress);
+      const interpolatedPrice = startPrice + priceDiff * easeProgress;
+      
+      // 插值时间点
+      const interpolatedTime = Math.floor((Date.now()) / 1000) as Time;
 
-    // 添加新类型的系列
-    let newSeries: ISeriesApi<any>;
+      candlestickSeriesRef.current.update({
+        time: interpolatedTime,
+        value: interpolatedPrice,
+      });
 
-    switch (type) {
-      case "line":
-        newSeries = (chartRef.current as any).addLineSeries({
-          color: "#2196f3",
-          lineWidth: 2,
-        });
-        break;
-      case "area":
-        newSeries = (chartRef.current as any).addAreaSeries({
-          topColor: "rgba(33, 150, 243, 0.56)",
-          bottomColor: "rgba(33, 150, 243, 0.04)",
-          lineColor: "rgba(33, 150, 243, 1)",
-          lineWidth: 2,
-        });
-        break;
-      default:
-        newSeries = (chartRef.current as any).addCandlestickSeries({
-          upColor: "#26a69a",
-          downColor: "#ef5350",
-          borderVisible: false,
-          wickUpColor: "#26a69a",
-          wickDownColor: "#ef5350",
-        });
-    }
+      if (currentStep >= steps) {
+        clearInterval(intervalId);
+        lastPriceRef.current = targetPrice;
+        lastTimeRef.current = Date.now();
+      }
+    }, stepDuration);
 
-    candlestickSeriesRef.current = newSeries as ISeriesApi<"Candlestick">;
-
-    // 重新设置数据
-    if (chartData.length > 0) {
-      candlestickSeriesRef.current.setData(chartData);
-    }
-
-    setChartType(type);
-  };
-
-  // 全屏切换
-  const toggleFullscreen = () => {
-    setIsFullscreen(!isFullscreen);
-    if (chartRef.current && chartContainerRef.current) {
-      setTimeout(() => {
-        chartRef.current?.applyOptions({
-          width: chartContainerRef.current?.clientWidth,
-          height: isFullscreen ? height || 500 : Math.max(0, window.innerHeight - 100),
-        });
-      }, 100);
-    }
-  };
+    return () => clearInterval(intervalId);
+  }, [currentPrice, autoUpdate]);
 
   // 刷新数据
   const handleRefresh = async () => {
@@ -380,11 +375,11 @@ export const TradingViewChart: React.FC<TradingViewChartProps> = ({
 
   return (
     <Card className={className}>
-      <CardHeader>
+      <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <ChartIcon className="h-5 w-5" />
-            <CardTitle className="text-lg">{symbol} Chart</CardTitle>
+            <CardTitle className="text-lg">{symbol}</CardTitle>
             {getConnectionBadge()}
             {currentPrice && (
               <div className="flex items-center gap-2">
@@ -396,79 +391,18 @@ export const TradingViewChart: React.FC<TradingViewChartProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => setShowSettings(!showSettings)}>
-              <Settings className="h-4 w-4 mr-2" />
-              Settings
-            </Button>
-
-            <Button variant="outline" size="sm" onClick={toggleFullscreen}>
-              <Maximize2 className="h-4 w-4 mr-2" />
-              {isFullscreen ? "Exit" : "Fullscreen"}
-            </Button>
-
             <Button variant="outline" size="sm" onClick={handleRefresh} disabled={loading}>
-              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
-              Refresh
+              <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
             </Button>
           </div>
         </div>
-
-        {/* 设置面板 */}
-        {showSettings && (
-          <div className="flex items-center gap-6 pt-3 border-t">
-            <div className="flex items-center gap-2">
-              <Label htmlFor="chart-type">Chart Type:</Label>
-              <Select value={chartType} onValueChange={(value: any) => changeChartType(value)}>
-                <SelectTrigger className="w-32">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="candlestick">Candlestick</SelectItem>
-                  <SelectItem value="line">Line</SelectItem>
-                  <SelectItem value="area">Area</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Label htmlFor="timeframe">Timeframe:</Label>
-              <Select value={timeframe} onValueChange={(value: any) => setTimeframe(value)}>
-                <SelectTrigger className="w-24">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1">1m</SelectItem>
-                  <SelectItem value="5">5m</SelectItem>
-                  <SelectItem value="15">15m</SelectItem>
-                  <SelectItem value="60">1H</SelectItem>
-                  <SelectItem value="1D">1D</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Label htmlFor="auto-update">Auto Update:</Label>
-              <Switch id="auto-update" checked={isAutoUpdate} onCheckedChange={setIsAutoUpdate} />
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Label htmlFor="show-volume">Volume:</Label>
-              <Switch id="show-volume" checked={isShowVolume} onCheckedChange={setIsShowVolume} />
-            </div>
-
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Activity className="h-4 w-4" />
-              Last update: {lastUpdate?.toLocaleTimeString() || "Never"}
-            </div>
-          </div>
-        )}
       </CardHeader>
 
       <CardContent className="p-0">
         <div
           ref={chartContainerRef}
-          className={isFullscreen ? "fixed inset-0 z-50 bg-background" : ""}
-          style={{ height: isFullscreen ? "calc(100vh - 100px)" : height }}
+          className="[&_a]:hidden"
+          style={{ height }}
         />
       </CardContent>
     </Card>

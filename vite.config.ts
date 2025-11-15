@@ -18,7 +18,7 @@ export default defineConfig({
       devOptions: {
         enabled: false,
       },
-      includeAssets: ["favicon.ico", "apple-touch-icon.png", "placeholder.svg"],
+      includeAssets: ["favicon.png", "apple-touch-icon.png", "placeholder.svg"],
       manifest: {
         name: "Socrates - BTC Prediction Markets",
         short_name: "Socrates",

@@ -23,11 +23,12 @@ const Header = () => {
             <Button variant="ghost" size="sm" className="md:hidden p-2" onClick={() => setIsMobileMenuOpen(true)}>
               <Menu className="w-5 h-5" />
             </Button>
-            <Link to="/" className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-gray-800 flex items-center justify-center">
-                <span className="text-lg font-bold">?</span>
-              </div>
-              <span className="text-xl font-bold">socrates</span>
+            <Link to="/" className="flex items-center">
+              <img 
+                src="/hori/Socrates Logo horizontal - white.svg" 
+                alt="Socrates" 
+                className="h-8 w-auto"
+              />
             </Link>
           </div>
 
