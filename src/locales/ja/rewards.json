@@ -1,0 +1,18 @@
+{
+  "title": "報酬",
+  "cumulativeRewardsUSDC": "累計報酬 USDC",
+  "currentClaimableUSDC": "現在請求可能な USDC",
+  "claim": "請求",
+  "rewardDetails": "報酬詳細",
+  "claimRecords": "請求記録",
+  "viewRules": "ルールを見る",
+  "claimable": "請求可能",
+  "claimed": "請求済み",
+  "noClaimRecords": "請求記録はまだありません",
+  "rewardRules": "報酬ルール",
+  "rule1": "マーケット作成者は取引量の一定割合を報酬として受け取ります",
+  "rule2": "マーケットメーカーは流動性を提供することで報酬を獲得します",
+  "rule3": "報酬は USDC で配布され、いつでも請求できます",
+  "rule4": "請求された報酬は請求記録に表示されます"
+}
+

@@ -1,0 +1,18 @@
+{
+  "title": "Phần Thưởng",
+  "cumulativeRewardsUSDC": "Phần Thưởng Tích Lũy USDC",
+  "currentClaimableUSDC": "USDC Có Thể Nhận Hiện Tại",
+  "claim": "Nhận",
+  "rewardDetails": "Chi Tiết Phần Thưởng",
+  "claimRecords": "Lịch Sử Nhận",
+  "viewRules": "Xem Quy Tắc",
+  "claimable": "Có Thể Nhận",
+  "claimed": "Đã Nhận",
+  "noClaimRecords": "Chưa có lịch sử nhận",
+  "rewardRules": "Quy Tắc Phần Thưởng",
+  "rule1": "Người tạo thị trường sẽ nhận được một phần trăm khối lượng giao dịch làm phần thưởng",
+  "rule2": "Người tạo thanh khoản kiếm phần thưởng bằng cách cung cấp thanh khoản",
+  "rule3": "Phần thưởng được phân phối bằng USDC và có thể nhận bất cứ lúc nào",
+  "rule4": "Phần thưởng đã nhận sẽ được hiển thị trong lịch sử nhận"
+}
+

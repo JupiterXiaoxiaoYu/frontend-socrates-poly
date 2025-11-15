@@ -1,0 +1,18 @@
+{
+  "title": "Recompensas",
+  "cumulativeRewardsUSDC": "Recompensas Acumuladas USDC",
+  "currentClaimableUSDC": "USDC Reclamable Actual",
+  "claim": "Reclamar",
+  "rewardDetails": "Detalles de Recompensa",
+  "claimRecords": "Registros de Reclamación",
+  "viewRules": "Ver Reglas",
+  "claimable": "Reclamable",
+  "claimed": "Reclamado",
+  "noClaimRecords": "Aún no hay registros de reclamación",
+  "rewardRules": "Reglas de Recompensa",
+  "rule1": "Los creadores de mercado recibirán un porcentaje del volumen de trading como recompensa",
+  "rule2": "Los creadores de mercado ganan recompensas proporcionando liquidez",
+  "rule3": "Las recompensas se distribuyen en USDC y pueden reclamarse en cualquier momento",
+  "rule4": "Las recompensas reclamadas se mostrarán en los registros de reclamación"
+}
+

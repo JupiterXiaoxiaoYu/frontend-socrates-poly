@@ -1,0 +1,18 @@
+{
+  "title": "奖励",
+  "cumulativeRewardsUSDC": "累计奖励 USDC",
+  "currentClaimableUSDC": "当前可领取 USDC",
+  "claim": "领取",
+  "rewardDetails": "奖励详情",
+  "claimRecords": "领取记录",
+  "viewRules": "查看规则",
+  "claimable": "待领取",
+  "claimed": "已领取",
+  "noClaimRecords": "暂无领取记录",
+  "rewardRules": "奖励规则",
+  "rule1": "市场创建者将获得交易量的一定百分比作为奖励",
+  "rule2": "做市商通过提供流动性获得奖励",
+  "rule3": "奖励以 USDC 形式分发，可随时领取",
+  "rule4": "已领取的奖励将显示在领取记录中"
+}
+
