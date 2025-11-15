@@ -17,8 +17,10 @@ import {
 } from "../lib/calculations";
 import { MarketStatus } from "../types/api";
 import { useToast } from "../hooks/use-toast";
+import { useTranslation } from "react-i18next";
 
 const Portfolio = () => {
+  const { t } = useTranslation('portfolio');
   const navigate = useNavigate();
   const { positions = [], markets = [], userAllOrders = [], userAllTrades = [], playerId, cancelOrder } = useMarket();
   const { toast } = useToast();
@@ -154,13 +156,13 @@ const Portfolio = () => {
     try {
       await cancelOrder(BigInt(orderId));
       toast({
-        title: "Order Cancelled",
-        description: "Successfully cancelled order",
+        title: t('orderCancelled'),
+        description: t('orderCancelledDesc'),
       });
     } catch (error) {
       toast({
-        title: "Cancel Failed",
-        description: error instanceof Error ? error.message : "Failed to cancel order",
+        title: t('cancelFailed'),
+        description: error instanceof Error ? error.message : t('cancelFailedDesc'),
         variant: "destructive",
       });
     } finally {
@@ -173,14 +175,14 @@ const Portfolio = () => {
       <Header />
 
       <main className="container mx-auto px-4 py-6 max-w-7xl">
-        <h1 className="text-2xl font-bold mb-4 text-foreground">Portfolio</h1>
+        <h1 className="text-2xl font-bold mb-4 text-foreground">{t('title')}</h1>
 
         {/* Web3 wallet status */}
         <div className="mb-4">
           <a href="#" className="text-sm text-primary hover:underline">
-            Web3 wallet
+            {t('web3Wallet')}
           </a>
-          <span className="text-sm text-muted-foreground ml-1">in use</span>
+          <span className="text-sm text-muted-foreground ml-1">{t('inUse')}</span>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
@@ -189,19 +191,19 @@ const Portfolio = () => {
             {/* Stats Grid */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <div className="text-sm text-muted-foreground mb-1">Cash (USDC)</div>
+                <div className="text-sm text-muted-foreground mb-1">{t('cashUSDC')}</div>
                 <div className="text-3xl font-bold text-foreground">{formatCurrency(usdcBalance)}</div>
               </div>
               <div>
-                <div className="text-sm text-muted-foreground mb-1">Positions</div>
+                <div className="text-sm text-muted-foreground mb-1">{t('positions')}</div>
                 <div className="text-3xl font-bold text-foreground">{displayPositions.length}</div>
               </div>
               <div>
-                <div className="text-sm text-muted-foreground mb-1">Active Orders</div>
+                <div className="text-sm text-muted-foreground mb-1">{t('activeOrders')}</div>
                 <div className="text-3xl font-bold text-foreground">{activeOrders.length}</div>
               </div>
               <div>
-                <div className="text-sm text-muted-foreground mb-1">To Claim</div>
+                <div className="text-sm text-muted-foreground mb-1">{t('toClaim')}</div>
                 <div className="text-3xl font-bold text-success">{formatCurrency(claimableAmount)}</div>
               </div>
             </div>
@@ -211,13 +213,13 @@ const Portfolio = () => {
               <Card className="p-4 border border-border bg-muted/20">
                 <div className="flex items-center justify-between">
                   <div className="text-base font-medium text-foreground">
-                    {formatCurrency(claimableAmount)} to Claim
+                    {formatCurrency(claimableAmount)} {t('toClaimAmount')}
                   </div>
                   <Button
                     className="bg-foreground text-background hover:bg-foreground/90"
                     onClick={() => navigate("/rewards")}
                   >
-                    Claim
+                    {t('claim')}
                   </Button>
                 </div>
               </Card>
@@ -227,7 +229,7 @@ const Portfolio = () => {
           {/* Right: Chart */}
           <Card className="p-4 border border-border">
             <div className="flex items-center justify-between mb-4">
-              <div className="text-sm font-medium text-foreground">Realized P&L</div>
+              <div className="text-sm font-medium text-foreground">{t('realizedPnL')}</div>
               <div className="flex gap-2">
                 {["1D", "1W", "1M", "All"].map((period) => (
                   <Button
@@ -259,19 +261,19 @@ const Portfolio = () => {
                     value="positions"
                     className="border-b-2 border-transparent data-[state=active]:border-primary rounded-none bg-transparent px-4 py-3"
                   >
-                    Positions({filteredPositions.length})
+                    {t('positionsTab')}({filteredPositions.length})
                   </TabsTrigger>
                   <TabsTrigger
                     value="orders"
                     className="border-b-2 border-transparent data-[state=active]:border-primary rounded-none bg-transparent px-4 py-3"
                   >
-                    Open Orders({activeOrders.length})
+                    {t('openOrdersTab')}({activeOrders.length})
                   </TabsTrigger>
                   <TabsTrigger
                     value="history"
                     className="border-b-2 border-transparent data-[state=active]:border-primary rounded-none bg-transparent px-4 py-3"
                   >
-                    History
+                    {t('historyTab')}
                   </TabsTrigger>
                 </TabsList>
               </div>
@@ -287,7 +289,7 @@ const Portfolio = () => {
                   onClick={() => setPositionFilter(filter)}
                   className="h-8 px-4"
                 >
-                  {filter}
+                  {filter === "All" ? t('all') : filter === "UP" ? t('up') : t('down')}
                 </Button>
               ))}
             </div>
@@ -298,14 +300,14 @@ const Portfolio = () => {
                 <table className="w-full">
                   <thead className="border-b border-border bg-muted/30">
                     <tr>
-                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Market</th>
-                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Shares</th>
-                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Avg</th>
-                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Result</th>
-                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Cost</th>
-                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Value</th>
-                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">P&L</th>
-                      <th className="text-right px-4 py-3 text-xs font-medium text-muted-foreground">Action</th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">{t('market')}</th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">{t('shares')}</th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">{t('avg')}</th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">{t('result')}</th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">{t('cost')}</th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">{t('value')}</th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">{t('pnl')}</th>
+                      <th className="text-right px-4 py-3 text-xs font-medium text-muted-foreground">{t('action')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -313,8 +315,8 @@ const Portfolio = () => {
                       <tr>
                         <td colSpan={8} className="py-12 text-center text-muted-foreground">
                           {positionFilter === "All" 
-                            ? "No positions yet" 
-                            : `No ${positionFilter} positions`}
+                            ? t('noPositions')
+                            : t('noPositionsFilter', { filter: positionFilter === "UP" ? t('up') : t('down') })}
                         </td>
                       </tr>
                     ) : (
@@ -347,10 +349,10 @@ const Portfolio = () => {
                                     : 'bg-muted text-muted-foreground'
                                 }
                               >
-                                {position.now === 100 ? 'Won' : 'Lost'}
+                                {position.now === 100 ? t('won') : t('lost')}
                               </Badge>
                             ) : (
-                              <span className="text-sm text-muted-foreground">Active</span>
+                              <span className="text-sm text-muted-foreground">{t('active')}</span>
                             )}
                           </td>
                           <td className="px-4 py-3 text-sm text-foreground">{position.cost}</td>
@@ -363,7 +365,7 @@ const Portfolio = () => {
                               className="h-auto p-0 text-xs text-primary hover:text-primary/80"
                               onClick={() => navigate(`/market/${position.marketId}`)}
                             >
-                              View
+                              {t('view')}
                             </Button>
                           </td>
                         </tr>
@@ -380,13 +382,13 @@ const Portfolio = () => {
                 <table className="w-full">
                   <thead className="border-b border-border bg-muted/30">
                     <tr>
-                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Market</th>
-                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Side</th>
-                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Type</th>
-                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Price</th>
-                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Shares</th>
-                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Filled</th>
-                      <th className="text-right px-4 py-3 text-xs font-medium text-muted-foreground">Action</th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">{t('market')}</th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">{t('side')}</th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">{t('type')}</th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">{t('price')}</th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">{t('shares')}</th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">{t('filled')}</th>
+                      <th className="text-right px-4 py-3 text-xs font-medium text-muted-foreground">{t('action')}</th>
                       <th className="text-right px-4 py-3 text-xs font-medium text-muted-foreground"></th>
                     </tr>
                   </thead>
@@ -394,7 +396,7 @@ const Portfolio = () => {
                     {activeOrders.length === 0 ? (
                       <tr>
                         <td colSpan={8} className="py-12 text-center text-muted-foreground">
-                          No open orders
+                          {t('noOpenOrders')}
                         </td>
                       </tr>
                     ) : (
@@ -408,12 +410,12 @@ const Portfolio = () => {
                           </td>
                           <td className="px-4 py-3 text-sm">
                             {order.orderType === 0
-                              ? "Limit Buy"
+                              ? t('limitBuy')
                               : order.orderType === 1
-                              ? "Limit Sell"
+                              ? t('limitSell')
                               : order.orderType === 2
-                              ? "Market Buy"
-                              : "Market Sell"}
+                              ? t('marketBuy')
+                              : t('marketSell')}
                           </td>
                           <td className="px-4 py-3 text-sm">{(parseInt(order.price) / 100).toFixed(2)}%</td>
                           <td className="px-4 py-3 text-sm">{fromUSDCPrecision(order.totalAmount).toFixed(2)}</td>
@@ -429,7 +431,7 @@ const Portfolio = () => {
                               onClick={() => handleCancelOrder(order.orderId)}
                               disabled={cancellingOrderId === order.orderId}
                             >
-                              {cancellingOrderId === order.orderId ? "Cancelling..." : "Cancel"}
+                              {cancellingOrderId === order.orderId ? t('cancelling') : t('cancel')}
                             </Button>
                           </td>
                           <td className="px-4 py-3 text-right">
@@ -439,7 +441,7 @@ const Portfolio = () => {
                               className="text-primary h-auto p-0 text-sm"
                               onClick={() => navigate(`/market/${order.marketId}`)}
                             >
-                              View
+                              {t('view')}
                             </Button>
                           </td>
                         </tr>
