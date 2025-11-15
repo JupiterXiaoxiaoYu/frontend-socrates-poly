@@ -185,11 +185,31 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         });
       }
     } catch (error) {
-      toast({
-        title: "Connection Failed",
-        description: "Failed to auto-connect player",
-        variant: "destructive",
-      });
+      // 检查是否是 PlayerAlreadyExists 错误（不区分大小写）
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const lowerError = errorMessage.toLowerCase();
+      
+      if (lowerError.includes("playeralreadyexist") || lowerError.includes("already exist")) {
+        // 玩家已存在，静默处理，生成 Player ID
+        const generatedPlayerId = generatePlayerIdFromL2();
+        if (generatedPlayerId) {
+          setPlayerId(generatedPlayerId);
+        }
+        setIsPlayerInstalled(true);
+        
+        toast({
+          title: "Player Connected",
+          description: "Successfully connected to existing player account!",
+        });
+      } else {
+        // 其他错误才显示错误提示
+        console.error("Player installation error:", error);
+        toast({
+          title: "Connection Failed",
+          description: errorMessage || "Failed to auto-connect player",
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -236,12 +256,32 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           response === null ? "Successfully connected to existing player!" : "Successfully created new player!",
       });
     } catch (error) {
-      toast({
-        title: "Installation Failed",
-        description: "Failed to install player",
-        variant: "destructive",
-      });
-      throw error;
+      // 检查是否是 PlayerAlreadyExists 错误（不区分大小写）
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const lowerError = errorMessage.toLowerCase();
+      
+      if (lowerError.includes("playeralreadyexist") || lowerError.includes("already exist")) {
+        // 玩家已存在，静默处理
+        const generatedPlayerId = generatePlayerIdFromL2();
+        if (generatedPlayerId) {
+          setPlayerId(generatedPlayerId);
+        }
+        setIsPlayerInstalled(true);
+        
+        toast({
+          title: "Player Connected",
+          description: "Successfully connected to existing player account!",
+        });
+      } else {
+        // 其他错误才显示错误提示
+        console.error("Player installation error:", error);
+        toast({
+          title: "Installation Failed",
+          description: errorMessage || "Failed to install player",
+          variant: "destructive",
+        });
+        throw error;
+      }
     } finally {
       setIsLoading(false);
     }
