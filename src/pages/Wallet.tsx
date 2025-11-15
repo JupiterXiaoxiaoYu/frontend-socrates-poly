@@ -3,10 +3,10 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Eye, EyeOff, Download, Upload, ChevronLeft, ChevronRight, Copy, Check } from "lucide-react";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { useMarket } from "../contexts";
-import { fromUSDCPrecision, formatCurrency } from "../lib/calculations";
+import { useMarket, useBalance } from "../contexts";
+import { formatCurrency, fromUSDCPrecision } from "../lib/calculations";
 import { useToast } from "../hooks/use-toast";
 import { DepositDialog } from "../components/DepositDialog";
 import { WithdrawDialog } from "../components/WithdrawDialog";
@@ -15,7 +15,8 @@ import { WithdrawDialog } from "../components/WithdrawDialog";
 
 const Wallet = () => {
   const { t } = useTranslation('wallet');
-  const { positions = [], playerId, apiClient, deposit, withdraw } = useMarket();
+  const { playerId, apiClient, deposit, withdraw } = useMarket();
+  const { usdcBalance, refreshBalance } = useBalance();
   const { toast } = useToast();
   const [hideBalance, setHideBalance] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -24,42 +25,7 @@ const Wallet = () => {
   const [showDepositDialog, setShowDepositDialog] = useState(false);
   const [showWithdrawDialog, setShowWithdrawDialog] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [gatewayAvailable, setGatewayAvailable] = useState<number | null>(null);
   const itemsPerPage = 6;
-
-  // 计算 USDC 余额（优先使用 Gateway /v1/balance 的 available）
-  const usdcBalance = useMemo(() => {
-    if (gatewayAvailable !== null) {
-      return gatewayAvailable;
-    }
-    const usdcPosition = positions.find((p) => p.tokenIdx === "0");
-    return usdcPosition ? fromUSDCPrecision(usdcPosition.balance) : 0;
-  }, [positions, gatewayAvailable]);
-
-  // 加载网关余额
-  useEffect(() => {
-    if (!apiClient) return;
-    if (!playerId) return;
-    const uid = `${playerId[0]}:${playerId[1]}`;
-    let cancelled = false;
-    const load = async () => {
-      try {
-        const b = await apiClient.getBalance(uid, "USDC");
-        if (cancelled) return;
-        // Gateway API now returns actual amount (not 2-decimal precision)
-        const available = parseFloat(b.available);
-        setGatewayAvailable(available);
-      } catch (_e) {
-        // ignore
-      }
-    };
-    load();
-    const interval = setInterval(load, 10000);
-    return () => {
-      cancelled = true;
-      clearInterval(interval);
-    };
-  }, [apiClient, playerId]);
 
   // 复制 Player ID
   const handleCopyPid = () => {
@@ -159,6 +125,8 @@ const Wallet = () => {
       // Convert to precision format (amount * 100)
       const amountWithPrecision = BigInt(Math.round(amount * 100));
       await deposit(amountWithPrecision);
+      // 刷新余额
+      await refreshBalance();
     } finally {
       setIsProcessing(false);
     }
@@ -171,6 +139,8 @@ const Wallet = () => {
       // Convert to precision format (amount * 100)
       const amountWithPrecision = BigInt(Math.round(amount * 100));
       await withdraw(amountWithPrecision);
+      // 刷新余额
+      await refreshBalance();
     } finally {
       setIsProcessing(false);
     }
@@ -268,7 +238,7 @@ const Wallet = () => {
                     </td>
                   </tr>
                 ) : (
-                  currentTransactions.map((transaction) => (
+                  currentTransactions.map((transaction: any) => (
                     <tr key={transaction.id} className="border-b border-border hover:bg-muted/20">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">

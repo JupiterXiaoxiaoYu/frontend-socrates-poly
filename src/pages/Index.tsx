@@ -76,11 +76,13 @@ const Index = () => {
 
   // 预留方案 A：将筛选参数传入 context（目前仍使用原接口，不改变数据来源）
   useEffect(() => {
-    const intervalMinutes = parseInt(selectedDuration);
-    setMarketQuery({
-      intervalMinutes: Number.isFinite(intervalMinutes) ? intervalMinutes : null,
-      slotLabel: selectedTimeSlot || null,
-    });
+    if (setMarketQuery) {
+      const intervalMinutes = parseInt(selectedDuration);
+      setMarketQuery({
+        intervalMinutes: Number.isFinite(intervalMinutes) ? intervalMinutes : null,
+        slotLabel: selectedTimeSlot || null,
+      });
+    }
   }, [selectedDuration, selectedTimeSlot, setMarketQuery]);
 
   // 转换 API 数据为显示格式 - 优化依赖避免闪烁
@@ -117,10 +119,10 @@ const Index = () => {
           volume: totalVolume,
           windowMinutes: parseInt(market.windowMinutes),
           slot: slotLabelFromUnixSeconds(market.oracleStartTime),
-          startTimeSec: parseInt(market.oracleStartTime),
-        } as DisplayMarket;
-      });
-  }, [markets.length]); // 只在市场数量变化时更新
+        startTimeSec: parseInt(market.oracleStartTime),
+      } as DisplayMarket;
+    });
+  }, [markets, marketPrices]); // 依赖完整的 markets 数组，确保实时更新
 
   // 过滤和排序市场
   const filteredMarkets = useMemo(() => {
@@ -195,7 +197,7 @@ const Index = () => {
           <div className="flex items-center gap-2">
             <span className="text-sm text-muted-foreground">{t('duration')}:</span>
             <div className="inline-flex items-center rounded-md border border-border bg-background p-1">
-              {["1", "3", "5", "10", "15"].map((d) => (
+              {["1", "5", "10"].map((d) => (
                 <button
                   key={d}
                   onClick={() => setSelectedDuration(d)}

@@ -7,7 +7,7 @@ import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import PortfolioPnLChart from "@/components/PortfolioPnLChart";
 import TradesHistory from "@/components/TradesHistory";
-import { useMarket } from "../contexts";
+import { useMarket, useBalance } from "../contexts";
 import {
   fromUSDCPrecision,
   parseTokenIdx,
@@ -23,16 +23,11 @@ const Portfolio = () => {
   const { t } = useTranslation("portfolio");
   const navigate = useNavigate();
   const { positions = [], markets = [], userAllOrders = [], userAllTrades = [], playerId, cancelOrder } = useMarket();
+  const { usdcBalance } = useBalance();
   const { toast } = useToast();
   const [timePeriod, setTimePeriod] = useState("1D");
   const [positionFilter, setPositionFilter] = useState("All");
   const [cancellingOrderId, setCancellingOrderId] = useState<string | null>(null);
-
-  // 计算 USDC 余额
-  const usdcBalance = useMemo(() => {
-    const usdcPosition = positions.find((p) => p.tokenIdx === "0");
-    return usdcPosition ? fromUSDCPrecision(usdcPosition.balance) : 0;
-  }, [positions]);
 
   // Calculate average cost and PnL from trades
   const positionCosts = useMemo(() => {
@@ -203,12 +198,12 @@ const Portfolio = () => {
                 <div className="text-3xl font-bold text-foreground">{formatCurrency(usdcBalance)}</div>
               </div>
               <div>
-                <div className="text-sm text-muted-foreground mb-1">{t("positions")}</div>
-                <div className="text-3xl font-bold text-foreground">{displayPositions.length}</div>
-              </div>
-              <div>
                 <div className="text-sm text-muted-foreground mb-1">{t("activeOrders")}</div>
                 <div className="text-3xl font-bold text-foreground">{activeOrders.length}</div>
+              </div>
+              <div>
+                <div className="text-sm text-muted-foreground mb-1">{t("positions")}</div>
+                <div className="text-3xl font-bold text-foreground">{displayPositions.length}</div>
               </div>
               <div>
                 <div className="text-sm text-muted-foreground mb-1">Est. Value</div>

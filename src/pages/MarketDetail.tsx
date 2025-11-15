@@ -467,6 +467,12 @@ const MarketDetail = () => {
                         {t("orderBook")}
                       </TabsTrigger>
                       <TabsTrigger
+                        value="trades"
+                        className="rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent px-6 py-3"
+                      >
+                        Recent Trades
+                      </TabsTrigger>
+                      <TabsTrigger
                         value="rules"
                         className="rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent px-6 py-3"
                       >
@@ -478,21 +484,17 @@ const MarketDetail = () => {
                       <div className="h-full p-4">
                         <PriceChart
                           targetPrice={marketData.targetPrice}
-                          currentPrice={marketData.currentPrice || undefined}
                           onPriceUpdate={setRealtimeBTCPrice}
                         />
                       </div>
                     </TabsContent>
 
                     <TabsContent value="orderbook" className="flex-1 p-0 m-0 h-full overflow-hidden">
-                      <div className="h-full flex flex-col">
-                        <div className="flex-1 overflow-auto">
-                          <OrderBook marketId={marketData.marketId} direction={selectedDirection} />
-                        </div>
-                        <div className="h-[200px] border-t border-border flex-shrink-0">
-                          <RecentTrades marketId={marketData.marketId} direction={selectedDirection} />
-                        </div>
-                      </div>
+                      <OrderBook marketId={marketData.marketId} direction={selectedDirection} />
+                    </TabsContent>
+
+                    <TabsContent value="trades" className="flex-1 p-0 m-0 h-full overflow-hidden">
+                      <RecentTrades marketId={marketData.marketId} direction={selectedDirection} />
                     </TabsContent>
 
                     <TabsContent value="rules" className="flex-1 p-4 m-0 overflow-auto">

@@ -1,4 +1,3 @@
-import { Bookmark } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { formatCompactNumber } from "../lib/formatters";
 import { useState, useMemo, useEffect, useRef } from "react";
@@ -69,7 +68,7 @@ export function AppSidebar() {
         windowMinutes: market.windowMinutes,
       } as DisplayMarket;
     });
-  }, [markets.length]); // 只在市场数量变化时更新，避免闪烁
+  }, [markets, marketPrices]); // 依赖完整的 markets 数组，确保实时更新
 
   // 过滤和排序市场
   const filteredMarkets = useMemo(() => {
@@ -114,6 +113,16 @@ export function AppSidebar() {
               1m
             </button>
             <button
+              onClick={() => setSelectedDuration("5")}
+              className={`px-2 py-1.5 text-xs font-medium rounded transition-colors ${
+                selectedDuration === "5"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+              }`}
+            >
+              5m
+            </button>
+            <button
               onClick={() => setSelectedDuration("10")}
               className={`px-2 py-1.5 text-xs font-medium rounded transition-colors ${
                 selectedDuration === "10"
@@ -122,16 +131,6 @@ export function AppSidebar() {
               }`}
             >
               10m
-            </button>
-            <button
-              onClick={() => setSelectedDuration("15")}
-              className={`px-2 py-1.5 text-xs font-medium rounded transition-colors ${
-                selectedDuration === "15"
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-              }`}
-            >
-              15m
             </button>
           </div>
         </div>
@@ -173,7 +172,9 @@ export function AppSidebar() {
 
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-muted-foreground">{t('volume')} ${formatCompactNumber(market.volume)}</span>
-                    <Bookmark className="w-3 h-3 text-muted-foreground" />
+                    <span className="text-xs text-muted-foreground">
+                      {market.windowMinutes}m
+                    </span>
                   </div>
                 </div>
               </NavLink>

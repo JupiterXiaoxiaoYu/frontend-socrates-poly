@@ -4,7 +4,7 @@ import { useSwipeable } from "react-swipeable";
 import { Button } from "@/components/ui/button";
 import { ChevronDown, ChevronUp, Wallet } from "lucide-react";
 import PriceChart from "./PriceChart";
-import OrderBook from "./OrderBook";
+import MobileOrderBook from "./MobileOrderBook";
 import MobileTradingPanel from "./MobileTradingPanel";
 import PositionTabs from "./PositionTabs";
 import CountdownTimer from "./CountdownTimer";
@@ -345,7 +345,7 @@ const MobileMarketView = ({ marketId, allMarketIds }: MobileMarketViewProps) => 
           <div className="grid grid-cols-2 gap-2">
             {/* 订单簿 - 固定高度，隐藏滚动条 */}
             <div className="h-[400px] overflow-hidden border border-border rounded">
-              <OrderBook marketId={marketData.marketId} direction={selectedDirection} />
+              <MobileOrderBook marketId={marketData.marketId} direction={selectedDirection} />
             </div>
 
             {/* 交易面板 - 固定高度，隐藏滚动条 */}
@@ -400,11 +400,7 @@ const MobileMarketView = ({ marketId, allMarketIds }: MobileMarketViewProps) => 
 
         {isChartExpanded && (
           <div className="h-64 p-2 border-t border-border bg-card overflow-hidden">
-            <PriceChart
-              targetPrice={marketData.targetPrice}
-              currentPrice={marketData.currentPrice || undefined}
-              onPriceUpdate={setRealtimeBTCPrice}
-            />
+            <PriceChart targetPrice={marketData.targetPrice} onPriceUpdate={setRealtimeBTCPrice} />
           </div>
         )}
       </div>
