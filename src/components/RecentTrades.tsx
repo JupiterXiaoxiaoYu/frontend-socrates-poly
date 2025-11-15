@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { TrendingUp, TrendingDown } from "lucide-react";
 import { useMarket } from "../contexts";
 import { fromUSDCPrecision } from "../lib/calculations";
@@ -9,6 +10,7 @@ interface RecentTradesProps {
 }
 
 const RecentTrades = ({ marketId, direction = 'UP' }: RecentTradesProps) => {
+  const { t } = useTranslation('market');
   const { trades } = useMarket();
 
   // 转换真实成交数据（按 direction 过滤）
@@ -49,23 +51,23 @@ const RecentTrades = ({ marketId, direction = 'UP' }: RecentTradesProps) => {
   return (
     <div className="flex flex-col h-full">
       <div className="px-4 py-2 border-b border-border bg-muted/30">
-        <h3 className="text-xs font-semibold text-foreground">Recent Trades</h3>
+        <h3 className="text-xs font-semibold text-foreground">{t('recentTrades')}</h3>
       </div>
 
       <div className="flex-1 overflow-auto">
         <table className="w-full text-xs">
           <thead className="sticky top-0 bg-background border-b border-border">
             <tr>
-              <th className="text-left px-3 py-2 font-medium text-muted-foreground">Price</th>
-              <th className="text-right px-3 py-2 font-medium text-muted-foreground">Amount</th>
-              <th className="text-right px-3 py-2 font-medium text-muted-foreground">Time</th>
+              <th className="text-left px-3 py-2 font-medium text-muted-foreground">{t('price')}</th>
+              <th className="text-right px-3 py-2 font-medium text-muted-foreground">{t('amount')}</th>
+              <th className="text-right px-3 py-2 font-medium text-muted-foreground">{t('timeAgo')}</th>
             </tr>
           </thead>
           <tbody>
             {displayTrades.length === 0 ? (
               <tr>
                 <td colSpan={3} className="py-8 text-center text-muted-foreground">
-                  No recent trades
+                  {t('noRecentTrades')}
                 </td>
               </tr>
             ) : (

@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 import { MarketStatus } from "../types/api";
 
 interface StatusBadgeProps {
@@ -7,6 +8,7 @@ interface StatusBadgeProps {
 }
 
 const StatusBadge = ({ status, size = 'sm' }: StatusBadgeProps) => {
+  const { t } = useTranslation('market');
   const sizeClasses = {
     sm: 'h-5 px-2 text-[10px]',
     md: 'h-6 px-3 text-xs',
@@ -20,19 +22,19 @@ const StatusBadge = ({ status, size = 'sm' }: StatusBadgeProps) => {
 
   const statusConfig = {
     pending: {
-      label: 'Pending',
+      label: t('pending'),
       className: 'bg-muted text-muted-foreground',
     },
     active: {
-      label: 'Live',
+      label: t('live'),
       className: 'bg-success/20 text-success-light border border-success/30 animate-pulse-scale',
     },
     closed: {
-      label: 'Closed',
+      label: t('closed'),
       className: 'bg-warning/20 text-warning border border-warning/30',
     },
     resolved: {
-      label: 'Settled',
+      label: t('settled'),
       className: 'bg-primary/20 text-primary border border-primary/30',
     },
   };

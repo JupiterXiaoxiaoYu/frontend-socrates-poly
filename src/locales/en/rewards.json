@@ -1,0 +1,18 @@
+{
+  "title": "Rewards",
+  "cumulativeRewardsUSDC": "Cumulative Rewards USDC",
+  "currentClaimableUSDC": "Current Claimable USDC",
+  "claim": "Claim",
+  "rewardDetails": "Reward Details",
+  "claimRecords": "Claim Records",
+  "viewRules": "View Rules",
+  "claimable": "Claimable",
+  "claimed": "Claimed",
+  "noClaimRecords": "No claim records yet",
+  "rewardRules": "Reward Rules",
+  "rule1": "Market creators will receive a percentage of trading volume as rewards",
+  "rule2": "Market makers earn rewards by providing liquidity",
+  "rule3": "Rewards are distributed in USDC and can be claimed at any time",
+  "rule4": "Claimed rewards will be displayed in the claim records"
+}
+

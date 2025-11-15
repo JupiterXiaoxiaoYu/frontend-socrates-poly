@@ -1,9 +1,11 @@
 import { useNavigate } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import Header from "@/components/Header";
 import { Card } from "@/components/ui/card";
 
 const RebateRules = () => {
+  const { t } = useTranslation('rebate');
   const navigate = useNavigate();
 
   return (
@@ -19,7 +21,7 @@ const RebateRules = () => {
           >
             <ChevronLeft className="w-5 h-5 text-foreground" />
           </button>
-          <h1 className="text-2xl font-bold text-foreground">Mining Reward Rules</h1>
+          <h1 className="text-2xl font-bold text-foreground">{t('rulesTitle')}</h1>
         </div>
 
         {/* 规则内容 */}
@@ -28,42 +30,42 @@ const RebateRules = () => {
             {/* 基本规则 */}
             <div className="space-y-9">
               <div>
-                <h2 className="text-base font-medium mb-3">Basic Rules</h2>
+                <h2 className="text-base font-medium mb-3">{t('basicRules')}</h2>
               </div>
 
               {/* 行为分类 */}
               <div className="space-y-3">
-                <h3 className="text-[15px] font-medium leading-[22px]">Behavior Classification</h3>
+                <h3 className="text-[15px] font-medium leading-[22px]">{t('behaviorClassification')}</h3>
                 <ul className="list-disc ml-5 space-y-2 text-sm text-muted-foreground">
-                  <li>Maker Volume: Refers to the transaction amount generated when a user acts as a maker, with orders matched through limit orders.</li>
-                  <li>Taker Volume: Refers to the transaction amount generated when a user actively takes liquidity from the order book.</li>
+                  <li>{t('behaviorClassificationDesc1')}</li>
+                  <li>{t('behaviorClassificationDesc2')}</li>
                 </ul>
               </div>
 
               {/* 积分发放条件 */}
               <div className="space-y-3">
-                <h3 className="text-[15px] font-medium leading-[22px]">Point Distribution Conditions</h3>
+                <h3 className="text-[15px] font-medium leading-[22px]">{t('pointDistribution')}</h3>
                 <ul className="list-disc ml-5 space-y-2 text-sm text-muted-foreground">
-                  <li>Users must have both valid Maker and Taker volumes within a reward cycle (e.g., daily or weekly) to qualify for point calculation.</li>
-                  <li>If only one-sided behavior exists (only Maker or only Taker), no point rewards will be distributed.</li>
+                  <li>{t('pointDistributionDesc1')}</li>
+                  <li>{t('pointDistributionDesc2')}</li>
                 </ul>
               </div>
 
               {/* 积分奖励计算方式 */}
               <div className="space-y-3">
-                <h3 className="text-[15px] font-medium leading-[22px]">Point Reward Calculation Method</h3>
+                <h3 className="text-[15px] font-medium leading-[22px]">{t('pointCalculation')}</h3>
                 <ul className="list-disc ml-5 space-y-2 text-sm text-muted-foreground">
-                  <li>The system separately tracks all users' Maker and Taker volumes during the cycle.</li>
-                  <li>Calculate each user's volume proportion in both behavior categories and multiply by the corresponding Maker or Taker point pool.</li>
-                  <li>The final points earned will be the smaller value of the two results.</li>
+                  <li>{t('pointCalculationDesc1')}</li>
+                  <li>{t('pointCalculationDesc2')}</li>
+                  <li>{t('pointCalculationDesc3')}</li>
                 </ul>
               </div>
 
               {/* 积分的用途 */}
               <div className="space-y-3">
-                <h3 className="text-[15px] font-medium leading-[22px]">Use of Points</h3>
+                <h3 className="text-[15px] font-medium leading-[22px]">{t('useOfPoints')}</h3>
                 <ul className="list-disc ml-5 text-sm text-muted-foreground">
-                  <li>Can be exchanged for platform tokens in the future, stay tuned</li>
+                  <li>{t('useOfPointsDesc')}</li>
                 </ul>
               </div>
             </div>
@@ -71,69 +73,69 @@ const RebateRules = () => {
             {/* 积分算法公式 & 计算步骤详解 */}
             <div className="space-y-9">
               <div>
-                <h2 className="text-base font-medium mb-3">Point Algorithm Formula & Calculation Details</h2>
+                <h2 className="text-base font-medium mb-3">{t('algorithmTitle')}</h2>
               </div>
 
               {/* 数据定义 */}
               <div className="space-y-3">
-                <h3 className="text-[15px] font-medium leading-[22px]">Data Definition</h3>
+                <h3 className="text-[15px] font-medium leading-[22px]">{t('dataDefinition')}</h3>
                 <ul className="list-disc ml-[18px] space-y-0 text-xs text-muted-foreground leading-4">
-                  <li>V<sub>maker</sub>(u): User u's maker volume during the statistical period</li>
-                  <li>V<sub>taker</sub>(u): User u's taker volume during the statistical period</li>
-                  <li>∑V<sub>maker</sub>(i): Sum of all eligible users' Maker volumes</li>
-                  <li>∑V<sub>taker</sub>(i): Sum of all eligible users' Taker volumes</li>
-                  <li>A: Total points allocated for Maker volume in this period (Maker reward pool)</li>
-                  <li>B: Total points allocated for Taker volume in this period (Taker reward pool)</li>
+                  <li>V<sub>maker</sub>(u): {t('dataDefVMaker')}</li>
+                  <li>V<sub>taker</sub>(u): {t('dataDefVTaker')}</li>
+                  <li>∑V<sub>maker</sub>(i): {t('dataDefSumVMaker')}</li>
+                  <li>∑V<sub>taker</sub>(i): {t('dataDefSumVTaker')}</li>
+                  <li>A: {t('dataDefA')}</li>
+                  <li>B: {t('dataDefB')}</li>
                 </ul>
               </div>
 
               {/* 按比例计算每位用户的 Maker 积分 */}
               <div className="space-y-3">
-                <h3 className="text-[15px] font-medium leading-[22px]">Calculate Each User's Maker Points Proportionally</h3>
+                <h3 className="text-[15px] font-medium leading-[22px]">{t('calculateMakerPoints')}</h3>
                 <div className="bg-muted/30 p-4 rounded-lg">
                   <p className="text-sm font-mono text-foreground">
                     R<sub>maker</sub>(u) = (V<sub>maker</sub>(u) / ∑V<sub>maker</sub>(i)) × A
                   </p>
                 </div>
                 <div className="pl-3 space-y-3">
-                  <p className="text-xs text-foreground">Explanation:</p>
+                  <p className="text-xs text-foreground">{t('explanation')}</p>
                   <ul className="list-disc ml-[18px] space-y-2 text-xs text-muted-foreground leading-4">
-                    <li>User's Maker volume proportion × Total reward pool A</li>
-                    <li>If you account for 5% of all users' Maker volume, you get 5% of the Maker point pool</li>
+                    <li>{t('makerExplanation1')}</li>
+                    <li>{t('makerExplanation2')}</li>
                   </ul>
-                  <p className="text-xs text-foreground">Notes:</p>
+                  <p className="text-xs text-foreground">{t('notes')}</p>
                   <ul className="list-disc ml-[18px] space-y-2 text-xs text-muted-foreground leading-4">
-                    <li>Only users who meet the "both Maker and Taker volume" requirement are calculated</li>
-                    <li>Otherwise, the user will not participate in the distribution of point pool A</li>
+                    <li>{t('makerNote1')}</li>
+                    <li>{t('makerNote2')}</li>
                   </ul>
                 </div>
               </div>
 
               {/* 按比例计算每位用户的 Taker 积分 */}
               <div className="space-y-3">
-                <h3 className="text-[15px] font-medium leading-[22px]">Calculate Each User's Taker Points Proportionally</h3>
+                <h3 className="text-[15px] font-medium leading-[22px]">{t('calculateTakerPoints')}</h3>
                 <div className="bg-muted/30 p-4 rounded-lg">
                   <p className="text-sm font-mono text-foreground">
                     R<sub>taker</sub>(u) = (V<sub>taker</sub>(u) / ∑V<sub>taker</sub>(i)) × B
                   </p>
                 </div>
                 <div className="pl-3 space-y-3">
-                  <p className="text-xs text-foreground">Explanation:</p>
+                  <p className="text-xs text-foreground">{t('explanation')}</p>
                   <ul className="list-disc ml-[18px] space-y-2 text-xs text-muted-foreground leading-4">
-                    <li>User's Taker volume proportion × Total reward pool B</li>
-                    <li>Similarly, only eligible users are considered</li>
+                    <li>{t('takerExplanation1')}</li>
+                    <li>{t('takerExplanation2')}</li>
                   </ul>
-                  <p className="text-xs text-foreground">Notes:</p>
+                  <p className="text-xs text-foreground">{t('notes')}</p>
                   <ul className="list-disc ml-[18px] space-y-2 text-xs text-muted-foreground leading-4">
-                    <li>Users who only perform Taker behavior without Maker behavior will have 0 points despite having transactions</li>
-                    <li>This is to prevent arbitrage by only accumulating Taker volume</li>
+                    <li>{t('takerNote1')}</li>
+                    <li>{t('takerNote2')}</li>
                   </ul>
                 </div>
               </div>
 
               {/* 最终积分为两者中的较小值 */}
               <div className="space-y-3">
-                <h3 className="text-[15px] font-medium leading-[22px]">Final Points is the Smaller of the Two</h3>
+                <h3 className="text-[15px] font-medium leading-[22px]">{t('finalPoints')}</h3>
                 <div className="bg-muted/30 p-4 rounded-lg">
                   <p className="text-sm font-mono text-foreground">
                     R(u) = min(R<sub>maker</sub>(u), R<sub>taker</sub>(u))

@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import Header from "@/components/Header";
 import { Card } from "@/components/ui/card";
 
@@ -36,6 +37,7 @@ const mockPointsHistory = [
 ];
 
 const RebatePointsHistory = () => {
+  const { t } = useTranslation('rebate');
   const navigate = useNavigate();
 
   return (
@@ -51,7 +53,7 @@ const RebatePointsHistory = () => {
           >
             <ChevronLeft className="w-5 h-5 text-foreground" />
           </button>
-          <h1 className="text-xl font-bold text-foreground">Points History</h1>
+          <h1 className="text-xl font-bold text-foreground">{t('pointsHistory')}</h1>
         </div>
 
         {/* 积分记录列表 */}
@@ -64,14 +66,14 @@ const RebatePointsHistory = () => {
 
                 {/* Maker 和 Taker */}
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Maker</span>
+                  <span className="text-sm text-muted-foreground">{t('maker')}</span>
                   <span className="text-sm font-semibold text-foreground">
                     ${record.maker.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Taker</span>
+                  <span className="text-sm text-muted-foreground">{t('taker')}</span>
                   <span className="text-sm font-semibold text-foreground">
                     ${record.taker.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
@@ -79,7 +81,7 @@ const RebatePointsHistory = () => {
 
                 {/* 获得积分 */}
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Points Earned</span>
+                  <span className="text-sm text-muted-foreground">{t('pointsEarned')}</span>
                   <span className="text-base font-bold text-foreground">{record.points.toFixed(2)}</span>
                 </div>
               </div>

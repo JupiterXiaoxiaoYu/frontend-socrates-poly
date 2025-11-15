@@ -7,6 +7,7 @@ import { registerSW } from "virtual:pwa-register";
 import App from "./App.tsx";
 import ThemeProvider from "./components/theme-provider";
 import "./index.css";
+import "./i18n/config";
 
 // Configure zkWasm RPC URL
 setRpcUrl(); // Will use VITE_ZKWASM_RPC_URL from .env or default

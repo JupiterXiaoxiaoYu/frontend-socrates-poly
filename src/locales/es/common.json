@@ -1,0 +1,33 @@
+{
+  "nav": {
+    "market": "Mercado",
+    "portfolio": "Cartera",
+    "wallet": "Billetera",
+    "rewards": "Recompensas",
+    "referral": "Referidos",
+    "settings": "Configuración",
+    "language": "Idioma",
+    "appearance": "Apariencia"
+  },
+  "button": {
+    "connect": "CONECTAR",
+    "back": "Volver",
+    "close": "Cerrar",
+    "cancel": "Cancelar",
+    "confirm": "Confirmar",
+    "copy": "Copiar",
+    "share": "Compartir",
+    "viewAll": "Ver Todo",
+    "viewRecords": "Ver Registros"
+  },
+  "theme": {
+    "light": "Claro",
+    "dark": "Oscuro"
+  },
+  "notFound": {
+    "title": "404",
+    "message": "¡Ups! Página no encontrada",
+    "returnHome": "Volver al Inicio"
+  }
+}
+

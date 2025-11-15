@@ -2,6 +2,7 @@ import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChevronRight, HelpCircle } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export interface RebateRecord {
   id: string;
@@ -29,6 +30,7 @@ const RebateRecordsCard = ({
   onTabChange,
   onShowAllRecords,
 }: RebateRecordsCardProps) => {
+  const { t } = useTranslation('referral');
   // 渲染记录列表
   const renderRecordList = (records: RebateRecord[], isMobile: boolean = false) => {
     const displayRecords = isMobile ? records.slice(0, 3) : records;
@@ -55,7 +57,7 @@ const RebateRecordsCard = ({
               <p className="text-base font-bold text-foreground">
                 {record.amount} {record.currency}
               </p>
-              <p className="text-xs text-muted-foreground">Ratio {record.ratio}</p>
+              <p className="text-xs text-muted-foreground">{t('ratio')} {record.ratio}</p>
             </div>
           </div>
         ))}
@@ -69,13 +71,13 @@ const RebateRecordsCard = ({
       <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
         <HelpCircle className="w-8 h-8 text-muted-foreground" />
       </div>
-      <p className="text-sm text-muted-foreground">No data yet</p>
+      <p className="text-sm text-muted-foreground">{t('noDataYet')}</p>
     </div>
   );
 
   return (
     <Card className="p-6 mb-4 border border-border">
-      <h3 className="text-base font-bold text-foreground mb-4">Rebate Records</h3>
+      <h3 className="text-base font-bold text-foreground mb-4">{t('rebateRecords')}</h3>
 
       <Tabs value={activeTab} onValueChange={(v) => onTabChange(v as "fee" | "mining")} className="w-full">
         <TabsList className="w-full justify-start h-auto p-0 bg-transparent border-b border-border rounded-none mb-4">
@@ -83,13 +85,13 @@ const RebateRecordsCard = ({
             value="fee"
             className="rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent px-4 py-2"
           >
-            Fee Rebate
+            {t('feeRebate')}
           </TabsTrigger>
           <TabsTrigger
             value="mining"
             className="rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent px-4 py-2"
           >
-            Mining Rebate
+            {t('miningRebate')}
           </TabsTrigger>
         </TabsList>
 
@@ -113,7 +115,7 @@ const RebateRecordsCard = ({
                   onClick={onShowAllRecords}
                   className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mt-4"
                 >
-                  <span>All Records</span>
+                  <span>{t('allRecords')}</span>
                   <ChevronRight className="w-4 h-4" />
                   <ChevronRight className="w-4 h-4 -ml-3" />
                 </button>
@@ -142,7 +144,7 @@ const RebateRecordsCard = ({
                   onClick={onShowAllRecords}
                   className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mt-4"
                 >
-                  <span>All Records</span>
+                  <span>{t('allRecords')}</span>
                   <ChevronRight className="w-4 h-4" />
                   <ChevronRight className="w-4 h-4 -ml-3" />
                 </button>

@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { useMarket } from "../contexts";
@@ -15,6 +16,7 @@ interface OrderBookProps {
 }
 
 const OrderBook = ({ marketId, direction = "UP" }: OrderBookProps) => {
+  const { t } = useTranslation('market');
   const { orderBooks } = useMarket();
 
   // 从订单簿数据构建显示数据
@@ -82,9 +84,9 @@ const OrderBook = ({ marketId, direction = "UP" }: OrderBookProps) => {
       <div className="space-y-3">
         {/* Headers */}
         <div className="grid grid-cols-3 gap-2 px-2 pb-2 text-xs font-semibold text-muted-foreground border-b border-border">
-          <div>Price</div>
-          <div className="text-right">Amount</div>
-          <div className="text-right">Total</div>
+          <div>{t('price')}</div>
+          <div className="text-right">{t('amount')}</div>
+          <div className="text-right">{t('total')}</div>
         </div>
 
         {isEmpty ? (
@@ -110,7 +112,7 @@ const OrderBook = ({ marketId, direction = "UP" }: OrderBookProps) => {
             {/* Spread */}
             {asks.length > 0 && bids.length > 0 && (
               <div className="py-2 px-2 bg-muted rounded-lg text-center">
-                <div className="text-xs text-muted-foreground mb-1">Spread</div>
+                <div className="text-xs text-muted-foreground mb-1">{t('spread')}</div>
                 <div className="text-base font-bold text-foreground">
                   {(asks[0]?.price - bids[0]?.price).toFixed(1)}%
                 </div>
