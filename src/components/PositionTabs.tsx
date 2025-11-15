@@ -394,8 +394,15 @@ const PositionTabs = () => {
               <tbody>
                 {displayPositions.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="py-8 text-center text-muted-foreground text-sm">
-                      {t('noPositionsInMarket')}
+                    <td colSpan={7} className="py-12 text-center">
+                      <div className="flex flex-col items-center gap-3">
+                        <img 
+                          src="/favicon.png" 
+                          alt="No positions" 
+                          className="w-16 h-16 opacity-30"
+                        />
+                        <p className="text-muted-foreground text-sm">{t('noPositionsInMarket')}</p>
+                      </div>
                     </td>
                   </tr>
                 ) : (
@@ -450,8 +457,15 @@ const PositionTabs = () => {
               <tbody>
                 {displayOrders.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="py-8 text-center text-muted-foreground text-sm">
-                      {t('noOpenOrders')}
+                    <td colSpan={6} className="py-12 text-center">
+                      <div className="flex flex-col items-center gap-3">
+                        <img 
+                          src="/favicon.png" 
+                          alt="No orders" 
+                          className="w-16 h-16 opacity-30"
+                        />
+                        <p className="text-muted-foreground text-sm">{t('noOpenOrders')}</p>
+                      </div>
                     </td>
                   </tr>
                 ) : (
@@ -497,8 +511,13 @@ const PositionTabs = () => {
 
         <TabsContent value="history" className="p-4 m-0">
           {userTrades.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <p>{t('noTradingHistory')}</p>
+            <div className="flex flex-col items-center gap-3 py-12">
+              <img 
+                src="/favicon.png" 
+                alt="No history" 
+                className="w-16 h-16 opacity-30"
+              />
+              <p className="text-muted-foreground text-sm">{t('noTradingHistory')}</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -561,8 +580,15 @@ const PositionTabs = () => {
               </Button>
             </div>
           ) : (
-            <div className="text-center py-8 text-muted-foreground">
-              <p>{currentMarket?.status === 2 ? t('noClaimableWinnings') : t('marketNotYetResolved')}</p>
+            <div className="flex flex-col items-center gap-3 py-12">
+              <img 
+                src="/favicon.png" 
+                alt="No claims" 
+                className="w-16 h-16 opacity-30"
+              />
+              <p className="text-muted-foreground text-sm">
+                {currentMarket?.status === 2 ? t('noClaimableWinnings') : t('marketNotYetResolved')}
+              </p>
             </div>
           )}
         </TabsContent>
