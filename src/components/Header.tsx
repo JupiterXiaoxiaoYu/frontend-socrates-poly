@@ -6,9 +6,12 @@ import { WalletButton } from "@/components/WalletButton";
 import MobileNav from "@/components/MobileNav";
 import { useSound } from "../contexts";
 import ThemeToggle from "@/components/ThemeToggle";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useTranslation } from "react-i18next";
 
 const Header = () => {
+  const { t } = useTranslation('common');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { isEnabled, toggleSound } = useSound();
 
@@ -30,19 +33,19 @@ const Header = () => {
 
           <nav className="hidden md:flex items-center gap-6">
             <Link to="/" className="text-sm font-medium hover:text-gray-300 transition-colors">
-              Market
+              {t('nav.market')}
             </Link>
             <Link to="/portfolio" className="text-sm font-medium hover:text-gray-300 transition-colors">
-              Portfolio
+              {t('nav.portfolio')}
             </Link>
             <Link to="/rewards" className="text-sm font-medium hover:text-gray-300 transition-colors">
-              Rewards
+              {t('nav.rewards')}
             </Link>
             <Link to="/referral" className="text-sm font-medium hover:text-gray-300 transition-colors">
-              Referral
+              {t('nav.referral')}
             </Link>
             <Link to="/wallet" className="text-sm font-medium hover:text-gray-300 transition-colors">
-              Wallet
+              {t('nav.wallet')}
             </Link>
           </nav>
 
@@ -58,6 +61,11 @@ const Header = () => {
                 <p>{isEnabled ? "Mute new market alerts" : "Enable new market alerts"}</p>
               </TooltipContent>
             </Tooltip>
+
+            {/* Language Switcher - Desktop */}
+            <div className="hidden lg:block">
+              <LanguageSwitcher variant="desktop" />
+            </div>
 
             <ThemeToggle />
             <WalletButton />
