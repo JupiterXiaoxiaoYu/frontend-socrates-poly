@@ -1,8 +1,7 @@
-import { useState, useEffect, useMemo } from "react";
+import { useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { useMarket } from "../contexts";
-import { fromUSDCPrecision } from "../lib/calculations";
 
 interface OrderBookEntry {
   price: number;
@@ -11,55 +10,48 @@ interface OrderBookEntry {
 }
 
 interface OrderBookProps {
-  marketId: number;
-  direction?: "UP" | "DOWN"; // 新增：显示哪个方向的订单
+  marketId: string | number;
+  direction?: "UP" | "DOWN" | "YES" | "NO"; // 支持多种格式
 }
 
 const OrderBook = ({ marketId, direction = "UP" }: OrderBookProps) => {
-  const { orders } = useMarket();
+  const { orderBooks } = useMarket();
 
-  // 从真实订单构建订单簿（只显示指定方向的）
+  // 从订单簿数据构建显示数据
   const { bids, asks } = useMemo(() => {
-    const directionValue = direction === "UP" ? 1 : 0;
+    // 转换 direction 为 YES/NO 格式
+    const yesNoDirection = direction === "UP" || direction === "YES" ? "YES" : "NO";
+    
+    // 获取订单簿数据
+    const orderBookKey = `${marketId}-${yesNoDirection}`;
+    const orderBook = orderBooks.get(orderBookKey);
 
-    // 只获取指定方向的活跃订单
-    const activeOrders = orders.filter((o) => o.status === 0 && o.direction === directionValue);
+    if (!orderBook || (!orderBook.bids.length && !orderBook.asks.length)) {
+      return { bids: [], asks: [] };
+    }
 
-    // 买单（按价格降序）
-    const buyOrders = activeOrders
-      .filter((o) => o.orderType === 0 || o.orderType === 2)
-      .sort((a, b) => parseInt(b.price) - parseInt(a.price));
-
-    // 卖单（按价格升序）
-    const sellOrders = activeOrders
-      .filter((o) => o.orderType === 1 || o.orderType === 3)
-      .sort((a, b) => parseInt(a.price) - parseInt(b.price));
-
-    // 聚合相同价格的订单
-    const aggregateOrders = (orderList: any[]): OrderBookEntry[] => {
-      const priceMap = new Map<number, number>();
-
-      orderList.forEach((order) => {
-        const price = parseInt(order.price) / 100; // BPS to percent
-        const remaining = fromUSDCPrecision(order.totalAmount) - fromUSDCPrecision(order.filledAmount);
-
-        priceMap.set(price, (priceMap.get(price) || 0) + remaining);
-      });
-
+    // 转换为 OrderBookEntry 格式并计算累计量
+    const convertToEntries = (orders: Array<{ price: string; quantity: string }>): OrderBookEntry[] => {
       let cumulative = 0;
-      return Array.from(priceMap.entries()).map(([price, amount]) => {
+      return orders.map((order) => {
+        const price = parseFloat(order.price) * 100; // 转为百分比 (0.5 -> 50)
+        const amount = parseFloat(order.quantity);
         cumulative += amount;
         return { price, amount, total: cumulative };
       });
     };
 
     return {
-      bids: aggregateOrders(buyOrders).slice(0, 10),
-      asks: aggregateOrders(sellOrders).slice(0, 10),
+      bids: convertToEntries(orderBook.bids).slice(0, 10),
+      asks: convertToEntries(orderBook.asks).slice(0, 10),
     };
-  }, [orders, direction]); // 订单内容或方向变化时更新
+  }, [orderBooks, marketId, direction]);
 
-  const maxTotal = Math.max(...bids.map((b) => b.total), ...asks.map((a) => a.total));
+  const maxTotal = Math.max(
+    ...bids.map((b) => b.total),
+    ...asks.map((a) => a.total),
+    1 // 避免除以0
+  );
 
   const renderOrder = (order: OrderBookEntry, isAsk: boolean) => {
     const percentage = (order.total / maxTotal) * 100;
@@ -82,6 +74,9 @@ const OrderBook = ({ marketId, direction = "UP" }: OrderBookProps) => {
     );
   };
 
+  // 空状态检查
+  const isEmpty = bids.length === 0 && asks.length === 0;
+
   return (
     <Card className="p-4 border border-border bg-card">
       <div className="space-y-3">
@@ -92,22 +87,46 @@ const OrderBook = ({ marketId, direction = "UP" }: OrderBookProps) => {
           <div className="text-right">Total</div>
         </div>
 
-        {/* Asks (Sell orders) */}
-        <div className="space-y-0.5">
-          {asks
-            .slice()
-            .reverse()
-            .map((order) => renderOrder(order, true))}
-        </div>
+        {isEmpty ? (
+          /* 空状态 */
+          <div className="py-8 text-center text-muted-foreground">
+            <p className="text-sm">No orders in the book</p>
+            <p className="text-xs mt-1">Be the first to place an order!</p>
+          </div>
+        ) : (
+          <>
+            {/* Asks (Sell orders) */}
+            <div className="space-y-0.5">
+              {asks.length > 0 ? (
+                asks
+                  .slice()
+                  .reverse()
+                  .map((order) => renderOrder(order, true))
+              ) : (
+                <div className="py-2 text-center text-xs text-muted-foreground">No sell orders</div>
+              )}
+            </div>
 
-        {/* Spread */}
-        <div className="py-2 px-2 bg-muted rounded-lg text-center">
-          <div className="text-xs text-muted-foreground mb-1">Spread</div>
-          <div className="text-base font-bold text-foreground">{(asks[0]?.price - bids[0]?.price).toFixed(1)}%</div>
-        </div>
+            {/* Spread */}
+            {asks.length > 0 && bids.length > 0 && (
+              <div className="py-2 px-2 bg-muted rounded-lg text-center">
+                <div className="text-xs text-muted-foreground mb-1">Spread</div>
+                <div className="text-base font-bold text-foreground">
+                  {(asks[0]?.price - bids[0]?.price).toFixed(1)}%
+                </div>
+              </div>
+            )}
 
-        {/* Bids (Buy orders) */}
-        <div className="space-y-0.5">{bids.map((order) => renderOrder(order, false))}</div>
+            {/* Bids (Buy orders) */}
+            <div className="space-y-0.5">
+              {bids.length > 0 ? (
+                bids.map((order) => renderOrder(order, false))
+              ) : (
+                <div className="py-2 text-center text-xs text-muted-foreground">No buy orders</div>
+              )}
+            </div>
+          </>
+        )}
       </div>
     </Card>
   );

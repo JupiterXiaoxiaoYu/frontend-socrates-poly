@@ -42,9 +42,10 @@ const Wallet = () => {
     let cancelled = false;
     const load = async () => {
       try {
-        const b = await apiClient.getBalance(uid, "USDT");
+        const b = await apiClient.getBalance(uid, "USDC");
         if (cancelled) return;
-        const available = fromUSDCPrecision(b.available);
+        // Gateway API now returns actual amount (not 2-decimal precision)
+        const available = parseFloat(b.available);
         setGatewayAvailable(available);
       } catch (_e) {
         // ignore

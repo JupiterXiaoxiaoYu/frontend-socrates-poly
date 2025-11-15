@@ -11,6 +11,15 @@ import type { Market, Order, Trade, Position, GlobalState, PlaceOrderParams, Pla
 
 // ==================== Context 类型定义 ====================
 
+// 订单簿数据类型
+export interface OrderBookData {
+  marketId: string;
+  direction: "YES" | "NO";
+  bids: Array<{ price: string; quantity: string }>;
+  asks: Array<{ price: string; quantity: string }>;
+  timestamp: number;
+}
+
 interface MarketContextType {
   // 数据
   markets: Market[];
@@ -23,6 +32,7 @@ interface MarketContextType {
   globalState: GlobalState | null;
   playerId: PlayerId | null;
   marketPrices: Map<string, number>; // 每个市场的最新价格
+  orderBooks: Map<string, OrderBookData>; // 订单簿数据 key: "marketId-YES" or "marketId-NO"
 
   // 状态
   isLoading: boolean;
@@ -38,6 +48,7 @@ interface MarketContextType {
   installPlayer: () => Promise<void>;
   // Optional market query setter (no-op default)
   setMarketQuery?: (q: { intervalMinutes: number | null; slotLabel: string | null }) => void;
+  getOrderBook: (marketId: string, direction: "YES" | "NO") => Promise<OrderBookData>;
 
   // 交易操作
   placeOrder: (params: PlaceOrderParams) => Promise<void>;
@@ -76,6 +87,7 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [globalState, setGlobalState] = useState<GlobalState | null>(null);
   const [playerId, setPlayerId] = useState<PlayerId | null>(null);
   const [marketPrices, setMarketPrices] = useState<Map<string, number>>(new Map()); // 每个市场的最新成交价格
+  const [orderBooks, setOrderBooks] = useState<Map<string, OrderBookData>>(new Map()); // 订单簿数据
 
   // Status state
   const [isLoading, setIsLoading] = useState(false);
@@ -339,15 +351,58 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       // 4. 如果有当前市场，获取订单和成交（只获取当前市场的）
       if (currentMarketId) {
-        const [marketData, ordersData, tradesData] = await Promise.all([
+        const [marketData, tradesData] = await Promise.all([
           apiClient.getMarket(currentMarketId),
-          apiClient.getOrders(currentMarketId), // 获取当前市场的所有订单
           apiClient.getTrades(currentMarketId),
         ]);
 
         setCurrentMarket(marketData);
-        setOrders(ordersData); // 只包含当前市场的订单
         setTrades(tradesData);
+
+        // 如果用户已登录，获取该市场的用户订单
+        if (playerId) {
+          const userId = `${playerId[0]}:${playerId[1]}`;
+          try {
+            // 获取当前市场的用户订单（YES 和 NO）
+            const [yesOrders, noOrders] = await Promise.all([
+              apiClient.getUserOrders(userId, { symbol: `${currentMarketId}-YES`, status: "OPEN" }),
+              apiClient.getUserOrders(userId, { symbol: `${currentMarketId}-NO`, status: "OPEN" }),
+            ]);
+            setOrders([...yesOrders, ...noOrders]);
+          } catch (error) {
+            console.error("Failed to load market orders:", error);
+            setOrders([]);
+          }
+        } else {
+          setOrders([]);
+        }
+
+        // 5. 获取当前市场的订单簿（一次请求返回 YES 和 NO）
+        try {
+          const orderBookData = await apiClient.getOrderBookDepth(currentMarketId, 20);
+
+          setOrderBooks((prev) => {
+            const newMap = new Map(prev);
+            newMap.set(`${currentMarketId}-YES`, {
+              marketId: currentMarketId,
+              direction: "YES",
+              bids: orderBookData.yes.bids,
+              asks: orderBookData.yes.asks,
+              timestamp: orderBookData.yes.timestamp,
+            });
+            newMap.set(`${currentMarketId}-NO`, {
+              marketId: currentMarketId,
+              direction: "NO",
+              bids: orderBookData.no.bids,
+              asks: orderBookData.no.asks,
+              timestamp: orderBookData.no.timestamp,
+            });
+            return newMap;
+          });
+        } catch (error) {
+          // Silently skip order book errors
+          console.error("Failed to load order books:", error);
+        }
       } else {
         // 如果没有选中市场，清空订单和成交
         setOrders([]);
@@ -369,21 +424,38 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const loadUserData = useCallback(async () => {
     if (!playerId) return;
 
+    const userId = `${playerId[0]}:${playerId[1]}`;
+
     try {
-      // 加载用户持仓、所有订单和所有成交（用于 Portfolio 页面）
-      const [positionsData, userOrdersData, userTradesData] = await Promise.all([
-        apiClient.getPositions(playerId),
-        apiClient.getPlayerOrders(playerId, { limit: 100 }),
-        apiClient.getPlayerTrades(playerId, 200), // 获取用户的所有成交
+      // 加载用户持仓和订单
+      const [positionsData, userOrdersData] = await Promise.all([
+        apiClient.getUserPositions(userId),
+        apiClient.getUserOrders(userId, { limit: 100 }),
       ]);
 
-      setPositions(positionsData);
+      // 转换持仓数据为前端格式
+      const convertedPositions = positionsData.map((pos: any) => ({
+        pid1: playerId[0],
+        pid2: playerId[1],
+        tokenIdx: "0", // USDC
+        balance: pos.yes_shares || "0",
+        lockBalance: "0",
+        marketId: pos.market_id,
+        yesShares: pos.yes_shares || "0",
+        noShares: pos.no_shares || "0",
+        yesFrozen: pos.yes_frozen || "0",
+        noFrozen: pos.no_frozen || "0",
+      }));
+
+      setPositions(convertedPositions as Position[]);
       setUserAllOrders(userOrdersData);
-      setUserAllTrades(userTradesData);
+      // TODO: 添加用户成交记录查询
+      setUserAllTrades([]);
     } catch (error) {
+      console.error("Failed to load user data:", error);
       // Silently skip user data errors
     }
-  }, [playerId]);
+  }, [playerId, apiClient]);
 
   // ==================== 交易操作 ====================
 
@@ -402,12 +474,16 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         const type: "LIMIT" | "MARKET" = params.orderType.startsWith("limit") ? "LIMIT" : "MARKET";
         const direction: "YES" | "NO" = params.direction === "UP" ? "YES" : "NO";
 
+        // Convert price from BPS (0-10000) to decimal (0-1)
+        // Example: 5000 BPS -> "0.5"
         const priceStr = type === "LIMIT" ? (Number(params.price) / 10000).toFixed(4).replace(/\.?0+$/, "") : undefined;
 
+        // Convert amount from 2-decimal precision (100 = 1.0) to decimal string
+        // Example: 1000n (10.00 shares) -> "10"
         const amountBig = params.amount;
-        const intPart = amountBig / 1000000n;
-        const fracPart = amountBig % 1000000n;
-        let amountStr = `${intPart.toString()}.${fracPart.toString().padStart(6, "0")}`;
+        const intPart = amountBig / 100n;
+        const fracPart = amountBig % 100n;
+        let amountStr = `${intPart.toString()}.${fracPart.toString().padStart(2, "0")}`;
         amountStr = amountStr.replace(/\.?0+$/, "");
 
         await apiClient.createMarketOrder(
@@ -510,6 +586,58 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     [playerClient, refreshData, toast]
   );
 
+  // ==================== 订单簿查询 ====================
+
+  const getOrderBook = useCallback(
+    async (marketId: string, direction: "YES" | "NO"): Promise<OrderBookData> => {
+      try {
+        const depth = await apiClient.getOrderBookDepth(marketId, 20);
+        const subMarket = direction === "YES" ? depth.yes : depth.no;
+        
+        const orderBookData: OrderBookData = {
+          marketId,
+          direction,
+          bids: subMarket.bids,
+          asks: subMarket.asks,
+          timestamp: subMarket.timestamp,
+        };
+
+        // 缓存到 state（同时缓存两个子市场）
+        setOrderBooks((prev) => {
+          const newMap = new Map(prev);
+          newMap.set(`${marketId}-YES`, {
+            marketId,
+            direction: "YES",
+            bids: depth.yes.bids,
+            asks: depth.yes.asks,
+            timestamp: depth.yes.timestamp,
+          });
+          newMap.set(`${marketId}-NO`, {
+            marketId,
+            direction: "NO",
+            bids: depth.no.bids,
+            asks: depth.no.asks,
+            timestamp: depth.no.timestamp,
+          });
+          return newMap;
+        });
+
+        return orderBookData;
+      } catch (error) {
+        console.error("Failed to fetch order book:", error);
+        // 返回空订单簿
+        return {
+          marketId,
+          direction,
+          bids: [],
+          asks: [],
+          timestamp: Date.now(),
+        };
+      }
+    },
+    [apiClient]
+  );
+
   // ==================== Deposit ====================
 
   const deposit = useCallback(
@@ -594,6 +722,7 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     userAllTrades,
     positions,
     globalState,
+    orderBooks,
     playerId,
     marketPrices,
     isLoading,
@@ -604,6 +733,7 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     refreshData,
     installPlayer,
     setMarketQuery,
+    getOrderBook,
     placeOrder,
     cancelOrder,
     claim,

@@ -232,14 +232,28 @@ export const PredictionMarketProvider: React.FC<PredictionMarketProviderProps> =
 
   // Use wallet context from zkWasm SDK
   const walletData = useWallet();
-  const { l1Account, l2Account, playerId, setPlayerId, isConnected, connectL1 } = walletData;
+  const { l1Account, l2Account, isConnected } = walletData;
+  
+  // Manage playerId locally in this context
+  const [playerId, setPlayerId] = useState<[string, string] | null>(null);
 
-  // Auto-connect L1 when RainbowKit connection is established
+  // Generate playerId from l2Account when available
   useEffect(() => {
-    if (isConnected && !l1Account) {
-      connectL1();
+    if (l2Account?.pubkey) {
+      try {
+        const pubkey = l2Account.pubkey;
+        const leHexBN = new LeHexBN(bnToHexLe(pubkey));
+        const pkeyArray = leHexBN.toU64Array();
+        const newPlayerId: [string, string] = [pkeyArray[1].toString(), pkeyArray[2].toString()];
+        setPlayerId(newPlayerId);
+      } catch (error) {
+        console.error("Failed to generate playerId:", error);
+        setPlayerId(null);
+      }
+    } else {
+      setPlayerId(null);
     }
-  }, [isConnected, l1Account, connectL1]);
+  }, [l2Account]);
 
   // Initialize API when L2 account is available OR use fallback for public data
   useEffect(() => {

@@ -1170,7 +1170,7 @@ class OraclePriceService {
   }
   
   private connectWebSocket(asset: string) {
-    const symbol = `${asset.toLowerCase()}usdt`;
+    const symbol = `${asset.toLowerCase()}USDC`;
     this.ws = new WebSocket(
       `wss://stream.binance.com:9443/ws/${symbol}@ticker`
     );

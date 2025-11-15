@@ -40,7 +40,7 @@ const ReferralRules = () => {
           <div className="mb-10">
             <h2 className="text-2xl font-bold text-foreground mb-4">I. Terms &amp; Roles</h2>
             <ul className="list-disc pl-6 space-y-2 text-sm text-foreground">
-              <li>Trade Amount: Notional value of a single matched trade (denominated in USDT).</li>
+              <li>Trade Amount: Notional value of a single matched trade (denominated in USDC).</li>
               <li>Fee: Charged at 2%.</li>
               <li>Platform: The service provider that collects the fee.</li>
               <li>Public Pool: Ecosystem treasury; funded by "Pool Baseline + Market Surplus."</li>
@@ -57,7 +57,7 @@ const ReferralRules = () => {
             <ol className="list-decimal pl-6 space-y-2 text-sm text-foreground mb-4">
               <li>Trading Fee: 2% (After the handling fee is allocated to the Maker, it will be included in the commission distribution mechanism for this round.)</li>
               <li>Allocation: Platform 20% | Market 70% | Public Pool Baseline 10%</li>
-              <li>Example (10,000 USDT volume):</li>
+              <li>Example (10,000 USDC volume):</li>
             </ol>
             <ul className="list-disc pl-12 space-y-2 text-sm text-foreground mb-4">
               <li>Fee = 200</li>
@@ -75,7 +75,7 @@ const ReferralRules = () => {
             <h2 className="text-2xl font-bold text-foreground mb-4">
               III. Fee Rebate Caps by Level
             </h2>
-            <p className="text-sm text-foreground mb-4">(Example uses 10,000 USDT volume → 200 USDT fees)</p>
+            <p className="text-sm text-foreground mb-4">(Example uses 10,000 USDC volume → 200 USDC fees)</p>
             
             <div className="overflow-x-auto">
               <table className="w-full text-sm border-collapse">
@@ -170,7 +170,7 @@ const ReferralRules = () => {
               IV. SOC Token Rebate Caps by Level
             </h2>
             <p className="text-sm text-foreground mb-4">
-              (Example: 10,000 USDT volume → 1,000 SOC minted; user keeps 800 SOC as base reward; 200 SOC to allocate)
+              (Example: 10,000 USDC volume → 1,000 SOC minted; user keeps 800 SOC as base reward; 200 SOC to allocate)
             </p>
             
             <div className="overflow-x-auto">

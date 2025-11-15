@@ -10,7 +10,7 @@ export const API_CONFIG = {
 
   // zkWasm RPC URL (player install, tx submit, etc.)
   // If VITE_ZKWASM_RPC_URL is not set, default to public zkWasm RPC.
-  zkwasmRpcUrl: import.meta.env.VITE_ZKWASM_RPC_URL || "https://rpc.socrates.zkwasm.ai",
+  zkwasmRpcUrl: import.meta.env.REACT_APP_URL || "https://rpc.socrates.zkwasm.ai",
 
   // User private key (in production this should come from wallet connection)
   privateKey: import.meta.env.REACT_APP_USER_PRIVATE_KEY || "0x1234567890abcdef",
