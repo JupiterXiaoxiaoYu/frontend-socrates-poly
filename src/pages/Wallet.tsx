@@ -2,7 +2,7 @@ import Header from "@/components/Header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Eye, EyeOff, Download, Upload, FileText, ChevronLeft, ChevronRight, Copy, Check } from "lucide-react";
+import { Eye, EyeOff, Download, Upload, ChevronLeft, ChevronRight, Copy, Check } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
 import { useMarket } from "../contexts";
 import { fromUSDCPrecision, formatCurrency } from "../lib/calculations";
@@ -10,114 +10,7 @@ import { useToast } from "../hooks/use-toast";
 import { DepositDialog } from "../components/DepositDialog";
 import { WithdrawDialog } from "../components/WithdrawDialog";
 
-interface Asset {
-  id: string;
-  name: string;
-  symbol: string;
-  amount: number;
-  usdAmount: number;
-  icon: string;
-}
-
-interface Transaction {
-  id: number;
-  type: string;
-  amount: string;
-  date: string;
-  status: "Completed" | "Failed" | "Pending";
-}
-
-const mockAssets: Asset[] = [
-  {
-    id: "1",
-    name: "Tether USDT",
-    symbol: "USDT",
-    amount: 8335.4512,
-    usdAmount: 125510.6721,
-    icon: "🟢",
-  },
-  {
-    id: "2",
-    name: "USD Coin",
-    symbol: "USDC",
-    amount: 8335.4612,
-    usdAmount: 125510.6721,
-    icon: "🔵",
-  },
-];
-
-const mockTransactions: Transaction[] = [
-  {
-    id: 1,
-    type: "Deposit USDT",
-    amount: "+8,335.4512 USDT",
-    date: "2024-07-31 17:36:35",
-    status: "Completed",
-  },
-  {
-    id: 2,
-    type: "Withdraw USDT",
-    amount: "-8,335.4512 USDT",
-    date: "2024-07-31 17:36:35",
-    status: "Failed",
-  },
-  {
-    id: 3,
-    type: "Deposit USDT",
-    amount: "+8,335.4512 USDT",
-    date: "2024-07-31 17:36:35",
-    status: "Pending",
-  },
-  {
-    id: 4,
-    type: "Deposit USDT",
-    amount: "+8,335.4512 USDT",
-    date: "2024-07-31 17:36:35",
-    status: "Completed",
-  },
-  {
-    id: 5,
-    type: "Deposit USDT",
-    amount: "+8,335.4512 USDT",
-    date: "2024-07-31 17:36:35",
-    status: "Completed",
-  },
-  {
-    id: 6,
-    type: "Deposit USDC",
-    amount: "+1,000.0000 USDC",
-    date: "2024-07-31 16:20:15",
-    status: "Completed",
-  },
-  {
-    id: 7,
-    type: "Withdraw USDC",
-    amount: "-500.0000 USDC",
-    date: "2024-07-31 15:45:30",
-    status: "Completed",
-  },
-  {
-    id: 8,
-    type: "Deposit USDT",
-    amount: "+2,500.0000 USDT",
-    date: "2024-07-31 14:12:45",
-    status: "Completed",
-  },
-  {
-    id: 9,
-    type: "Deposit USDC",
-    amount: "+750.0000 USDC",
-    date: "2024-07-31 13:30:20",
-    status: "Pending",
-  },
-  {
-    id: 10,
-    type: "Withdraw USDT",
-    amount: "-1,200.0000 USDT",
-    date: "2024-07-31 12:15:10",
-    status: "Failed",
-  },
-];
+// Transaction row shape for display is computed inline; no separate interface needed
 
 const Wallet = () => {
   const { positions = [], playerId, apiClient, deposit, withdraw } = useMarket();
@@ -129,13 +22,41 @@ const Wallet = () => {
   const [showDepositDialog, setShowDepositDialog] = useState(false);
   const [showWithdrawDialog, setShowWithdrawDialog] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [gatewayAvailable, setGatewayAvailable] = useState<number | null>(null);
   const itemsPerPage = 6;
 
-  // 计算 USDC 余额
+  // 计算 USDC 余额（优先使用 Gateway /v1/balance 的 available）
   const usdcBalance = useMemo(() => {
+    if (gatewayAvailable !== null) {
+      return gatewayAvailable;
+    }
     const usdcPosition = positions.find((p) => p.tokenIdx === "0");
     return usdcPosition ? fromUSDCPrecision(usdcPosition.balance) : 0;
-  }, [positions]);
+  }, [positions, gatewayAvailable]);
+
+  // 加载网关余额
+  useEffect(() => {
+    if (!apiClient) return;
+    if (!playerId) return;
+    const uid = `${playerId[0]}:${playerId[1]}`;
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const b = await apiClient.getBalance(uid, "USDT");
+        if (cancelled) return;
+        const available = fromUSDCPrecision(b.available);
+        setGatewayAvailable(available);
+      } catch (_e) {
+        // ignore
+      }
+    };
+    load();
+    const interval = setInterval(load, 10000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [apiClient, playerId]);
 
   // 复制 Player ID
   const handleCopyPid = () => {
