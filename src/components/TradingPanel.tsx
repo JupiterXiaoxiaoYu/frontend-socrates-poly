@@ -5,28 +5,19 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Slider } from "@/components/ui/slider";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
 import {
   TrendingUp,
   TrendingDown,
   AlertTriangle,
   DollarSign,
   Clock,
-  Shield,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { cn, formatCurrency, formatPercent } from "@/lib/utils";
 import { Market, OrderType, MarketStatus } from "@/types/market";
 import { webSocketService } from "@/services/websocket";
 import { useMarket } from "@/contexts";
-import { fromUSDCPrecision } from "@/lib/calculations";
 
 interface TradingPanelProps {
   market: Market;
@@ -47,7 +38,6 @@ interface TradingPanelProps {
 }
 
 const QUICK_AMOUNTS = [10, 50, 100, 500, 1000];
-const FEE_RATE = 0.02; // 2% protocol fee
 const MIN_ORDER_AMOUNT = 1; // 最小订单金额 1 USDC (后端精度2位: 100=1.0，最小值100)
 
 // 向下取整到两位小数（用于百分数计算）
@@ -67,6 +57,7 @@ const TradingPanel = ({
   className,
 }: TradingPanelProps) => {
   const { t } = useTranslation('market');
+  const [isProfessional, setIsProfessional] = useState(false);
   const [direction, setDirection] = useState<"yes" | "no">("yes");
   const [action, setAction] = useState<"buy" | "sell">("buy");
 
@@ -82,7 +73,6 @@ const TradingPanel = ({
     market?.currentPrice !== undefined && market?.currentPrice !== null ? market.currentPrice / 100 : 0.5
   );
   const [sliderValue, setSliderValue] = useState([0]);
-  const [showConfirmation, setShowConfirmation] = useState(false);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [orderBook, setOrderBook] = useState<any>(null);
   const [priceImpact, setPriceImpact] = useState(0);
@@ -182,9 +172,6 @@ const TradingPanel = ({
 
   // 简化的份额计算（用户输入的是本金，不含手续费）
   const estimatedShares = amount > 0 ? amount / price : 0;
-  const actualCost = amount; // 用户输入的就是本金
-  const tradingFee = isFeeExempt ? 0 : amount * FEE_RATE;
-  const totalCost = actualCost + tradingFee;
 
   // P&L calculations
   const maxWin = estimatedShares * 1.0; // $1 per share if win
@@ -198,12 +185,6 @@ const TradingPanel = ({
 
   const handlePlaceOrder = async () => {
     if (!onPlaceOrder || !canPlaceOrder) return;
-
-    setShowConfirmation(true);
-  };
-
-  const confirmOrder = async () => {
-    if (!onPlaceOrder) return;
 
     setIsPlacingOrder(true);
     try {
@@ -235,7 +216,6 @@ const TradingPanel = ({
       // Reset form
       setAmount(0);
       setSliderValue([0]);
-      setShowConfirmation(false);
     } catch (error) {
       // Error handled by parent component
     } finally {
@@ -316,13 +296,20 @@ const TradingPanel = ({
 
   return (
     <div className={cn("p-6 h-full flex flex-col overflow-auto", className)}>
-      {/* Market Info Header */}
+      {/* Market Info Header with Professional Toggle */}
       <div className="mb-4 space-y-2">
         <div className="flex items-center justify-between">
           <h3 className="font-semibold text-lg">
             {market.assetId === 1 ? "BTC" : market.assetId === 2 ? "ETH" : "SOL"}{" "}
             {market.outcomeType === 1 ? "UP" : "DOWN"}
           </h3>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">Professional</span>
+            <Switch
+              checked={isProfessional}
+              onCheckedChange={setIsProfessional}
+            />
+          </div>
         </div>
         {pairedMarket && (
           <div className="text-xs text-muted-foreground">
@@ -331,76 +318,230 @@ const TradingPanel = ({
         )}
       </div>
 
-      {/* Direction Tabs (YES/NO) */}
-      <Tabs
-        value={direction}
-        onValueChange={(v) => handleDirectionChange(v as "yes" | "no")}
-        className="space-y-4 flex-1 flex flex-col"
-      >
-        <TabsList className="grid w-full grid-cols-2 h-12 bg-muted">
-          <TabsTrigger
-            value="yes"
-            className="data-[state=active]:bg-success data-[state=active]:text-white font-semibold"
-          >
-            <TrendingUp className="w-4 h-4 mr-2" />
-            YES
-          </TabsTrigger>
-          <TabsTrigger
-            value="no"
-            className="data-[state=active]:bg-danger data-[state=active]:text-white font-semibold"
-          >
-            <TrendingDown className="w-4 h-4 mr-2" />
-            NO
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value={direction} className="space-y-4 flex-1 flex flex-col m-0">
+      {/* Simple Mode - Direct Buy Yes/No Buttons */}
+      {!isProfessional ? (
+        <div className="space-y-4 flex-1 flex flex-col">
           {/* 市场已结束 - 显示结果 */}
           {isMarketEnded ? (
-            <div className="space-y-4">
-              <Card>
-                <CardContent className="p-4 text-center space-y-3">
-                  <Clock className="w-8 h-8 mx-auto text-muted-foreground" />
-                  <div className="text-base font-semibold">
-                    {market?.status === MarketStatus.PENDING
-                      ? t('notStarted')
-                      : market?.status === MarketStatus.CLOSED
-                      ? t('awaitingOracle')
-                      : t('marketResolved')}
-                  </div>
+            <Card>
+              <CardContent className="p-4 text-center space-y-3">
+                <Clock className="w-8 h-8 mx-auto text-muted-foreground" />
+                <div className="text-base font-semibold">
+                  {market?.status === MarketStatus.PENDING
+                    ? t('notStarted')
+                    : market?.status === MarketStatus.CLOSED
+                    ? t('awaitingOracle')
+                    : t('marketResolved')}
+                </div>
 
-                  {isResolved && (
-                    <div className="space-y-2 text-sm pt-2">
-                      <div className="flex justify-between py-1.5 border-t">
-                        <span className="text-muted-foreground">{t('start')}:</span>
-                        <span className="font-mono">${(startPrice / 100).toLocaleString()}</span>
-                      </div>
-                      <div className="flex justify-between py-1.5 border-t">
-                        <span className="text-muted-foreground">{t('end')}:</span>
-                        <span className="font-mono">${(endPrice / 100).toLocaleString()}</span>
-                      </div>
-                      <div className="flex justify-between py-1.5 border-t">
-                        <span className="text-muted-foreground">{t('winner')}:</span>
-                        <span
-                          className={`font-semibold ${
-                            winningOutcome === 1
-                              ? "text-success"
-                              : winningOutcome === 0
-                              ? "text-danger"
-                              : "text-warning"
-                          }`}
-                        >
-                          {winningOutcome === 1 ? `✓ ${t('yes')}` : winningOutcome === 0 ? `✗ ${t('no')}` : `↔️ ${t('tie')}`}
-                        </span>
-                      </div>
+                {isResolved && (
+                  <div className="space-y-2 text-sm pt-2">
+                    <div className="flex justify-between py-1.5 border-t">
+                      <span className="text-muted-foreground">{t('start')}:</span>
+                      <span className="font-mono">${(startPrice / 100).toLocaleString()}</span>
                     </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
+                    <div className="flex justify-between py-1.5 border-t">
+                      <span className="text-muted-foreground">{t('end')}:</span>
+                      <span className="font-mono">${(endPrice / 100).toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between py-1.5 border-t">
+                      <span className="text-muted-foreground">{t('winner')}:</span>
+                      <span
+                        className={`font-semibold ${
+                          winningOutcome === 1
+                            ? "text-success"
+                            : winningOutcome === 0
+                            ? "text-danger"
+                            : "text-warning"
+                        }`}
+                      >
+                        {winningOutcome === 1 ? `✓ ${t('yes')}` : winningOutcome === 0 ? `✗ ${t('no')}` : `↔️ ${t('tie')}`}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           ) : (
             /* 市场活跃 - 显示交易表单 */
-            <Tabs value={action} onValueChange={(v) => setAction(v as "buy" | "sell")} className="space-y-4">
+            <>
+              {/* Amount Input */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <label className="font-medium">{t('amount')}</label>
+                  <span className="text-muted-foreground">{t('balance')}: ${effectiveBalance.toFixed(2)}</span>
+                </div>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-lg">$</span>
+                  <Input
+                    type="number"
+                    value={amount || ""}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val === "" || val === ".") {
+                        setAmount(0);
+                      } else {
+                        const numVal = Number(val);
+                        if (!isNaN(numVal)) {
+                          setAmount(numVal);
+                        }
+                      }
+                    }}
+                    onBlur={(e) => {
+                      const val = Number(e.target.value);
+                      if (!isNaN(val) && val > 0) {
+                        setAmount(Number(val.toFixed(2)));
+                      } else if (val === 0 || isNaN(val)) {
+                        setAmount(0);
+                      }
+                    }}
+                    className="pl-8 h-16 text-2xl font-semibold text-center"
+                    placeholder="0"
+                    min={MIN_ORDER_AMOUNT}
+                    step="0.01"
+                  />
+                </div>
+                {amount > 0 && amount < MIN_ORDER_AMOUNT && (
+                  <div className="text-xs text-red-500 flex items-center gap-1 justify-center">
+                    <AlertTriangle className="w-3 h-3" />
+                    {t('minimumOrder', { amount: MIN_ORDER_AMOUNT })}
+                  </div>
+                )}
+              </div>
+
+              {/* Slider */}
+              <div className="space-y-2">
+                <Slider value={sliderValue} onValueChange={handleSliderChange} max={100} step={1} className="py-4" />
+                <div className="flex gap-2">
+                  {[25, 50, 75, 100].map((percent) => (
+                    <Button
+                      key={percent}
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handlePercentClick(percent)}
+                      className="flex-1 text-xs"
+                    >
+                      {percent}%
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Potential Win Display */}
+              {amount > 0 && (
+                <div className="text-center p-3 bg-muted/30 rounded-lg">
+                  <div className="text-sm text-muted-foreground mb-1">{t('potentialWin')}</div>
+                  <div className="text-xl font-bold">
+                    ${(amount / marketPriceDecimal).toFixed(2)}
+                  </div>
+                </div>
+              )}
+
+              {/* Buy Yes / Buy No Buttons */}
+              <div className="grid grid-cols-2 gap-3 mt-auto">
+                <Button
+                  size="lg"
+                  className="h-14 font-semibold text-base bg-success hover:bg-success/90 text-white"
+                  disabled={!canPlaceOrder || isPlacingOrder}
+                  onClick={() => {
+                    setDirection("yes");
+                    setAction("buy");
+                    setOrderType("market");
+                    handlePlaceOrder();
+                  }}
+                >
+                  <TrendingUp className="w-5 h-5 mr-2" />
+                  Buy Yes
+                </Button>
+                <Button
+                  size="lg"
+                  className="h-14 font-semibold text-base bg-danger hover:bg-danger/90 text-white"
+                  disabled={!canPlaceOrder || isPlacingOrder}
+                  onClick={() => {
+                    setDirection("no");
+                    setAction("buy");
+                    setOrderType("market");
+                    handlePlaceOrder();
+                  }}
+                >
+                  <TrendingDown className="w-5 h-5 mr-2" />
+                  Buy No
+                </Button>
+              </div>
+            </>
+          )}
+        </div>
+      ) : (
+        /* Professional Mode - Full Trading Interface */
+        <div className="space-y-4 flex-1 flex flex-col">
+          {/* 市场已结束 - 显示结果 */}
+          {isMarketEnded ? (
+            <Card>
+              <CardContent className="p-4 text-center space-y-3">
+                <Clock className="w-8 h-8 mx-auto text-muted-foreground" />
+                <div className="text-base font-semibold">
+                  {market?.status === MarketStatus.PENDING
+                    ? t('notStarted')
+                    : market?.status === MarketStatus.CLOSED
+                    ? t('awaitingOracle')
+                    : t('marketResolved')}
+                </div>
+
+                {isResolved && (
+                  <div className="space-y-2 text-sm pt-2">
+                    <div className="flex justify-between py-1.5 border-t">
+                      <span className="text-muted-foreground">{t('start')}:</span>
+                      <span className="font-mono">${(startPrice / 100).toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between py-1.5 border-t">
+                      <span className="text-muted-foreground">{t('end')}:</span>
+                      <span className="font-mono">${(endPrice / 100).toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between py-1.5 border-t">
+                      <span className="text-muted-foreground">{t('winner')}:</span>
+                      <span
+                        className={`font-semibold ${
+                          winningOutcome === 1
+                            ? "text-success"
+                            : winningOutcome === 0
+                            ? "text-danger"
+                            : "text-warning"
+                        }`}
+                      >
+                        {winningOutcome === 1 ? `✓ ${t('yes')}` : winningOutcome === 0 ? `✗ ${t('no')}` : `↔️ ${t('tie')}`}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          ) : (
+            /* 市场活跃 - 显示 YES/NO 标签和交易表单 */
+            <Tabs
+              value={direction}
+              onValueChange={(v) => handleDirectionChange(v as "yes" | "no")}
+              className="space-y-4 flex-1 flex flex-col"
+            >
+              <TabsList className="grid w-full grid-cols-2 h-12 bg-muted">
+                <TabsTrigger
+                  value="yes"
+                  className="data-[state=active]:bg-success data-[state=active]:text-white font-semibold"
+                >
+                  <TrendingUp className="w-4 h-4 mr-2" />
+                  YES
+                </TabsTrigger>
+                <TabsTrigger
+                  value="no"
+                  className="data-[state=active]:bg-danger data-[state=active]:text-white font-semibold"
+                >
+                  <TrendingDown className="w-4 h-4 mr-2" />
+                  NO
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value={direction} className="space-y-4 flex-1 flex flex-col m-0">
+                {/* 市场活跃 - 显示交易表单 */}
+                <Tabs value={action} onValueChange={(v) => setAction(v as "buy" | "sell")} className="space-y-4">
               <TabsList className="grid w-full grid-cols-2 h-10">
                 <TabsTrigger
                   value="buy"
@@ -592,100 +733,11 @@ const TradingPanel = ({
                 )}
               </TabsContent>
             </Tabs>
+          </TabsContent>
+        </Tabs>
           )}
-        </TabsContent>
-      </Tabs>
-
-      {/* Order Confirmation Dialog */}
-      <Dialog open={showConfirmation} onOpenChange={setShowConfirmation}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>{t('confirmOrder')}</DialogTitle>
-            <DialogDescription>{t('confirmOrderDesc')}</DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 py-4">
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <span className="text-muted-foreground">{t('market')}:</span>
-                <div className="font-medium">
-                  {market.assetId === 1 ? "BTC" : market.assetId === 2 ? "ETH" : "SOL"}{" "}
-                  {market.outcomeType === 1 ? "UP" : "DOWN"}
-                </div>
-              </div>
-              <div>
-                <span className="text-muted-foreground">{t('action')}:</span>
-                <div className="font-medium">
-                  {action === "buy" ? t('buy') : t('sell')} {direction.toUpperCase()}
-                </div>
-              </div>
-              <div>
-                <span className="text-muted-foreground">{t('type')}:</span>
-                <div className="font-medium capitalize">{orderType === "market" ? t('marketType') : t('limit')}</div>
-              </div>
-              <div>
-                <span className="text-muted-foreground">{t('price')}:</span>
-                <div className="font-medium">{formatCurrency(price)}</div>
-              </div>
-              <div>
-                <span className="text-muted-foreground">{t('amount')}:</span>
-                <div className="font-medium">{formatCurrency(amount)}</div>
-              </div>
-              <div>
-                <span className="text-muted-foreground">{t('shares')}:</span>
-                <div className="font-medium">{estimatedShares.toFixed(2)}</div>
-              </div>
-            </div>
-
-            {priceImpact > 1 && (
-              <Alert className="border-orange-200 bg-orange-50">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertDescription>{t('highPriceImpact', { impact: formatPercent(priceImpact / 100, 1) })}</AlertDescription>
-              </Alert>
-            )}
-
-            <div className="border-t pt-4">
-              <div className="flex justify-between text-sm mb-2">
-                <span>{t('tradingFee')}:</span>
-                <span>{isFeeExempt ? t('exempt') : formatCurrency(tradingFee)}</span>
-              </div>
-              {!isFeeExempt && (
-                <div className="flex justify-between text-sm mb-2">
-                  <span>{t('protocolFee')}:</span>
-                  <span>{formatCurrency(tradingFee)}</span>
-                </div>
-              )}
-              <div className="flex justify-between font-semibold text-base">
-                <span>{t('totalCost')}:</span>
-                <span>{formatCurrency(totalCost)}</span>
-              </div>
-            </div>
-
-            <div className="bg-muted/30 p-3 rounded-lg text-sm">
-              <div className="flex items-center gap-2 mb-1">
-                <Shield className="h-4 w-4 text-muted-foreground" />
-                <span className="font-medium">{t('riskWarning')}</span>
-              </div>
-              <p className="text-muted-foreground text-xs">
-                {t('riskWarningDesc')}
-              </p>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowConfirmation(false)} disabled={isPlacingOrder}>
-              {t('cancel')}
-            </Button>
-            <Button
-              onClick={confirmOrder}
-              disabled={isPlacingOrder}
-              className={cn(direction === "yes" ? "bg-success hover:bg-success/90" : "bg-danger hover:bg-danger/90")}
-            >
-              {isPlacingOrder ? t('placingOrder') : t('confirmOrderButton')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        </div>
+      )}
     </div>
   );
 };
