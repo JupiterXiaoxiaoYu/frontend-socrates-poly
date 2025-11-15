@@ -13,6 +13,7 @@ import Wallet from "./pages/Wallet";
 import Admin from "./pages/Admin";
 import Referral from "./pages/Referral";
 import ReferralRules from "./pages/ReferralRules";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import OraclePriceDemo from "./pages/OraclePriceDemo";
 import TradingViewDemo from "./pages/TradingViewDemo";
@@ -47,6 +48,7 @@ const App = () => (
                     <Route path="/portfolio" element={<Portfolio />} />
                     <Route path="/mining" element={<Rebate />} />
                     <Route path="/wallet" element={<Wallet />} />
+                    <Route path="/settings" element={<Settings />} />
                     <Route path="/admin" element={<Admin />} />
                     <Route path="/referral" element={<Referral />} />
                     <Route path="/referral/rules" element={<ReferralRules />} />

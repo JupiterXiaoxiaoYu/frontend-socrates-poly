@@ -1,19 +1,25 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useState, useMemo } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Menu, Volume2, VolumeX } from "lucide-react";
+import { Menu, DollarSign } from "lucide-react";
 import { WalletButton } from "@/components/WalletButton";
 import MobileNav from "@/components/MobileNav";
-import { useSound } from "../contexts";
 import ThemeToggle from "@/components/ThemeToggle";
-import LanguageSwitcher from "@/components/LanguageSwitcher";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useTranslation } from "react-i18next";
+import { useMarket } from "../contexts";
+import { fromUSDCPrecision } from "../lib/calculations";
 
 const Header = () => {
   const { t } = useTranslation('common');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const { isEnabled, toggleSound } = useSound();
+  const navigate = useNavigate();
+  const { positions } = useMarket();
+
+  // 计算 USDC 余额
+  const usdcBalance = useMemo(() => {
+    const usdcPosition = positions.find((p) => p.tokenIdx === "0");
+    return usdcPosition ? fromUSDCPrecision(usdcPosition.balance) : 0;
+  }, [positions]);
 
   return (
     <>
@@ -45,28 +51,29 @@ const Header = () => {
             <Link to="/referral" className="text-sm font-medium hover:text-gray-300 transition-colors">
               {t('nav.referral')}
             </Link>
-            <Link to="/wallet" className="text-sm font-medium hover:text-gray-300 transition-colors">
-              {t('nav.wallet')}
-            </Link>
           </nav>
 
           <div className="flex items-center gap-3">
-            {/* Sound Toggle Button */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="sm" onClick={toggleSound} className="p-2">
-                  {isEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>{isEnabled ? "Mute new market alerts" : "Enable new market alerts"}</p>
-              </TooltipContent>
-            </Tooltip>
-
-            {/* Language Switcher - Desktop */}
-            <div className="hidden lg:block">
-              <LanguageSwitcher variant="desktop" />
+            {/* Cash Display */}
+            <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-md border border-white/10">
+              <DollarSign className="h-4 w-4 text-gray-400" />
+              <div className="flex flex-col">
+                <span className="text-[10px] text-gray-400 leading-none mb-0.5">Cash</span>
+                <span className="text-sm font-semibold text-white leading-none">
+                  ${usdcBalance.toFixed(2)}
+                </span>
+              </div>
             </div>
+
+            {/* Deposit Button */}
+            <Button
+              variant="default"
+              size="sm"
+              onClick={() => navigate("/wallet")}
+              className="bg-white text-black hover:bg-gray-200 font-semibold"
+            >
+              Deposit
+            </Button>
 
             <ThemeToggle />
             <WalletButton />
