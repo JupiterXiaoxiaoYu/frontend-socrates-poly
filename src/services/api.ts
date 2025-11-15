@@ -326,6 +326,23 @@ export class ExchangeAPI {
           return 0;
       }
     };
+    
+    // Map outcome string to number enum
+    const mapOutcome = (outcome: string | undefined): number => {
+      switch ((outcome || "").toUpperCase()) {
+        case "YES":
+        case "UP":
+          return 1;  // MarketOutcome.Up
+        case "NO":
+        case "DOWN":
+          return 0;  // MarketOutcome.Down
+        case "TIE":
+          return 2;  // MarketOutcome.Tie
+        default:
+          return 0;
+      }
+    };
+    
     const mapped: Market = {
       marketId: String(m?.market_id ?? marketId),
       assetId: String(m?.asset_id ?? ""),
@@ -338,7 +355,7 @@ export class ExchangeAPI {
       oracleStartPrice: String(m?.start_price ?? "0"),
       oracleEndTime: String(m?.resolve_time ?? "0"),
       oracleEndPrice: String(m?.end_price ?? "0"),
-      winningOutcome: (m?.outcome ?? 0) as any,
+      winningOutcome: mapOutcome(m?.outcome) as any,
       upMarket: {
         orders: [],
         volume: "0",

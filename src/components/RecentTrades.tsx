@@ -6,18 +6,38 @@ import { fromUSDCPrecision } from "../lib/calculations";
 
 interface RecentTradesProps {
   marketId: number;
-  direction?: 'UP' | 'DOWN';  // 内部仍使用UP/DOWN以兼容后端
+  direction?: 'UP' | 'DOWN';
 }
 
-const RecentTrades = ({ marketId, direction = 'UP' }: RecentTradesProps) => {
+const RecentTrades = ({ direction = 'UP' }: RecentTradesProps) => {
   const { t } = useTranslation('market');
   const { trades } = useMarket();
+
+  // 生成假数据用于测试
+  const generateMockTrades = () => {
+    const mockTrades = [];
+    
+    for (let i = 0; i < 15; i++) {
+      const isBuy = Math.random() > 0.5;
+      const secondsAgo = i * 45; // 每45秒一个交易
+      
+      mockTrades.push({
+        id: `mock-${i}`,
+        side: isBuy ? 'BUY YES' : 'BUY NO',
+        price: (48 + Math.random() * 4).toFixed(2), // 48-52%
+        amount: (Math.random() * 500 + 50).toFixed(0), // 50-550
+        time: secondsAgo < 60 ? `${secondsAgo}s ago` : `${Math.floor(secondsAgo / 60)}m ago`,
+      });
+    }
+    
+    return mockTrades;
+  };
 
   // 转换真实成交数据（按 direction 过滤）
   const displayTrades = useMemo(() => {
     const directionValue = direction === 'UP' ? 1 : 0;
     
-    return trades
+    const realTrades = trades
       .filter(t => t.direction === directionValue) // 只显示当前方向的成交
       .slice(0, 20) // 最近 20 条
       .map(t => {
@@ -46,6 +66,9 @@ const RecentTrades = ({ marketId, direction = 'UP' }: RecentTradesProps) => {
           time: timeAgo,
         };
       });
+    
+    // 如果没有真实数据，返回假数据
+    return realTrades.length > 0 ? realTrades : generateMockTrades();
   }, [trades.length, direction]); // 只在成交数量或方向变化时更新
 
   return (

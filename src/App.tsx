@@ -3,7 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { PredictionMarketProvider, MarketProvider, SoundProvider, WalletProvider } from "./contexts";
+import { PredictionMarketProvider, MarketProvider, SoundProvider, WalletProvider, BalanceProvider } from "./contexts";
 import { API_CONFIG } from "./config/api";
 import ErrorBoundary from "./components/ErrorBoundary";
 import Index from "./pages/Index";
@@ -16,7 +16,6 @@ import ReferralRules from "./pages/ReferralRules";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import OraclePriceDemo from "./pages/OraclePriceDemo";
-import TradingViewDemo from "./pages/TradingViewDemo";
 import Rebate from "./pages/Rebate";
 import RebateRecords from "./pages/RebateRecords";
 import RebateRules from "./pages/RebateRules";
@@ -38,7 +37,8 @@ const App = () => (
         <BrowserRouter>
           <SoundProvider>
             <MarketProvider>
-              <TooltipProvider>
+              <BalanceProvider>
+                <TooltipProvider>
                 <Toaster />
                 <Sonner />
                 <ErrorBoundary>
@@ -58,12 +58,12 @@ const App = () => (
                     <Route path="/rebate/points-history" element={<RebatePointsHistory />} />
                     <Route path="/rebate/volume-records" element={<RebateVolumeRecords />} />
                     <Route path="/oracle-demo" element={<OraclePriceDemo />} />
-                    <Route path="/trading-view" element={<TradingViewDemo />} />
                     {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </ErrorBoundary>
               </TooltipProvider>
+              </BalanceProvider>
             </MarketProvider>
           </SoundProvider>
         </BrowserRouter>

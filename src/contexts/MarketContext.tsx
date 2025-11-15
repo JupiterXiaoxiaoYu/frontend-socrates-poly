@@ -263,16 +263,63 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [l2Account?.pubkey]);
 
-  // ==================== 定时轮询 ====================
+  // ==================== 智能轮询：整分钟前后 4 秒内 1.5 秒轮询 ====================
 
   useEffect(() => {
-    // 立即加载市场列表（不需要登录）
+    // 立即加载市场列表
     loadInitialData();
 
-    // 设置定时轮询（每 5 秒）
+    let currentInterval: NodeJS.Timeout | null = null;
+
+    const checkAndSchedulePolling = () => {
+      const now = new Date();
+      const seconds = now.getSeconds();
+
+      // 判断是否在整分钟前后 4 秒内 (56-59秒 或 0-3秒)
+      const isNearMinuteBoundary = seconds >= 56 || seconds <= 3;
+
+      if (isNearMinuteBoundary) {
+        // 在关键时间段内，启动 1.5 秒轮询（只刷新市场列表）
+        if (!currentInterval) {
+          console.log('🔄 启动快速轮询 (1.5s) - 只刷新市场列表');
+          currentInterval = setInterval(() => {
+            refreshMarketList();
+          }, 1500);
+        }
+      } else {
+        // 不在关键时间段，停止轮询
+        if (currentInterval) {
+          console.log('⏸️  停止轮询');
+          clearInterval(currentInterval);
+          currentInterval = null;
+        }
+      }
+    };
+
+    // 每秒检查一次是否需要启动/停止轮询
+    const checkInterval = setInterval(checkAndSchedulePolling, 1000);
+    
+    // 立即检查一次
+    checkAndSchedulePolling();
+
+    return () => {
+      clearInterval(checkInterval);
+      if (currentInterval) {
+        clearInterval(currentInterval);
+      }
+    };
+  }, [currentMarketId]);
+
+  // ==================== 其他数据 5 秒轮询 ====================
+  
+  useEffect(() => {
+    // 轮询当前市场的订单、交易、订单簿等数据
+    if (!currentMarketId) return;
+
     const interval = setInterval(() => {
-      refreshData();
-    }, 5000);
+      // 只刷新当前市场的详细数据，不刷新市场列表
+      refreshCurrentMarketData();
+    }, 3000);
 
     return () => clearInterval(interval);
   }, [currentMarketId]);
@@ -314,6 +361,72 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setIsLoading(false);
     }
   };
+
+  // 单独刷新市场列表（用于智能轮询）
+  const refreshMarketList = useCallback(async () => {
+    try {
+      const marketsData = await apiClient.getMarkets();
+      setMarkets(marketsData);
+    } catch (error) {
+      console.error("Failed to refresh market list:", error);
+    }
+  }, [apiClient]);
+
+  // 刷新当前市场的详细数据（订单、交易、订单簿）
+  const refreshCurrentMarketData = useCallback(async () => {
+    if (!currentMarketId) return;
+
+    try {
+      const [marketData, tradesData] = await Promise.all([
+        apiClient.getMarket(currentMarketId),
+        apiClient.getTrades(currentMarketId),
+      ]);
+
+      setCurrentMarket(marketData);
+      setTrades(tradesData);
+
+      // 如果用户已登录，获取该市场的用户订单
+      if (playerId) {
+        const userId = `${playerId[0]}:${playerId[1]}`;
+        try {
+          const [yesOrders, noOrders] = await Promise.all([
+            apiClient.getUserOrders(userId, { symbol: `${currentMarketId}-YES`, status: "OPEN" }),
+            apiClient.getUserOrders(userId, { symbol: `${currentMarketId}-NO`, status: "OPEN" }),
+          ]);
+          setOrders([...yesOrders, ...noOrders]);
+        } catch (error) {
+          console.error("Failed to load market orders:", error);
+        }
+      }
+
+      // 获取订单簿
+      try {
+        const orderBookData = await apiClient.getOrderBookDepth(currentMarketId, 20);
+        setOrderBooks((prev) => {
+          const newMap = new Map(prev);
+          newMap.set(`${currentMarketId}-YES`, {
+            marketId: currentMarketId,
+            direction: "YES",
+            bids: orderBookData.yes.bids,
+            asks: orderBookData.yes.asks,
+            timestamp: orderBookData.yes.timestamp,
+          });
+          newMap.set(`${currentMarketId}-NO`, {
+            marketId: currentMarketId,
+            direction: "NO",
+            bids: orderBookData.no.bids,
+            asks: orderBookData.no.asks,
+            timestamp: orderBookData.no.timestamp,
+          });
+          return newMap;
+        });
+      } catch (error) {
+        console.error("Failed to load order book:", error);
+      }
+    } catch (error) {
+      console.error("Failed to refresh current market data:", error);
+    }
+  }, [currentMarketId, playerId, apiClient]);
 
   const refreshData = useCallback(async () => {
     try {

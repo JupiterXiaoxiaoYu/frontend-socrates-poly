@@ -18,3 +18,6 @@ export { MarketProvider, useMarket } from "./MarketContext";
 
 // Sound Context
 export { SoundProvider, useSound } from "./SoundContext";
+
+// Balance Context
+export { BalanceProvider, useBalance } from "./BalanceContext";

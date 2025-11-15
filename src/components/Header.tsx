@@ -1,25 +1,46 @@
-import { useState, useMemo } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Menu, DollarSign } from "lucide-react";
 import { WalletButton } from "@/components/WalletButton";
 import MobileNav from "@/components/MobileNav";
 import ThemeToggle from "@/components/ThemeToggle";
+import { DepositDialog } from "@/components/DepositDialog";
 import { useTranslation } from "react-i18next";
-import { useMarket } from "../contexts";
-import { fromUSDCPrecision } from "../lib/calculations";
+import { useMarket, useBalance } from "../contexts";
+import { useToast } from "../hooks/use-toast";
 
 const Header = () => {
   const { t } = useTranslation('common');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const navigate = useNavigate();
-  const { positions } = useMarket();
+  const [showDepositDialog, setShowDepositDialog] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const { playerId, deposit } = useMarket();
+  const { usdcBalance, refreshBalance } = useBalance();
+  const { toast } = useToast();
 
-  // 计算 USDC 余额
-  const usdcBalance = useMemo(() => {
-    const usdcPosition = positions.find((p) => p.tokenIdx === "0");
-    return usdcPosition ? fromUSDCPrecision(usdcPosition.balance) : 0;
-  }, [positions]);
+  // 处理充值
+  const handleDeposit = async (amount: number) => {
+    setIsProcessing(true);
+    try {
+      await deposit(BigInt(Math.round(amount * 100))); // Convert to 2-decimal precision
+      toast({
+        title: t('depositSuccess') || "Deposit Successful",
+        description: t('depositSuccessDesc') || `Successfully deposited $${amount.toFixed(2)}`,
+      });
+      setShowDepositDialog(false);
+      // 刷新余额
+      await refreshBalance();
+    } catch (error) {
+      toast({
+        title: t('depositFailed') || "Deposit Failed",
+        description: error instanceof Error ? error.message : (t('depositFailedDesc') || "Failed to deposit funds"),
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   return (
     <>
@@ -69,8 +90,9 @@ const Header = () => {
             <Button
               variant="default"
               size="sm"
-              onClick={() => navigate("/wallet")}
-              className="bg-white text-black hover:bg-gray-200 font-semibold"
+              onClick={() => setShowDepositDialog(true)}
+              disabled={!playerId}
+              className="bg-gray-900 text-white hover:bg-gray-800 font-semibold border-0 shadow-sm"
             >
               Deposit
             </Button>
@@ -82,6 +104,15 @@ const Header = () => {
       </header>
 
       <MobileNav isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
+
+      {/* Deposit Dialog */}
+      <DepositDialog
+        open={showDepositDialog}
+        onOpenChange={setShowDepositDialog}
+        onConfirm={handleDeposit}
+        balance={usdcBalance}
+        isLoading={isProcessing}
+      />
     </>
   );
 };

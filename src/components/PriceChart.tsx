@@ -1,6 +1,13 @@
 import { useEffect, useRef, useState } from "react";
-import { useTranslation } from "react-i18next";
-import { createChart, LineStyle, ColorType, AreaSeries as AreaSeriesType, Time } from "lightweight-charts";
+import { 
+  createChart, 
+  LineStyle, 
+  ColorType, 
+  LineSeries,
+  LineType,
+  LastPriceAnimationMode,
+  Time
+} from "lightweight-charts";
 import { useTheme } from "next-themes";
 import { Card } from "@/components/ui/card";
 import { PartialPriceLine } from "@/lib/chart/PartialPriceLine";
@@ -8,14 +15,12 @@ import { socratesOracleService, PriceData, PriceHistoryData } from "@/services/s
 
 interface PriceChartProps {
   targetPrice: number;
-  currentPrice?: number;
-  onPriceUpdate?: (price: number) => void; // 新增：价格更新回调
+  onPriceUpdate?: (price: number) => void;
 }
 
-const PriceChart = ({ targetPrice, currentPrice, onPriceUpdate }: PriceChartProps) => {
-  const { t } = useTranslation('market');
+const PriceChart = ({ targetPrice, onPriceUpdate }: PriceChartProps) => {
   const chartContainerRef = useRef<HTMLDivElement>(null);
-  const [latestPrice, setLatestPrice] = useState<number | null>(currentPrice || null);
+  const [latestPrice, setLatestPrice] = useState<number | null>(null);
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
 
@@ -25,13 +30,10 @@ const PriceChart = ({ targetPrice, currentPrice, onPriceUpdate }: PriceChartProp
       onPriceUpdate(latestPrice);
     }
   }, [latestPrice, onPriceUpdate]);
-  const [isLoading, setIsLoading] = useState(true);
+  
   const chartRef = useRef<any>(null);
   const lineSeriesRef = useRef<any>(null);
   const partialPriceLineRef = useRef<any>(null);
-  const smoothPriceRef = useRef<number | null>(null);
-  const animationFrameRef = useRef<number | null>(null);
-  const targetPriceRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!chartContainerRef.current) return;
@@ -87,16 +89,22 @@ const PriceChart = ({ targetPrice, currentPrice, onPriceUpdate }: PriceChartProp
 
       chartRef.current = chart;
 
-      // Create line series
-      const lineSeries = chart.addSeries(AreaSeriesType as any, {
-        lineColor: "#f59e0b",
-        topColor: "rgba(245, 158, 11, 0.2)",
-        bottomColor: "rgba(245, 158, 11, 0.0)",
+      // Create line series with curved line (平滑曲线)
+      const lineSeries = chart.addSeries(LineSeries, {
+        lastPriceAnimation: LastPriceAnimationMode.OnDataUpdate,
+        color: "#f59e0b", // 橙色
         lineWidth: 3,
-        priceLineVisible: false,
-        lineStyle: 0, // solid
-        crosshairMarkerVisible: false,
-        lastValueVisible: false,
+        lineType: LineType.Curved, // ← 平滑曲线
+        priceLineVisible: true, // 显示当前价格线
+        priceLineColor: "#f59e0b",
+        priceLineWidth: 1,
+        priceLineStyle: LineStyle.Solid,
+        crosshairMarkerVisible: true,
+        crosshairMarkerRadius: 6,
+        crosshairMarkerBorderWidth: 2,
+        crosshairMarkerBorderColor: "#f59e0b",
+        crosshairMarkerBackgroundColor: "#f59e0b",
+        lastValueVisible: true, // 显示最新价格标签
         priceFormat: {
           type: "price",
           precision: 2,
@@ -111,22 +119,15 @@ const PriceChart = ({ targetPrice, currentPrice, onPriceUpdate }: PriceChartProp
       lineSeries.attachPrimitive(partialPriceLine);
       partialPriceLineRef.current = partialPriceLine;
 
-      // Add target price line with more visible styling (no title to hide legend)
-      lineSeries.createPriceLine({
-        price: targetPrice,
-        color: "#3b82f6", // Blue color for better visibility
-        lineWidth: 2,
-        lineStyle: LineStyle.Dashed,
-        axisLabelVisible: true,
-        title: "", // Empty title to hide legend
-      });
+      // Target price line reference
+      let targetPriceLine: any = null;
 
-      // Get 60 seconds of historical data
+      // 获取 60 秒历史数据
       try {
         const historyData: PriceHistoryData = await socratesOracleService.getPriceHistory("BTC/USD");
 
         if (isSubscribed && historyData.prices && historyData.prices.length > 0) {
-          // Convert historical data to chart format
+          // 直接使用原始数据
           const chartData = historyData.prices.map((point) => ({
             time: point.unix_time as Time,
             value: parseFloat(point.price),
@@ -134,85 +135,47 @@ const PriceChart = ({ targetPrice, currentPrice, onPriceUpdate }: PriceChartProp
 
           lineSeries.setData(chartData);
 
-          // Update current price with the latest price from history
+          // 更新最新价格
           const latestHistoricalPrice = historyData.prices[historyData.prices.length - 1];
           const latestPriceValue = parseFloat(latestHistoricalPrice.price);
           setLatestPrice(latestPriceValue);
-          smoothPriceRef.current = latestPriceValue;
-          setIsLoading(false);
+
+          // 数据加载后添加目标价格线（智能定位）
+          setTimeout(() => {
+            // 计算数据的价格范围
+            const prices = chartData.map(d => d.value);
+            const minPrice = Math.min(...prices);
+            const maxPrice = Math.max(...prices);
+            
+            // 智能定位目标价格线
+            let displayPrice = targetPrice;
+            if (targetPrice > maxPrice) {
+              // 目标价格高于范围，放在顶部附近
+              displayPrice = maxPrice;
+            } else if (targetPrice < minPrice) {
+              // 目标价格低于范围，放在底部附近
+              displayPrice = minPrice;
+            }
+            
+            targetPriceLine = lineSeries.createPriceLine({
+              price: displayPrice,
+              color: "#3b82f6",
+              lineWidth: 2,
+              lineStyle: LineStyle.Dashed,
+              axisLabelVisible: true,
+              title: "",
+            });
+          }, 100);
         }
       } catch (error) {
-        // Fallback to mock data with currentPrice
-        const now = Math.floor(Date.now() / 1000);
-        const fallbackData = [];
-        let basePrice = currentPrice || 120000;
-
-        for (let i = 60; i >= 0; i--) {
-          const time = (now - i) as Time;
-          const volatility = 50;
-          const change = (Math.random() - 0.5) * volatility;
-          basePrice = basePrice + change * 0.3;
-
-          fallbackData.push({
-            time,
-            value: basePrice,
-          });
-        }
-
-        lineSeries.setData(fallbackData);
-        setLatestPrice(basePrice);
-        smoothPriceRef.current = basePrice;
-        setIsLoading(false);
+        console.error("Failed to load price history:", error);
       }
 
       // Scroll to real-time
       chart.timeScale().scrollToRealTime();
       chart.timeScale().fitContent();
 
-      // Smooth animation function
-      const animateToTarget = (targetValue: number, currentTime: number) => {
-        if (animationFrameRef.current) {
-          cancelAnimationFrame(animationFrameRef.current);
-        }
-
-        const startValue = smoothPriceRef.current || targetValue;
-        const startTime = performance.now();
-        const duration = 500; // 500ms for smooth transition
-
-        const animate = (currentTime_ms: number) => {
-          const elapsed = currentTime_ms - startTime;
-          const progress = Math.min(elapsed / duration, 1);
-
-          // Easing function for smooth animation
-          const easeInOutCubic = (t: number) => {
-            return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-          };
-
-          const smoothValue = startValue + (targetValue - startValue) * easeInOutCubic(progress);
-
-          // Update the smooth data
-          const smoothPoint = {
-            time: currentTime as Time,
-            value: smoothValue,
-          };
-
-          // Update chart with smooth point
-          lineSeries.update(smoothPoint);
-          if (partialPriceLineRef.current) {
-            partialPriceLineRef.current.updateAllViews();
-          }
-
-          smoothPriceRef.current = smoothValue;
-
-          if (progress < 1) {
-            animationFrameRef.current = requestAnimationFrame(animate);
-          }
-        };
-
-        animationFrameRef.current = requestAnimationFrame(animate);
-      };
-
-      // Subscribe to real-time updates with smooth animation
+      // 订阅实时更新
       unsubscribe = await socratesOracleService.subscribeToPriceUpdates("BTC/USD", (priceData: PriceData) => {
         if (!isSubscribed) return;
 
@@ -221,11 +184,16 @@ const PriceChart = ({ targetPrice, currentPrice, onPriceUpdate }: PriceChartProp
 
         setLatestPrice(newPrice);
 
-        // Store target price for smooth animation
-        targetPriceRef.current = newPrice;
+        // 直接更新图表
+        lineSeries.update({
+          time: currentTime as Time,
+          value: newPrice,
+        });
 
-        // Trigger smooth animation to new price
-        animateToTarget(newPrice, currentTime);
+        // 更新 PartialPriceLine
+        if (partialPriceLineRef.current) {
+          partialPriceLineRef.current.updateAllViews();
+        }
 
         // Scroll to real-time
         chart.timeScale().scrollToRealTime();
@@ -251,14 +219,11 @@ const PriceChart = ({ targetPrice, currentPrice, onPriceUpdate }: PriceChartProp
       if (unsubscribe) {
         socratesOracleService.unsubscribe("BTC/USD");
       }
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
       if (chartRef.current) {
         chartRef.current.remove();
       }
     };
-  }, [targetPrice, currentPrice]);
+  }, [targetPrice, isDark]);
 
   // 主题变化时更新图表样式
   useEffect(() => {

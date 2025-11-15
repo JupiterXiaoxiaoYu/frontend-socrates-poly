@@ -14,6 +14,7 @@ import {
   Clock,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 import { cn, formatCurrency, formatPercent } from "@/lib/utils";
 import { Market, OrderType, MarketStatus } from "@/types/market";
 import { webSocketService } from "@/services/websocket";
@@ -57,6 +58,8 @@ const TradingPanel = ({
   className,
 }: TradingPanelProps) => {
   const { t } = useTranslation('market');
+  const navigate = useNavigate();
+  const { markets, refreshData } = useMarket();
   const [isProfessional, setIsProfessional] = useState(false);
   const [direction, setDirection] = useState<"yes" | "no">("yes");
   const [action, setAction] = useState<"buy" | "sell">("buy");
@@ -228,6 +231,35 @@ const TradingPanel = ({
     await onClaim(market.marketId);
   };
 
+  // 查找同类型的活跃市场
+  const findSimilarActiveMarket = () => {
+    if (!market) return null;
+    
+    // 查找相同 assetId 的活跃市场（优先相同时长）
+    const similarMarket = markets.find(
+      (m: any) =>
+        m.marketId !== market.marketId.toString() &&
+        m.assetId === market.assetId.toString() &&
+        m.status === MarketStatus.ACTIVE
+    );
+    
+    return similarMarket;
+  };
+
+  const handleContinuePredicting = async () => {
+    // 先刷新市场列表，确保获取最新的活跃市场
+    await refreshData();
+    
+    // 稍微延迟以确保状态更新完成
+    setTimeout(() => {
+      const similarMarket = findSimilarActiveMarket();
+      if (similarMarket) {
+        navigate(`/market/${similarMarket.marketId}`);
+      }
+      // 如果没有相同类型的市场，不跳转（保持在当前页面）
+    }, 100);
+  };
+
   const handleSliderChange = (value: number[]) => {
     setSliderValue(value);
     const newAmount = (effectiveBalance * value[0]) / 100;
@@ -323,10 +355,10 @@ const TradingPanel = ({
         <div className="space-y-4 flex-1 flex flex-col">
           {/* 市场已结束 - 显示结果 */}
           {isMarketEnded ? (
-            <Card>
-              <CardContent className="p-4 text-center space-y-3">
-                <Clock className="w-8 h-8 mx-auto text-muted-foreground" />
-                <div className="text-base font-semibold">
+            <Card className="border-2">
+              <CardContent className="p-6 text-center space-y-4">
+                <Clock className="w-10 h-10 mx-auto text-muted-foreground" />
+                <div className="text-lg font-bold">
                   {market?.status === MarketStatus.PENDING
                     ? t('notStarted')
                     : market?.status === MarketStatus.CLOSED
@@ -335,30 +367,43 @@ const TradingPanel = ({
                 </div>
 
                 {isResolved && (
-                  <div className="space-y-2 text-sm pt-2">
-                    <div className="flex justify-between py-1.5 border-t">
-                      <span className="text-muted-foreground">{t('start')}:</span>
-                      <span className="font-mono">${(startPrice / 100).toLocaleString()}</span>
+                  <>
+                    <div className="space-y-3 pt-2">
+                      <div className="flex justify-between items-center py-3 border-t">
+                        <span className="text-sm text-muted-foreground">{t('start')}:</span>
+                        <span className="text-xl font-bold font-mono">${(startPrice / 100).toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between items-center py-3 border-t">
+                        <span className="text-sm text-muted-foreground">{t('end')}:</span>
+                        <span className="text-xl font-bold font-mono">${(endPrice / 100).toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between items-center py-3 border-t">
+                        <span className="text-sm text-muted-foreground">Outcome:</span>
+                        <span
+                          className={`text-xl font-bold ${
+                            winningOutcome === 1
+                              ? "text-success"
+                              : winningOutcome === 0
+                              ? "text-danger"
+                              : "text-warning"
+                          }`}
+                        >
+                          {winningOutcome === 1 ? `✓ ${t('yes')}` : winningOutcome === 0 ? `✗ ${t('no')}` : `↔️ ${t('tie')}`}
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex justify-between py-1.5 border-t">
-                      <span className="text-muted-foreground">{t('end')}:</span>
-                      <span className="font-mono">${(endPrice / 100).toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between py-1.5 border-t">
-                      <span className="text-muted-foreground">{t('winner')}:</span>
-                      <span
-                        className={`font-semibold ${
-                          winningOutcome === 1
-                            ? "text-success"
-                            : winningOutcome === 0
-                            ? "text-danger"
-                            : "text-warning"
-                        }`}
+                    
+                    {/* Continue Predicting Button - 只在有相似市场时显示 */}
+                    {findSimilarActiveMarket() && (
+                      <Button
+                        onClick={handleContinuePredicting}
+                        className="w-full mt-4 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
+                        size="lg"
                       >
-                        {winningOutcome === 1 ? `✓ ${t('yes')}` : winningOutcome === 0 ? `✗ ${t('no')}` : `↔️ ${t('tie')}`}
-                      </span>
-                    </div>
-                  </div>
+                        Continue Predicting
+                      </Button>
+                    )}
+                  </>
                 )}
               </CardContent>
             </Card>
@@ -476,10 +521,10 @@ const TradingPanel = ({
         <div className="space-y-4 flex-1 flex flex-col">
           {/* 市场已结束 - 显示结果 */}
           {isMarketEnded ? (
-            <Card>
-              <CardContent className="p-4 text-center space-y-3">
-                <Clock className="w-8 h-8 mx-auto text-muted-foreground" />
-                <div className="text-base font-semibold">
+            <Card className="border-2">
+              <CardContent className="p-6 text-center space-y-4">
+                <Clock className="w-10 h-10 mx-auto text-muted-foreground" />
+                <div className="text-lg font-bold">
                   {market?.status === MarketStatus.PENDING
                     ? t('notStarted')
                     : market?.status === MarketStatus.CLOSED
@@ -488,60 +533,73 @@ const TradingPanel = ({
                 </div>
 
                 {isResolved && (
-                  <div className="space-y-2 text-sm pt-2">
-                    <div className="flex justify-between py-1.5 border-t">
-                      <span className="text-muted-foreground">{t('start')}:</span>
-                      <span className="font-mono">${(startPrice / 100).toLocaleString()}</span>
+                  <>
+                    <div className="space-y-3 pt-2">
+                      <div className="flex justify-between items-center py-3 border-t">
+                        <span className="text-sm text-muted-foreground">{t('start')}:</span>
+                        <span className="text-xl font-bold font-mono">${(startPrice / 100).toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between items-center py-3 border-t">
+                        <span className="text-sm text-muted-foreground">{t('end')}:</span>
+                        <span className="text-xl font-bold font-mono">${(endPrice / 100).toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between items-center py-3 border-t">
+                        <span className="text-sm text-muted-foreground">Outcome:</span>
+                        <span
+                          className={`text-xl font-bold ${
+                            winningOutcome === 1
+                              ? "text-success"
+                              : winningOutcome === 0
+                              ? "text-danger"
+                              : "text-warning"
+                          }`}
+                        >
+                          {winningOutcome === 1 ? `✓ ${t('yes')}` : winningOutcome === 0 ? `✗ ${t('no')}` : `↔️ ${t('tie')}`}
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex justify-between py-1.5 border-t">
-                      <span className="text-muted-foreground">{t('end')}:</span>
-                      <span className="font-mono">${(endPrice / 100).toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between py-1.5 border-t">
-                      <span className="text-muted-foreground">{t('winner')}:</span>
-                      <span
-                        className={`font-semibold ${
-                          winningOutcome === 1
-                            ? "text-success"
-                            : winningOutcome === 0
-                            ? "text-danger"
-                            : "text-warning"
-                        }`}
+                    
+                    {/* Continue Predicting Button - 只在有相似市场时显示 */}
+                    {findSimilarActiveMarket() && (
+                      <Button
+                        onClick={handleContinuePredicting}
+                        className="w-full mt-4 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
+                        size="lg"
                       >
-                        {winningOutcome === 1 ? `✓ ${t('yes')}` : winningOutcome === 0 ? `✗ ${t('no')}` : `↔️ ${t('tie')}`}
-                      </span>
-                    </div>
-                  </div>
+                        Continue Predicting
+                      </Button>
+                    )}
+                  </>
                 )}
               </CardContent>
             </Card>
           ) : (
             /* 市场活跃 - 显示 YES/NO 标签和交易表单 */
-            <Tabs
-              value={direction}
-              onValueChange={(v) => handleDirectionChange(v as "yes" | "no")}
-              className="space-y-4 flex-1 flex flex-col"
-            >
-              <TabsList className="grid w-full grid-cols-2 h-12 bg-muted">
-                <TabsTrigger
-                  value="yes"
-                  className="data-[state=active]:bg-success data-[state=active]:text-white font-semibold"
-                >
-                  <TrendingUp className="w-4 h-4 mr-2" />
-                  YES
-                </TabsTrigger>
-                <TabsTrigger
-                  value="no"
-                  className="data-[state=active]:bg-danger data-[state=active]:text-white font-semibold"
-                >
-                  <TrendingDown className="w-4 h-4 mr-2" />
-                  NO
-                </TabsTrigger>
-              </TabsList>
+      <Tabs
+        value={direction}
+        onValueChange={(v) => handleDirectionChange(v as "yes" | "no")}
+        className="space-y-4 flex-1 flex flex-col"
+      >
+        <TabsList className="grid w-full grid-cols-2 h-12 bg-muted">
+          <TabsTrigger
+            value="yes"
+            className="data-[state=active]:bg-success data-[state=active]:text-white font-semibold"
+          >
+            <TrendingUp className="w-4 h-4 mr-2" />
+            YES
+          </TabsTrigger>
+          <TabsTrigger
+            value="no"
+            className="data-[state=active]:bg-danger data-[state=active]:text-white font-semibold"
+          >
+            <TrendingDown className="w-4 h-4 mr-2" />
+            NO
+          </TabsTrigger>
+        </TabsList>
 
-              <TabsContent value={direction} className="space-y-4 flex-1 flex flex-col m-0">
+        <TabsContent value={direction} className="space-y-4 flex-1 flex flex-col m-0">
                 {/* 市场活跃 - 显示交易表单 */}
-                <Tabs value={action} onValueChange={(v) => setAction(v as "buy" | "sell")} className="space-y-4">
+            <Tabs value={action} onValueChange={(v) => setAction(v as "buy" | "sell")} className="space-y-4">
               <TabsList className="grid w-full grid-cols-2 h-10">
                 <TabsTrigger
                   value="buy"
@@ -733,11 +791,11 @@ const TradingPanel = ({
                 )}
               </TabsContent>
             </Tabs>
-          </TabsContent>
-        </Tabs>
+        </TabsContent>
+      </Tabs>
           )}
-        </div>
-      )}
+                </div>
+              )}
     </div>
   );
 };

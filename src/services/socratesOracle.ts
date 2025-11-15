@@ -208,14 +208,16 @@ class SocratesOracleService {
   }
 
   async getPriceHistory(symbol: string = 'BTC/USD', timestamp?: number): Promise<PriceHistoryData> {
-    const url = timestamp
-      ? `${this.baseUrl}/api/v1/price/history?symbol=${encodeURIComponent(symbol)}&timestamp=${timestamp}`
-      : `${this.baseUrl}/api/v1/price/history?symbol=${encodeURIComponent(symbol)}&timestamp=${Math.floor(Date.now() / 1000)}`;
+    // 使用当前时间戳（秒），减去 2 秒避免 FUTURE_TIMESTAMP 错误
+    const ts = timestamp || (Math.floor(Date.now() / 1000) - 2);
+    const url = `${this.baseUrl}/api/v1/price/history?symbol=${encodeURIComponent(symbol)}&timestamp=${ts}`;
 
     const response = await fetch(url);
 
     if (!response.ok) {
-      throw new Error(`Failed to fetch price history: ${response.statusText}`);
+      const errorData = await response.json().catch(() => ({}));
+      console.error('Price history API error:', errorData);
+      throw new Error(`Failed to fetch price history: ${errorData.message || response.statusText}`);
     }
 
     return response.json();
