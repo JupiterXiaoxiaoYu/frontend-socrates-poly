@@ -1,9 +1,8 @@
 // zkWASM API 客户端
 // 参考: backend/socrates-prediction-mkt/ts/src/api.ts
 
-import { PlayerConvention, ZKWasmAppRpc, createCommand } from 'zkwasm-minirollup-rpc';
+import { PlayerConvention, ZKWasmAppRpc, createCommand } from "zkwasm-minirollup-rpc";
 import type {
-  ApiResponse,
   Market,
   Order,
   Trade,
@@ -13,11 +12,12 @@ import type {
   PlaceOrderParams,
   CreateMarketParams,
   PlayerId,
-} from '../types/api';
+} from "../types/api";
 
-// API Base URL - use centralized config
-import { API_CONFIG } from '../config/api';
-export const API_BASE_URL = API_CONFIG.serverUrl;
+// API Base URLs - use centralized config
+import { API_CONFIG } from "../config/api";
+export const GATEWAY_BASE_URL = API_CONFIG.gatewayBaseUrl;
+export const ZKWASM_RPC_URL = API_CONFIG.zkwasmRpcUrl;
 
 // 命令常量（与后端对应）
 const CMD_TICK = 0;
@@ -65,7 +65,7 @@ export class ExchangePlayer extends PlayerConvention {
       const cmd = createCommand(0n, BigInt(CMD_REGISTER), []);
       return await this.sendTransactionWithCommand(cmd);
     } catch (e) {
-      if (e instanceof Error && e.message === 'PlayerAlreadyExists') {
+      if (e instanceof Error && e.message === "PlayerAlreadyExists") {
         return null;
       }
       throw e;
@@ -90,13 +90,17 @@ export class ExchangePlayer extends PlayerConvention {
   // 下单
   async placeOrder(params: PlaceOrderParams): Promise<any> {
     const nonce = await this.getNonce();
-    
+
     const typeValue =
-      params.orderType === 'limit_buy' ? 0n :
-      params.orderType === 'limit_sell' ? 1n :
-      params.orderType === 'market_buy' ? 2n : 3n;
-    
-    const directionValue = params.direction === 'UP' ? 1n : 0n;
+      params.orderType === "limit_buy"
+        ? 0n
+        : params.orderType === "limit_sell"
+        ? 1n
+        : params.orderType === "market_buy"
+        ? 2n
+        : 3n;
+
+    const directionValue = params.direction === "UP" ? 1n : 0n;
 
     const cmd = createCommand(nonce, BigInt(CMD_PLACE_ORDER), [
       params.marketId,
@@ -105,7 +109,7 @@ export class ExchangePlayer extends PlayerConvention {
       params.price,
       params.amount,
     ]);
-    
+
     return await this.sendTransactionWithCommand(cmd);
   }
 
@@ -124,11 +128,13 @@ export class ExchangePlayer extends PlayerConvention {
   }
 
   // 从 processingKey 解析 Player ID
-  protected resolvePidFromProcessingKey(processingKey: string): [bigint, bigint] {
+  protected resolvePidFromProcessingKey(_processingKey: string): [bigint, bigint] {
     // Note: 这个方法在前端可能不需要使用
     // Player ID 应该从 L2 account 的 pubkey 生成
     // 参考 MarketContext 中的 generatePlayerIdFromL2 方法
-    throw new Error('resolvePidFromProcessingKey should not be called in frontend. Use generatePlayerIdFromL2 instead.');
+    throw new Error(
+      "resolvePidFromProcessingKey should not be called in frontend. Use generatePlayerIdFromL2 instead."
+    );
   }
 }
 
@@ -165,29 +171,15 @@ export class ExchangeAdmin extends ExchangePlayer {
   }
 
   // 解析市场
-  async resolveMarket(
-    marketId: bigint,
-    oracleEndTime: bigint,
-    oracleEndPrice: bigint
-  ): Promise<any> {
+  async resolveMarket(marketId: bigint, oracleEndTime: bigint, oracleEndPrice: bigint): Promise<any> {
     const nonce = await this.getNonce();
     const pricePair = encodeI64(oracleEndPrice);
-    const cmd = createCommand(nonce, BigInt(CMD_RESOLVE_MARKET), [
-      marketId,
-      oracleEndTime,
-      pricePair[0],
-      pricePair[1],
-    ]);
+    const cmd = createCommand(nonce, BigInt(CMD_RESOLVE_MARKET), [marketId, oracleEndTime, pricePair[0], pricePair[1]]);
     return await this.sendTransactionWithCommand(cmd);
   }
 
   // 执行撮合
-  async executeTrade(params: {
-    buyOrderId: bigint;
-    sellOrderId: bigint;
-    price: bigint;
-    amount: bigint;
-  }): Promise<any> {
+  async executeTrade(params: { buyOrderId: bigint; sellOrderId: bigint; price: bigint; amount: bigint }): Promise<any> {
     const nonce = await this.getNonce();
     const cmd = createCommand(nonce, BigInt(CMD_EXECUTE_TRADE), [
       params.buyOrderId,
@@ -202,11 +194,7 @@ export class ExchangeAdmin extends ExchangePlayer {
   async setFeeExempt(targetProcessingKey: string, enabled: boolean): Promise<any> {
     const nonce = await this.getNonce();
     const targetPid = this.resolvePidFromProcessingKey(targetProcessingKey);
-    const cmd = createCommand(nonce, BigInt(CMD_SET_FEE_EXEMPT), [
-      targetPid[0],
-      targetPid[1],
-      enabled ? 1n : 0n,
-    ]);
+    const cmd = createCommand(nonce, BigInt(CMD_SET_FEE_EXEMPT), [targetPid[0], targetPid[1], enabled ? 1n : 0n]);
     return await this.sendTransactionWithCommand(cmd);
   }
 }
@@ -216,200 +204,247 @@ export class ExchangeAdmin extends ExchangePlayer {
 export class ExchangeAPI {
   private baseUrl: string;
 
-  constructor(baseUrl: string = API_BASE_URL) {
-    this.baseUrl = baseUrl;
+  constructor(baseUrl: string = GATEWAY_BASE_URL) {
+    this.baseUrl = baseUrl.replace(/\/+$/, "");
   }
 
   // ========== 市场相关 ==========
 
   async getMarkets(): Promise<Market[]> {
-    const response = await fetch(`${this.baseUrl}/data/markets`);
-    const body: ApiResponse<Market[]> = await response.json();
-    if (!body.success) {
-      throw new Error(body.error || 'Failed to fetch markets');
+    // Gateway: GET /v1/markets/active -> { code: 0, market_ids: string[] }
+    const res = await fetch(`${this.baseUrl}/v1/markets/active`);
+    if (!res.ok) {
+      throw new Error("Failed to fetch active markets");
     }
-    return body.data || [];
+    const json = await res.json();
+    const ids: string[] = Array.isArray(json?.market_ids) ? json.market_ids : [];
+    if (ids.length === 0) return [];
+
+    // Fetch each market info and map to frontend Market shape
+    const markets = await Promise.all(
+      ids.map(async (id) => {
+        try {
+          const info = await this.getMarket(id);
+          return info;
+        } catch {
+          return null;
+        }
+      })
+    );
+    return markets.filter((m): m is Market => m !== null);
   }
 
   async getMarket(marketId: string): Promise<Market> {
-    const response = await fetch(`${this.baseUrl}/data/market/${marketId}`);
-    const body: ApiResponse<Market> = await response.json();
-    if (!body.success) {
-      throw new Error(body.error || 'Failed to fetch market');
+    // Gateway: GET /v1/markets/:market_id -> flat JSON
+    const res = await fetch(`${this.baseUrl}/v1/markets/${encodeURIComponent(marketId)}`);
+    if (!res.ok) {
+      throw new Error("Failed to fetch market");
     }
-    if (!body.data) {
-      throw new Error('Market not found');
+    const m = await res.json();
+    // Map gateway market to frontend Market type
+    const mapState = (state: string | undefined): number => {
+      switch ((state || "").toUpperCase()) {
+        case "ACTIVE":
+          return 1;
+        case "RESOLVED":
+          return 2;
+        case "CLOSED":
+          return 3;
+        case "PENDING":
+        default:
+          return 0;
+      }
+    };
+    const mapped: Market = {
+      marketId: String(m?.market_id ?? marketId),
+      assetId: String(m?.asset_id ?? ""),
+      status: mapState(m?.state) as any,
+      startTick: "0",
+      endTick: "0",
+      windowTicks: String(m?.window_ticks ?? "0"),
+      windowMinutes: Number(m?.duration_minutes ?? 0),
+      oracleStartTime: String(m?.start_time ?? "0"),
+      oracleStartPrice: String(m?.start_price ?? "0"),
+      oracleEndTime: String(m?.resolve_time ?? "0"),
+      oracleEndPrice: String(m?.end_price ?? "0"),
+      winningOutcome: (m?.outcome ?? 0) as any,
+      upMarket: {
+        orders: [],
+        volume: "0",
+        lastOrderId: "",
+      },
+      downMarket: {
+        orders: [],
+        volume: "0",
+        lastOrderId: "",
+      },
+      isClosed: mapState(m?.state) === 3,
+      isResolved: mapState(m?.state) === 2,
+    };
+    return mapped;
+  }
+
+  // ========== 下单（Gateway） ==========
+
+  async createMarketOrder(
+    params: {
+      clientOrderId?: string;
+      marketId: string;
+      side: "BUY" | "SELL";
+      direction: "YES" | "NO";
+      type: "LIMIT" | "MARKET";
+      price?: string; // decimal between 0 and 1 for LIMIT
+      amount: string; // shares as decimal
+    },
+    userId: string
+  ): Promise<any> {
+    // Generate client_order_id if not provided
+    const clientOrderId =
+      params.clientOrderId ||
+      (typeof crypto !== "undefined" && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `order-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`);
+
+    // Idempotency-Key must be at least 16 characters (gateway requirement)
+    // Use client_order_id as base, ensure it's at least 16 chars
+    let idempotencyKey = clientOrderId;
+    if (idempotencyKey.length < 16) {
+      idempotencyKey = `${idempotencyKey}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
     }
-    return body.data;
+
+    const body = {
+      client_order_id: clientOrderId,
+      market_id: params.marketId,
+      side: params.side,
+      direction: params.direction,
+      type: params.type,
+      price: params.price ?? "",
+      amount: params.amount,
+    };
+
+    const res = await fetch(`${this.baseUrl}/v1/market/orders`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-User-ID": userId,
+        "Idempotency-Key": idempotencyKey,
+      },
+      body: JSON.stringify(body),
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(json?.message || "Failed to create market order");
+    }
+    return json;
   }
 
   // ========== 订单相关 ==========
 
   async getOrders(marketId: string): Promise<Order[]> {
-    const response = await fetch(`${this.baseUrl}/data/market/${marketId}/orders`);
-    const body: ApiResponse<Order[]> = await response.json();
-    if (!body.success) {
-      throw new Error(body.error || 'Failed to fetch orders');
+    void marketId;
+    // Not available yet via gateway per-market; return empty to avoid breaking UI
+    // TODO: add /v1/markets/:market_id/orders when backend supports it
+    return [];
+  }
+
+  // ========== 余额 ==========
+
+  async getBalance(userId: string, currency: string = "USDT"): Promise<{ available: string; frozen: string }> {
+    const res = await fetch(`${this.baseUrl}/v1/balance?currency=${encodeURIComponent(currency)}`, {
+      headers: {
+        "X-User-ID": userId,
+      },
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(json?.message || "Failed to fetch balance");
     }
-    return body.data || [];
+    return {
+      available: String(json?.available ?? "0"),
+      frozen: String(json?.frozen ?? "0"),
+    };
   }
 
   // ========== 成交相关 ==========
 
   async getTrades(marketId: string): Promise<Trade[]> {
-    const response = await fetch(`${this.baseUrl}/data/market/${marketId}/trades`);
-    const body: ApiResponse<Trade[]> = await response.json();
-    if (!body.success) {
-      throw new Error(body.error || 'Failed to fetch trades');
-    }
-    return body.data || [];
+    void marketId;
+    // Not available yet via gateway per-market; return empty to avoid breaking UI
+    // TODO: add /v1/markets/:market_id/trades when backend supports it
+    return [];
   }
 
   async getTradeHistory(marketId: string): Promise<Trade[]> {
-    const response = await fetch(`${this.baseUrl}/data/market/${marketId}/trade-history`);
-    const body: ApiResponse<Trade[]> = await response.json();
-    if (!body.success) {
-      throw new Error(body.error || 'Failed to fetch trade history');
-    }
-    return body.data || [];
+    void marketId;
+    return [];
   }
 
   // ========== 持仓相关 ==========
 
-  async getPositions(pid: PlayerId): Promise<Position[]> {
-    const [pid1, pid2] = pid.map((v: string) => v.toString());
-    const response = await fetch(`${this.baseUrl}/data/player/${pid1}/${pid2}/positions`);
-    const body: ApiResponse<Position[]> = await response.json();
-    if (!body.success) {
-      throw new Error(body.error || 'Failed to fetch positions');
-    }
-    return body.data || [];
+  async getPositions(_pid: PlayerId): Promise<Position[]> {
+    // Gateway expects user_id, not pid. Frontend needs a user_id source to call:
+    //   GET /v1/users/:user_id/positions
+    // Mark as unsupported until user_id wiring is decided.
+    throw new Error("Positions endpoint requires user_id via gateway; PID is not supported.");
   }
 
   // 查询玩家订单
   async getPlayerOrders(
-    pid: PlayerId,
-    options?: {
+    _pid: PlayerId,
+    _options?: {
       status?: 0 | 1 | 2;
       marketId?: string;
       limit?: number;
     }
   ): Promise<Order[]> {
-    const [pid1, pid2] = pid.map((v: string) => v.toString());
-    const params = new URLSearchParams();
-    
-    if (options?.status !== undefined) {
-      params.append('status', options.status.toString());
-    }
-    if (options?.marketId) {
-      params.append('marketId', options.marketId);
-    }
-    if (options?.limit) {
-      params.append('limit', options.limit.toString());
-    }
-
-    const url = `${this.baseUrl}/data/player/${pid1}/${pid2}/orders?${params}`;
-    const response = await fetch(url);
-    const body: ApiResponse<Order[]> = await response.json();
-    
-    if (!body.success) {
-      throw new Error(body.error || 'Failed to fetch player orders');
-    }
-    return body.data || [];
+    throw new Error("Player orders not supported via gateway without user_id; use /v1/orders with auth.");
   }
 
   // 查询玩家所有成交记录
-  async getPlayerTrades(pid: PlayerId, limit = 100): Promise<Trade[]> {
-    const [pid1, pid2] = pid.map((v: string) => v.toString());
-    const url = `${this.baseUrl}/data/player/${pid1}/${pid2}/trades?limit=${limit}`;
-    const response = await fetch(url);
-    const body: ApiResponse<Trade[]> = await response.json();
-    
-    if (!body.success) {
-      throw new Error(body.error || 'Failed to fetch player trades');
-    }
-    return body.data || [];
+  async getPlayerTrades(_pid: PlayerId, _limit = 100): Promise<Trade[]> {
+    throw new Error("Player trades not supported via gateway without user_id; use /v1/trades with auth.");
   }
 
   // ========== 财务活动 ==========
 
-  async getFinancialActivity(pid: PlayerId, limit = 100): Promise<FinancialActivity[]> {
-    const [pid1, pid2] = pid.map((v: string) => v.toString());
-    const response = await fetch(
-      `${this.baseUrl}/data/player/${pid1}/${pid2}/financial-activity?limit=${limit}`
-    );
-    const body: ApiResponse<FinancialActivity[]> = await response.json();
-    if (!body.success) {
-      throw new Error(body.error || 'Failed to fetch financial activity');
-    }
-    return body.data || [];
+  async getFinancialActivity(_pid: PlayerId, _limit = 100): Promise<FinancialActivity[]> {
+    return [];
   }
 
-  async getDeposits(pid: PlayerId, limit = 50): Promise<any[]> {
-    const [pid1, pid2] = pid.map((v: string) => v.toString());
-    const response = await fetch(
-      `${this.baseUrl}/data/player/${pid1}/${pid2}/deposits?limit=${limit}`
-    );
-    const body: ApiResponse<any[]> = await response.json();
-    if (!body.success) {
-      throw new Error(body.error || 'Failed to fetch deposits');
-    }
-    return body.data || [];
+  async getDeposits(_pid: PlayerId, _limit = 50): Promise<any[]> {
+    return [];
   }
 
-  async getWithdrawals(pid: PlayerId, limit = 50): Promise<any[]> {
-    const [pid1, pid2] = pid.map((v: string) => v.toString());
-    const response = await fetch(
-      `${this.baseUrl}/data/player/${pid1}/${pid2}/withdrawals?limit=${limit}`
-    );
-    const body: ApiResponse<any[]> = await response.json();
-    if (!body.success) {
-      throw new Error(body.error || 'Failed to fetch withdrawals');
-    }
-    return body.data || [];
+  async getWithdrawals(_pid: PlayerId, _limit = 50): Promise<any[]> {
+    return [];
   }
 
-  async getClaims(pid: PlayerId, limit = 50): Promise<any[]> {
-    const [pid1, pid2] = pid.map((v: string) => v.toString());
-    const response = await fetch(
-      `${this.baseUrl}/data/player/${pid1}/${pid2}/claims?limit=${limit}`
-    );
-    const body: ApiResponse<any[]> = await response.json();
-    if (!body.success) {
-      throw new Error(body.error || 'Failed to fetch claims');
-    }
-    return body.data || [];
+  async getClaims(_pid: PlayerId, _limit = 50): Promise<any[]> {
+    return [];
   }
 
   // ========== 全局状态 ==========
 
   async getGlobalState(): Promise<GlobalState> {
-    const response = await fetch(`${this.baseUrl}/data/state`);
-    const body: ApiResponse<GlobalState> = await response.json();
-    if (!body.success) {
-      throw new Error(body.error || 'Failed to fetch global state');
-    }
-    if (!body.data) {
-      throw new Error('Global state not found');
-    }
-    return body.data;
+    // Not supported on gateway; caller should catch and ignore.
+    throw new Error("Global state not supported on gateway");
   }
 }
 
 // ==================== 工厂函数 ====================
 
 export function createPlayerClient(privateKey: string, rpcUrl?: string): ExchangePlayer {
-  const rpc = new ZKWasmAppRpc(rpcUrl || API_BASE_URL);
+  const rpc = new ZKWasmAppRpc(rpcUrl || ZKWASM_RPC_URL);
   return new ExchangePlayer(privateKey, rpc);
 }
 
 export function createAdminClient(privateKey: string, rpcUrl?: string): ExchangeAdmin {
-  const rpc = new ZKWasmAppRpc(rpcUrl || API_BASE_URL);
+  const rpc = new ZKWasmAppRpc(rpcUrl || ZKWASM_RPC_URL);
   return new ExchangeAdmin(privateKey, rpc);
 }
 
 export function createAPIClient(baseUrl?: string): ExchangeAPI {
-  return new ExchangeAPI(baseUrl || API_BASE_URL);
+  return new ExchangeAPI(baseUrl || GATEWAY_BASE_URL);
 }
 
 // ==================== 兼容旧的导出名称 ====================
@@ -423,37 +458,41 @@ export interface PredictionMarketAPI {
   cancelOrder: (orderId: bigint) => Promise<any>;
   claim: (marketId: bigint) => Promise<any>;
   getNonce: () => Promise<bigint>;
-  
+
   // REST API methods
   getAllMarkets: () => Promise<Market[]>;
-  
+
   // RPC instance
   rpc: ZKWasmAppRpc;
 }
 
 // Create combined API client with both player and REST capabilities
 export function createPredictionMarketAPI(params: { serverUrl: string; privkey: string }): PredictionMarketAPI {
-  const rpc = new ZKWasmAppRpc(params.serverUrl);
+  // Ignore params.serverUrl for RPC; use configured zkWasm RPC URL instead
+  const rpc = new ZKWasmAppRpc(ZKWASM_RPC_URL);
   const playerClient = new ExchangePlayer(params.privkey, rpc);
-  const restClient = new ExchangeAPI(params.serverUrl);
-  
+  const restClient = new ExchangeAPI(GATEWAY_BASE_URL);
+
   // Create combined API object
   const combinedAPI: PredictionMarketAPI = {
     // Player methods
     register: () => playerClient.register(),
+    // Backward-compat alias
+    // @ts-expect-error untyped consumer may call installPlayer()
+    installPlayer: () => playerClient.register(),
     withdraw: (amount: bigint) => playerClient.withdraw(amount),
     placeOrder: (params: PlaceOrderParams) => playerClient.placeOrder(params),
     cancelOrder: (orderId: bigint) => playerClient.cancelOrder(orderId),
     claim: (marketId: bigint) => playerClient.claim(marketId),
     getNonce: () => playerClient.getNonce(),
-    
+
     // REST API methods
     getAllMarkets: () => restClient.getMarkets(),
-    
+
     // RPC instance
-    rpc: rpc
+    rpc: rpc,
   };
-  
+
   return combinedAPI;
 }
 

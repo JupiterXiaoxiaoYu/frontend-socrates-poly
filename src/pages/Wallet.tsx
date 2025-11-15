@@ -11,6 +11,8 @@ import { useToast } from "../hooks/use-toast";
 import { DepositDialog } from "../components/DepositDialog";
 import { WithdrawDialog } from "../components/WithdrawDialog";
 
+// Transaction row shape for display is computed inline; no separate interface needed
+
 const Wallet = () => {
   const { t } = useTranslation('wallet');
   const { positions = [], playerId, apiClient, deposit, withdraw } = useMarket();
@@ -22,13 +24,41 @@ const Wallet = () => {
   const [showDepositDialog, setShowDepositDialog] = useState(false);
   const [showWithdrawDialog, setShowWithdrawDialog] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [gatewayAvailable, setGatewayAvailable] = useState<number | null>(null);
   const itemsPerPage = 6;
 
-  // 计算 USDC 余额
+  // 计算 USDC 余额（优先使用 Gateway /v1/balance 的 available）
   const usdcBalance = useMemo(() => {
+    if (gatewayAvailable !== null) {
+      return gatewayAvailable;
+    }
     const usdcPosition = positions.find((p) => p.tokenIdx === "0");
     return usdcPosition ? fromUSDCPrecision(usdcPosition.balance) : 0;
-  }, [positions]);
+  }, [positions, gatewayAvailable]);
+
+  // 加载网关余额
+  useEffect(() => {
+    if (!apiClient) return;
+    if (!playerId) return;
+    const uid = `${playerId[0]}:${playerId[1]}`;
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const b = await apiClient.getBalance(uid, "USDT");
+        if (cancelled) return;
+        const available = fromUSDCPrecision(b.available);
+        setGatewayAvailable(available);
+      } catch (_e) {
+        // ignore
+      }
+    };
+    load();
+    const interval = setInterval(load, 10000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [apiClient, playerId]);
 
   // 复制 Player ID
   const handleCopyPid = () => {

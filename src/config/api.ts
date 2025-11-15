@@ -1,8 +1,16 @@
 // API Configuration for Prediction Market
 
 export const API_CONFIG = {
-  // zkWasm Server Configuration
-  serverUrl: import.meta.env.REACT_APP_URL || "https://rpc.socrates.zkwasm.ai",
+  // Gateway base URL (all market REST endpoints) — prefer VITE_API_BASE_URL
+  gatewayBaseUrl:
+    import.meta.env.VITE_API_BASE_URL ||
+    import.meta.env.REACT_APP_API_URL ||
+    import.meta.env.REACT_APP_URL ||
+    "http://localhost:8080",
+
+  // zkWasm RPC URL (player install, tx submit, etc.)
+  // If VITE_ZKWASM_RPC_URL is not set, default to public zkWasm RPC.
+  zkwasmRpcUrl: import.meta.env.VITE_ZKWASM_RPC_URL || "https://rpc.socrates.zkwasm.ai",
 
   // User private key (in production this should come from wallet connection)
   privateKey: import.meta.env.REACT_APP_USER_PRIVATE_KEY || "0x1234567890abcdef",
@@ -32,7 +40,7 @@ export const API_CONFIG = {
 
 // Validation functions
 export const validateConfig = () => {
-  const requiredVars = ["serverUrl"];
+  const requiredVars = ["gatewayBaseUrl", "zkwasmRpcUrl"];
   const missing = requiredVars.filter((key) => !API_CONFIG[key as keyof typeof API_CONFIG]);
 
   if (missing.length > 0) {
@@ -58,7 +66,8 @@ export const getConfig = () => {
 // Log configuration on load (only in development)
 if (API_CONFIG.debug) {
   console.log("API Configuration:", {
-    serverUrl: API_CONFIG.serverUrl,
+    gatewayBaseUrl: API_CONFIG.gatewayBaseUrl,
+    zkwasmRpcUrl: API_CONFIG.zkwasmRpcUrl,
     network: API_CONFIG.network,
     hasDepositContract: !!API_CONFIG.depositContract,
     hasTokenContract: !!API_CONFIG.tokenContract,

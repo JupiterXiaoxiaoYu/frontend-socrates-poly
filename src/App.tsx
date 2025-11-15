@@ -27,7 +27,7 @@ const queryClient = new QueryClient();
 
 // Prediction Market configuration from API config
 const predictionMarketConfig = {
-  serverUrl: API_CONFIG.serverUrl,
+  serverUrl: API_CONFIG.zkwasmRpcUrl,
   privkey: API_CONFIG.privateKey, // This will be overridden by wallet context
 };
 

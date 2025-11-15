@@ -25,6 +25,8 @@ import { useTranslation } from "react-i18next";
 import { cn, formatCurrency, formatPercent } from "@/lib/utils";
 import { Market, OrderType, MarketStatus } from "@/types/market";
 import { webSocketService } from "@/services/websocket";
+import { useMarket } from "@/contexts";
+import { fromUSDCPrecision } from "@/lib/calculations";
 
 interface TradingPanelProps {
   market: Market;
@@ -84,6 +86,32 @@ const TradingPanel = ({
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [orderBook, setOrderBook] = useState<any>(null);
   const [priceImpact, setPriceImpact] = useState(0);
+  const { playerId, apiClient } = useMarket();
+  const [availableBalance, setAvailableBalance] = useState<number | null>(null);
+
+  // Load USDT balance from gateway, fallback to prop if unavailable
+  useEffect(() => {
+    if (!playerId || !apiClient) return;
+    const uid = `${playerId[0]}:${playerId[1]}`;
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const b = await apiClient.getBalance(uid, "USDT");
+        if (cancelled) return;
+        setAvailableBalance(fromUSDCPrecision(b.available));
+      } catch (_e) {
+        // ignore and keep fallback balance
+      }
+    };
+    load();
+    const interval = setInterval(load, 10000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [playerId, apiClient]);
+
+  const effectiveBalance = (availableBalance ?? userBalance) || 0;
 
   useEffect(() => {
     // Only subscribe if market exists
@@ -164,7 +192,7 @@ const TradingPanel = ({
   const canPlaceOrder =
     market?.status === MarketStatus.ACTIVE &&
     amount >= MIN_ORDER_AMOUNT &&
-    amount <= userBalance &&
+    amount <= effectiveBalance &&
     (orderType === "limit" ? limitPrice > 0 && limitPrice < 1 : true);
 
   const handlePlaceOrder = async () => {
@@ -221,13 +249,13 @@ const TradingPanel = ({
 
   const handleSliderChange = (value: number[]) => {
     setSliderValue(value);
-    const newAmount = (userBalance * value[0]) / 100;
+    const newAmount = (effectiveBalance * value[0]) / 100;
     // 向下取整到两位小数
     setAmount(floorToTwoDecimals(newAmount));
   };
 
   const handlePercentClick = (percent: number) => {
-    const newAmount = (userBalance * percent) / 100;
+    const newAmount = (effectiveBalance * percent) / 100;
     // 向下取整到两位小数
     setAmount(floorToTwoDecimals(newAmount));
     setSliderValue([percent]);
@@ -235,7 +263,7 @@ const TradingPanel = ({
 
   const handleQuickAmount = (quickAmount: number) => {
     setAmount(quickAmount);
-    const percent = (quickAmount / userBalance) * 100;
+    const percent = effectiveBalance > 0 ? (quickAmount / effectiveBalance) * 100 : 0;
     setSliderValue([Math.min(percent, 100)]);
   };
 
@@ -447,7 +475,7 @@ const TradingPanel = ({
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-sm">
                     <label className="font-medium">{t('amount')}</label>
-                    <span className="text-muted-foreground">{t('balance')}: ${userBalance.toFixed(2)}</span>
+                    <span className="text-muted-foreground">{t('balance')}: ${effectiveBalance.toFixed(2)}</span>
                   </div>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
@@ -499,7 +527,7 @@ const TradingPanel = ({
                       size="sm"
                       onClick={() => handleQuickAmount(quickAmount)}
                       className="text-xs"
-                      disabled={quickAmount > userBalance}
+                      disabled={quickAmount > effectiveBalance}
                     >
                       ${quickAmount}
                     </Button>

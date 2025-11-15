@@ -6,7 +6,7 @@ import { bnToHexLe } from "delphinus-curves/src/altjubjub";
 import { LeHexBN, ZKWasmAppRpc } from "zkwasm-minirollup-rpc";
 import { useWallet } from "./WalletContext";
 import { useToast } from "../hooks/use-toast";
-import { ExchangePlayer, ExchangeAPI, API_BASE_URL } from "../services/api";
+import { ExchangePlayer, ExchangeAPI, GATEWAY_BASE_URL, ZKWASM_RPC_URL } from "../services/api";
 import type { Market, Order, Trade, Position, GlobalState, PlaceOrderParams, PlayerId } from "../types/api";
 
 // ==================== Context 类型定义 ====================
@@ -23,11 +23,6 @@ interface MarketContextType {
   globalState: GlobalState | null;
   playerId: PlayerId | null;
   marketPrices: Map<string, number>; // 每个市场的最新价格
-  // 查询参数（为后续 interval + timeSlot 服务端筛选预留）
-  marketQuery: {
-    intervalMinutes: number | null;
-    slotLabel: string | "all" | null;
-  };
 
   // 状态
   isLoading: boolean;
@@ -41,13 +36,8 @@ interface MarketContextType {
   setCurrentMarketId: (marketId: string | null) => void;
   refreshData: () => Promise<void>;
   installPlayer: () => Promise<void>;
-  // 设置查询（当前仍使用原接口，仅存储参数，便于未来切换）
-  setMarketQuery: (
-    query: Partial<{
-      intervalMinutes: number | null;
-      slotLabel: string | "all" | null;
-    }>
-  ) => void;
+  // Optional market query setter (no-op default)
+  setMarketQuery?: (q: { intervalMinutes: number | null; slotLabel: string | null }) => void;
 
   // 交易操作
   placeOrder: (params: PlaceOrderParams) => Promise<void>;
@@ -71,7 +61,7 @@ export const useMarket = () => {
 
 export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // Wallet state
-  const { l2Account } = useWallet();
+  const { l2Account, deposit: walletDeposit } = useWallet();
   const { toast } = useToast();
 
   // Data state
@@ -91,24 +81,14 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [isLoading, setIsLoading] = useState(false);
   const [isPlayerInstalled, setIsPlayerInstalled] = useState(false);
   const [apiInitializing, setApiInitializing] = useState(false);
+  const [_marketQuery, setMarketQuery] = useState<{ intervalMinutes: number | null; slotLabel: string | null }>({
+    intervalMinutes: null,
+    slotLabel: null,
+  });
 
   // API clients
   const [playerClient, setPlayerClient] = useState<ExchangePlayer | null>(null);
-  const apiClient = new ExchangeAPI(API_BASE_URL);
-
-  // 查询参数（后续用于服务端筛选）
-  const [marketQueryState, setMarketQueryState] = useState<{
-    intervalMinutes: number | null;
-    slotLabel: string | "all" | null;
-  }>({ intervalMinutes: null, slotLabel: null });
-  const setMarketQuery = (
-    query: Partial<{
-      intervalMinutes: number | null;
-      slotLabel: string | "all" | null;
-    }>
-  ) => {
-    setMarketQueryState((prev) => ({ ...prev, ...query }));
-  };
+  const apiClient = new ExchangeAPI(GATEWAY_BASE_URL);
 
   // ==================== 初始化 API ====================
 
@@ -130,7 +110,7 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setApiInitializing(true);
 
     try {
-      const rpc = new ZKWasmAppRpc(API_BASE_URL);
+      const rpc = new ZKWasmAppRpc(ZKWASM_RPC_URL);
       const client = new ExchangePlayer(l2Account.getPrivateKey(), rpc);
       setPlayerClient(client);
     } catch (error) {
@@ -254,6 +234,22 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setIsLoading(false);
     }
   }, [playerClient, l2Account, toast]);
+
+  // ==================== 直接根据 L2 公钥推导并设置 Player ID（无需等待安装） ====================
+  useEffect(() => {
+    if (l2Account?.pubkey) {
+      const generated = generatePlayerIdFromL2();
+      if (generated && (playerId?.[0] !== generated[0] || playerId?.[1] !== generated[1])) {
+        setPlayerId(generated);
+      }
+    } else {
+      if (playerId !== null) {
+        setPlayerId(null);
+      }
+    }
+    // 仅依赖 pubkey 变化触发
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [l2Account?.pubkey]);
 
   // ==================== 定时轮询 ====================
 
@@ -393,28 +389,49 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const placeOrder = useCallback(
     async (params: PlaceOrderParams) => {
-      if (!playerClient) {
-        throw new Error("API not ready");
+      // Require playerId (pid1:pid2) for gateway user_id
+      if (!playerId) {
+        throw new Error("Missing player ID. Please connect L2 to continue.");
       }
+      const userId = `${playerId[0]}:${playerId[1]}`;
 
       setIsLoading(true);
       try {
-        await playerClient.placeOrder(params);
+        const side: "BUY" | "SELL" =
+          params.orderType === "limit_buy" || params.orderType === "market_buy" ? "BUY" : "SELL";
+        const type: "LIMIT" | "MARKET" = params.orderType.startsWith("limit") ? "LIMIT" : "MARKET";
+        const direction: "YES" | "NO" = params.direction === "UP" ? "YES" : "NO";
+
+        const priceStr = type === "LIMIT" ? (Number(params.price) / 10000).toFixed(4).replace(/\.?0+$/, "") : undefined;
+
+        const amountBig = params.amount;
+        const intPart = amountBig / 1000000n;
+        const fracPart = amountBig % 1000000n;
+        let amountStr = `${intPart.toString()}.${fracPart.toString().padStart(6, "0")}`;
+        amountStr = amountStr.replace(/\.?0+$/, "");
+
+        await apiClient.createMarketOrder(
+          {
+            marketId: params.marketId.toString(),
+            side,
+            direction,
+            type,
+            price: priceStr,
+            amount: amountStr,
+          },
+          String(userId)
+        );
 
         toast({
           title: "Order Placed",
           description: `Successfully placed ${params.direction} order`,
         });
 
-        // 立即刷新数据
-        await Promise.all([
-          refreshData(),
-          playerId ? loadUserData() : Promise.resolve(), // 同时刷新用户所有订单
-        ]);
+        await Promise.all([refreshData(), playerId ? loadUserData() : Promise.resolve()]);
       } catch (error) {
         toast({
           title: "Order Failed",
-          description: "Failed to place order",
+          description: error instanceof Error ? error.message : "Failed to place order",
           variant: "destructive",
         });
         throw error;
@@ -422,7 +439,7 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         setIsLoading(false);
       }
     },
-    [playerClient, refreshData, loadUserData, playerId, toast]
+    [apiClient, refreshData, loadUserData, playerId, toast]
   );
 
   const cancelOrder = useCallback(
@@ -496,16 +513,41 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   // ==================== Deposit ====================
 
   const deposit = useCallback(
-    async (_amount: bigint) => {
-      // 当前 WalletProvider 未提供 deposit 方法，先提示不可用
-      toast({
-        title: "Deposit Unavailable",
-        description: "Deposit is not available with current wallet provider.",
-        variant: "destructive",
-      });
-      throw new Error("Deposit not supported in current wallet provider");
+    async (amount: bigint) => {
+      if (!walletDeposit || !playerId) {
+        throw new Error("Please connect wallet first");
+      }
+
+      setIsLoading(true);
+      try {
+        // Use SDK's deposit method
+        // Convert amount from bigint (precision format) to number
+        const amountInEther = Number(amount) / 100;
+
+        await walletDeposit({
+          tokenIndex: 0, // USDC token index
+          amount: amountInEther,
+        });
+
+        toast({
+          title: "Deposit Successful",
+          description: `Successfully deposited ${amountInEther} USDC`,
+        });
+
+        // Refresh data
+        await Promise.all([refreshData(), loadUserData()]);
+      } catch (error) {
+        toast({
+          title: "Deposit Failed",
+          description: error instanceof Error ? error.message : "Failed to deposit",
+          variant: "destructive",
+        });
+        throw error;
+      } finally {
+        setIsLoading(false);
+      }
     },
-    [toast]
+    [walletDeposit, playerId, refreshData, loadUserData, toast]
   );
 
   // ==================== Withdraw ====================
@@ -554,7 +596,6 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     globalState,
     playerId,
     marketPrices,
-    marketQuery: marketQueryState,
     isLoading,
     isPlayerInstalled,
     playerClient,

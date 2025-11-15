@@ -29,6 +29,9 @@ export interface WalletContextType {
   // zkWasm specific functions
   signMessage: (message: string) => Promise<string>;
   getL2Nonce: () => Promise<bigint>;
+
+  // Deposit to L2 (interact with L1 contract)
+  deposit: (params: { tokenIndex: number; amount: number }) => Promise<any>;
 }
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
@@ -43,7 +46,6 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
   const [l2Account, setL2Account] = useState<L2AccountInfo | null>(null);
   const [l2Balance, setL2Balance] = useState<bigint>(0n);
   const [l2Nonce, setL2Nonce] = useState<bigint>(0n);
-  const [playerId, setPlayerId] = useState<[string, string] | null>(null);
 
   // Get current active wallet address
   const activeWallet = wallets[0]; // Use first wallet
@@ -59,44 +61,27 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     }
 
     try {
-      console.log("🚀 Starting L2 connection...");
-
       // 1. Request user signature to prove identity
-      // Use app name as message (same as zkWasm SDK does)
       const appName = "Socrates Prediction Market";
       const provider = await activeWallet.getEthereumProvider();
       const ethersProvider = new ethers.BrowserProvider(provider);
       const signer = await ethersProvider.getSigner();
 
-      console.log("📝 Requesting signature for message:", appName);
       const signature = await signer.signMessage(appName);
-      console.log("✅ Signature obtained:", signature.substring(0, 20) + "...");
 
       // 2. Create L2 account using zkWasm's method
-      // Use first 34 characters of signature (0x + 32 hex chars)
       const l2AccountSeed = signature.substring(0, 34);
-      console.log("🌱 Creating L2 account with seed:", l2AccountSeed);
-
       const l2AccountInfo = new L2AccountInfo(l2AccountSeed);
-      console.log("🎯 L2 account created!");
 
       // 3. Get Player ID (PID) from L2 account
-      const [pid1, pid2] = l2AccountInfo.getPidArray();
-      const playerIdArray: [string, string] = [pid1.toString(), pid2.toString()];
-
-      console.log("🆔 Player ID:", playerIdArray);
-      console.log("🔑 Public Key:", l2AccountInfo.toHexStr());
+      // Derive Player ID (PID) if needed by downstream contexts
+      l2AccountInfo.getPidArray();
 
       // 4. Update state
       setL2Account(l2AccountInfo);
       setIsL2Connected(true);
-      setPlayerId(playerIdArray);
-      setL2Balance(0n); // Initial balance - can be queried from L2 later
-      setL2Nonce(0n); // Initial nonce - can be queried from L2 later
-
-      console.log("✅ L2 connected successfully!");
-      console.log("   - Public Key:", l2AccountInfo.toHexStr());
-      console.log("   - PID:", playerIdArray);
+      setL2Balance(0n);
+      setL2Nonce(0n);
     } catch (error) {
       console.error("❌ L2 connection failed:", error);
       throw error;
@@ -107,7 +92,6 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
   const disconnectL2 = useCallback(() => {
     setIsL2Connected(false);
     setL2Account(null);
-    setPlayerId(null);
     setL2Balance(0n);
     setL2Nonce(0n);
   }, []);
@@ -124,7 +108,6 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
       if (!activeWallet) {
         throw new Error("No active wallet");
       }
-
       const provider = await activeWallet.getEthereumProvider();
       const ethersProvider = new ethers.BrowserProvider(provider);
       const signer = await ethersProvider.getSigner();
@@ -138,9 +121,66 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     if (!isL2Connected || !l2Account) {
       throw new Error("L2 not connected");
     }
-    // TODO: Get actual nonce from zkWasm L2
     return l2Nonce;
   }, [isL2Connected, l2Account, l2Nonce]);
+
+  // Deposit to L2 (interact with L1 deposit contract on BSC)
+  const deposit = useCallback(
+    async (params: { tokenIndex: number; amount: number }): Promise<any> => {
+      if (!activeWallet || !address) {
+        throw new Error("Please connect wallet first");
+      }
+      if (!l2Account) {
+        throw new Error("Please connect L2 first");
+      }
+      try {
+        // Get provider and signer from Privy wallet
+        const provider = await activeWallet.getEthereumProvider();
+        const ethersProvider = new ethers.BrowserProvider(provider);
+        const signer = await ethersProvider.getSigner();
+
+        // Get deposit contract address from env
+        const depositContractAddress = import.meta.env.REACT_APP_DEPOSIT_CONTRACT;
+        if (!depositContractAddress) {
+          throw new Error("Deposit contract address not configured");
+        }
+
+        // Minimal ERC20 ABI for approve
+        const erc20Abi = [
+          "function approve(address spender, uint256 amount) returns (bool)",
+          "function allowance(address owner, address spender) view returns (uint256)",
+        ];
+
+        // Deposit contract ABI (simplified)
+        const depositAbi = ["function deposit(uint256 tokenIndex, uint256 amount, bytes32 l2Account) payable"];
+
+        // Get token contract address
+        const tokenContractAddress = import.meta.env.REACT_APP_TOKEN_CONTRACT;
+        if (!tokenContractAddress) {
+          throw new Error("Token contract address not configured");
+        }
+
+        // Convert amount to wei (assuming USDC with 6 decimals)
+        const amountInWei = ethers.parseUnits(params.amount.toString(), 6);
+
+        // 1. Approve token spending
+        const tokenContract = new ethers.Contract(tokenContractAddress, erc20Abi, signer);
+        const approveTx = await tokenContract.approve(depositContractAddress, amountInWei);
+        await approveTx.wait();
+
+        // 2. Call deposit on contract
+        const depositContract = new ethers.Contract(depositContractAddress, depositAbi, signer);
+        const l2AccountBytes32 = l2Account.toHexStr();
+        const depositTx = await depositContract.deposit(params.tokenIndex, amountInWei, l2AccountBytes32);
+        const receipt = await depositTx.wait();
+        return receipt;
+      } catch (error) {
+        console.error("❌ Deposit failed:", error);
+        throw error;
+      }
+    },
+    [activeWallet, address, l2Account]
+  );
 
   // Listen to wallet changes, disconnect L2
   useEffect(() => {
@@ -165,18 +205,8 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     disconnectL2,
     signMessage,
     getL2Nonce,
+    deposit,
   };
-
-  // Log L2 account info for debugging
-  useEffect(() => {
-    if (l2Account && playerId) {
-      console.log("📊 L2 Account Status:");
-      console.log("   - Connected:", isL2Connected);
-      console.log("   - Public Key:", l2Account.toHexStr());
-      console.log("   - Player ID:", playerId);
-      console.log("   - Private Key (first 10 chars):", l2Account.getPrivateKey().substring(0, 10) + "...");
-    }
-  }, [l2Account, playerId, isL2Connected]);
 
   return <WalletContext.Provider value={value}>{children}</WalletContext.Provider>;
 };
