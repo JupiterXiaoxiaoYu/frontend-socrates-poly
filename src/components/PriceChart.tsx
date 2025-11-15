@@ -111,14 +111,14 @@ const PriceChart = ({ targetPrice, currentPrice, onPriceUpdate }: PriceChartProp
       lineSeries.attachPrimitive(partialPriceLine);
       partialPriceLineRef.current = partialPriceLine;
 
-      // Add target price line with more visible styling
+      // Add target price line with more visible styling (no title to hide legend)
       lineSeries.createPriceLine({
         price: targetPrice,
         color: "#3b82f6", // Blue color for better visibility
         lineWidth: 2,
         lineStyle: LineStyle.Dashed,
         axisLabelVisible: true,
-        title: "Price to Beat",
+        title: "", // Empty title to hide legend
       });
 
       // Get 60 seconds of historical data
@@ -288,29 +288,6 @@ const PriceChart = ({ targetPrice, currentPrice, onPriceUpdate }: PriceChartProp
 
   return (
     <Card className="p-4 border border-border bg-card h-full flex flex-col">
-      <div className="mb-3 flex items-center justify-between flex-shrink-0">
-        <div>
-          <div className="text-xs text-muted-foreground mb-1">{t('currentPrice')}</div>
-          <div className="text-xl font-bold text-foreground">
-            {isLoading ? (
-              <span className="text-muted-foreground">{t('loading')}</span>
-            ) : latestPrice ? (
-              `$${latestPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-            ) : (
-              `$${(currentPrice || 0).toLocaleString(undefined, {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              })}`
-            )}
-          </div>
-        </div>
-        <div className="text-right">
-          <div className="text-xs font-semibold text-blue-600 mb-1">{t('priceToBeat')}</div>
-          <div className="text-lg font-bold text-blue-700">
-            ${targetPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-          </div>
-        </div>
-      </div>
       <div ref={chartContainerRef} className="flex-1 min-h-0" />
     </Card>
   );

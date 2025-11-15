@@ -3,6 +3,7 @@ import { NavLink } from "react-router-dom";
 import { formatCompactNumber } from "../lib/formatters";
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
+import BTCIcon from "./BTCIcon";
 import { useMarket, useSound } from "../contexts";
 import {
   calculateProbabilities,
@@ -88,19 +89,9 @@ export function AppSidebar() {
     <div className="bg-card">
       {/* Fixed Header */}
       <div className="px-4 py-3 border-b border-border">
-        <div className="flex items-center justify-between mb-3">
-          <span className="text-xs font-semibold text-muted-foreground">{t('market')}</span>
-          <div className="flex items-center gap-2 text-xs">
-            <button className="px-3 py-1 rounded bg-foreground text-primary-foreground hover:bg-foreground/90 transition-colors">
-              {t('trending')}
-            </button>
-            <button className="text-muted-foreground hover:text-foreground transition-colors">{t('favorites')}</button>
-          </div>
-        </div>
-
-        {/* Duration Tabs */}
+        {/* Market & Duration Tabs */}
         <div className="flex flex-col gap-2">
-          <span className="text-xs text-muted-foreground">{t('duration')}</span>
+          <span className="text-xs font-semibold text-muted-foreground">Market & Duration</span>
           <div className="grid grid-cols-4 gap-1 p-1 bg-muted/30 rounded-md">
             <button
               onClick={() => setSelectedDuration("all")}
@@ -123,24 +114,24 @@ export function AppSidebar() {
               1m
             </button>
             <button
-              onClick={() => setSelectedDuration("3")}
+              onClick={() => setSelectedDuration("10")}
               className={`px-2 py-1.5 text-xs font-medium rounded transition-colors ${
-                selectedDuration === "3"
+                selectedDuration === "10"
                   ? "bg-primary text-primary-foreground"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
               }`}
             >
-              3m
+              10m
             </button>
             <button
-              onClick={() => setSelectedDuration("5")}
+              onClick={() => setSelectedDuration("15")}
               className={`px-2 py-1.5 text-xs font-medium rounded transition-colors ${
-                selectedDuration === "5"
+                selectedDuration === "15"
                   ? "bg-primary text-primary-foreground"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
               }`}
             >
-              5m
+              15m
             </button>
           </div>
         </div>
@@ -165,7 +156,10 @@ export function AppSidebar() {
                 }
               >
                 <div className="space-y-2">
-                  <h3 className="text-xs font-medium text-foreground line-clamp-2">{market.title}</h3>
+                  <div className="flex items-center gap-2">
+                    <BTCIcon size="sm" />
+                    <h3 className="text-xs font-medium text-foreground line-clamp-2 flex-1">{market.title}</h3>
+                  </div>
 
                   <div className="flex justify-between text-xs">
                     <span className="text-success font-semibold">{market.yesChance}% {t('yes')}</span>

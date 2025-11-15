@@ -9,6 +9,7 @@ import CountdownTimer from "../components/CountdownTimer";
 import StatusBadge from "../components/StatusBadge";
 import RecentTrades from "../components/RecentTrades";
 import { AppSidebar } from "../components/AppSidebar";
+import BTCIcon from "../components/BTCIcon";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import { Button } from "../components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "../components/ui/sheet";
@@ -37,6 +38,7 @@ const MarketDetail = () => {
   const { toast } = useToast();
   const [isTradingOpen, setIsTradingOpen] = useState(false);
   const [selectedDirection, setSelectedDirection] = useState<"UP" | "DOWN">("UP");
+  const [realtimeBTCPrice, setRealtimeBTCPrice] = useState<number | null>(null);
 
   // 设置当前市场 ID
   useEffect(() => {
@@ -291,64 +293,7 @@ const MarketDetail = () => {
     <div className="min-h-screen bg-background flex flex-col w-full">
       <Header />
 
-      <div className="flex items-center gap-2 px-4 py-3 border-b border-border bg-background">
-        <h1 className="text-sm font-medium text-foreground flex-1">{marketData.title}</h1>
-        <StatusBadge status={marketData.status} />
-        <CountdownTimer targetTimestamp={marketData.endTimestamp} format="compact" />
-      </div>
-
       <main className="flex-1 flex flex-col">
-        {/* Market Info Bar */}
-        <div className="px-4 py-3 bg-muted/30 border-b border-border">
-          <div className="flex items-center justify-between text-xs">
-            <div className="hidden md:flex items-center gap-3">
-              <div className="text-muted-foreground">
-                {t("marketPrice")}:{" "}
-                {marketData.hasOrders ? (
-                  <span className="font-semibold text-foreground">{marketData.currentPrice?.toFixed(2)}%</span>
-                ) : (
-                  <span className="text-muted-foreground text-xs">{t("noOrders")}</span>
-                )}
-              </div>
-              <div className="text-muted-foreground">
-                {t("target")}:{" "}
-                <span className="text-foreground font-semibold">
-                  $
-                  {marketData.targetPrice.toLocaleString("en-US", {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-muted-foreground">{t("probability")}:</span>
-                <span className="text-success font-semibold">
-                  {marketData.yesChance}% {t("yes")}
-                </span>
-                <span className="text-muted-foreground">/</span>
-                <span className="text-danger font-semibold">
-                  {marketData.noChance}% {t("no")}
-                </span>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-4 text-muted-foreground">
-              <div className="flex items-center gap-1">
-                <DollarSign className="w-3 h-3" />
-                <span>
-                  {t("volume")} ${(marketData.totalVolume / 1000).toFixed(1)}K
-                </span>
-              </div>
-              <span>/</span>
-              <div className="flex items-center gap-1">
-                <span>
-                  {marketData.windowMinutes}m {t("window")}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-
         {/* Main Content Area */}
         <ResizablePanelGroup direction="horizontal" className="flex-1">
           {/* Left: Sidebar */}
@@ -364,7 +309,109 @@ const MarketDetail = () => {
               {/* Top: Chart/OrderBook/Rules */}
               <ResizablePanel defaultSize={60} minSize={40} maxSize={70}>
                 <div className="flex flex-col h-full min-w-0">
-                  <Tabs defaultValue="chart" className="flex flex-col h-full">
+                  {/* Title - Moved to middle column */}
+                  <div className="flex items-center gap-3 px-4 py-4 border-b border-border bg-background flex-shrink-0">
+                    <BTCIcon size="md" />
+                    <h1 className="text-lg font-semibold text-foreground flex-1">{marketData.title}</h1>
+                  </div>
+
+                  {/* Market Info Bar - Moved to middle column */}
+                  <div className="px-4 py-3 bg-background border-b border-border flex-shrink-0">
+                    {/* First Row: Liquidity, Traders, Volume + Status */}
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <span>Liquidity ${(marketData.totalVolume / 1000).toFixed(2)}K</span>
+                        <span>/</span>
+                        <span>Traders 0</span>
+                        <span>/</span>
+                        <span>Volume ${(marketData.totalVolume / 1000).toFixed(2)}K</span>
+                      </div>
+                      <StatusBadge status={marketData.status} size="lg" />
+                    </div>
+
+                    {/* Second Row: Target Price, Current Price + Countdown */}
+                    <div className="flex items-end justify-between gap-6 mb-3">
+                      <div className="flex items-start gap-6">
+                        <div>
+                          <div className="text-xs text-muted-foreground mb-1">Target price</div>
+                          <div className="text-2xl font-bold text-foreground">
+                            $
+                            {marketData.targetPrice.toLocaleString("en-US", {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-muted-foreground mb-1">Current price</div>
+                          <div
+                            className={`text-2xl font-bold ${
+                              realtimeBTCPrice !== null
+                                ? realtimeBTCPrice >= marketData.targetPrice
+                                  ? "text-success"
+                                  : "text-danger"
+                                : "text-muted-foreground"
+                            }`}
+                          >
+                            {realtimeBTCPrice !== null ? (
+                              `$${realtimeBTCPrice.toLocaleString("en-US", {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              })}`
+                            ) : (
+                              <span className="text-base">{t("loading")}</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Countdown on the right - aligned to bottom */}
+                      <div className="text-2xl font-bold text-foreground">
+                        <CountdownTimer targetTimestamp={marketData.endTimestamp} format="compact" />
+                      </div>
+                    </div>
+
+                    {/* Third Row: Market Price, Probability, Volume, Window (Compact) */}
+                    <div className="flex items-center justify-between text-xs flex-wrap gap-2">
+                      <div className="flex items-center gap-3 flex-wrap">
+                        <div className="text-muted-foreground">
+                          {t("marketPrice")}:{" "}
+                          {marketData.hasOrders ? (
+                            <span className="font-semibold text-foreground">{marketData.currentPrice?.toFixed(2)}%</span>
+                          ) : (
+                            <span className="text-muted-foreground text-xs">{t("noOrders")}</span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-muted-foreground">{t("probability")}:</span>
+                          <span className="text-success font-semibold">
+                            {marketData.yesChance}% {t("yes")}
+                          </span>
+                          <span className="text-muted-foreground">/</span>
+                          <span className="text-danger font-semibold">
+                            {marketData.noChance}% {t("no")}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-4 text-muted-foreground">
+                        <div className="flex items-center gap-1">
+                          <DollarSign className="w-3 h-3" />
+                          <span>
+                            {t("volume")} ${(marketData.totalVolume / 1000).toFixed(1)}K
+                          </span>
+                        </div>
+                        <span>/</span>
+                        <div className="flex items-center gap-1">
+                          <span>
+                            {marketData.windowMinutes}m {t("window")}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <Tabs defaultValue="chart" className="flex flex-col flex-1">
                     <TabsList className="w-full justify-start rounded-none border-b border-border bg-background h-auto p-0 flex-shrink-0">
                       <TabsTrigger
                         value="chart"
@@ -391,6 +438,7 @@ const MarketDetail = () => {
                         <PriceChart
                           targetPrice={marketData.targetPrice}
                           currentPrice={marketData.currentPrice || undefined}
+                          onPriceUpdate={setRealtimeBTCPrice}
                         />
                       </div>
                     </TabsContent>
