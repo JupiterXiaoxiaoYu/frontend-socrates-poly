@@ -1,6 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChevronRight, HelpCircle } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export interface ReferralRecord {
   id: string;
@@ -23,6 +24,7 @@ const ReferralRecordsCard = ({
   onRecordClick,
   onShowAllRecords,
 }: ReferralRecordsCardProps) => {
+  const { t } = useTranslation('referral');
   // 渲染记录项
   const renderRecord = (record: ReferralRecord) => (
     <div
@@ -43,15 +45,15 @@ const ReferralRecordsCard = ({
 
   return (
     <Card className="p-6 mb-4 border border-border">
-      <h3 className="text-base font-bold text-foreground mb-2">Referral Records</h3>
-      <p className="text-sm font-bold text-foreground mb-4">Total referrals: {totalReferrals}</p>
+      <h3 className="text-base font-bold text-foreground mb-2">{t('referralRecords')}</h3>
+      <p className="text-sm font-bold text-foreground mb-4">{t('totalReferrals')}: {totalReferrals}</p>
 
       {records.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16">
           <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
             <HelpCircle className="w-8 h-8 text-muted-foreground" />
           </div>
-          <p className="text-sm text-muted-foreground">No data yet</p>
+          <p className="text-sm text-muted-foreground">{t('noDataYet')}</p>
         </div>
       ) : (
         <div>
@@ -73,7 +75,7 @@ const ReferralRecordsCard = ({
               onClick={onShowAllRecords}
               className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mt-4"
             >
-              <span>All Records</span>
+              <span>{t('allRecords')}</span>
               <ChevronRight className="w-4 h-4" />
               <ChevronRight className="w-4 h-4 -ml-3" />
             </button>

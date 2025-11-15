@@ -1,6 +1,7 @@
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChevronRight, HelpCircle } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { RebateRecord } from "./RebateRecordsCard";
 import { ReferralRecord } from "./ReferralRecordsCard";
 
@@ -30,6 +31,7 @@ export const AllRebateRecordsDialog = ({
   feeRebateRecords,
   miningRebateRecords,
 }: AllRebateRecordsDialogProps) => {
+  const { t } = useTranslation('referral');
   const renderRecords = (records: RebateRecord[]) => {
     if (records.length === 0) {
       return (
@@ -37,7 +39,7 @@ export const AllRebateRecordsDialog = ({
           <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
             <HelpCircle className="w-8 h-8 text-muted-foreground" />
           </div>
-          <p className="text-sm text-muted-foreground">No data yet</p>
+          <p className="text-sm text-muted-foreground">{t('noDataYet')}</p>
         </div>
       );
     }
@@ -60,7 +62,7 @@ export const AllRebateRecordsDialog = ({
               <p className="text-base font-bold text-foreground">
                 {record.amount} {record.currency}
               </p>
-              <p className="text-xs text-muted-foreground">Ratio {record.ratio}</p>
+              <p className="text-xs text-muted-foreground">{t('ratio')} {record.ratio}</p>
             </div>
           </div>
         ))}
@@ -77,7 +79,7 @@ export const AllRebateRecordsDialog = ({
             <button onClick={() => onOpenChange(false)} className="flex items-center justify-center w-8 h-8 -ml-2">
               <ChevronRight className="w-5 h-5 rotate-180 text-foreground" />
             </button>
-            <h2 className="flex-1 text-center text-base font-bold text-foreground pr-8">Rebate Records</h2>
+            <h2 className="flex-1 text-center text-base font-bold text-foreground pr-8">{t('rebateRecords')}</h2>
           </div>
         </div>
 
@@ -88,13 +90,13 @@ export const AllRebateRecordsDialog = ({
                 value="fee"
                 className="rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent px-4 py-2"
               >
-                Fee Rebate
+                {t('feeRebate')}
               </TabsTrigger>
               <TabsTrigger
                 value="mining"
                 className="rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent px-4 py-2"
               >
-                Mining Rebate
+                {t('miningRebate')}
               </TabsTrigger>
             </TabsList>
 
@@ -120,6 +122,7 @@ export const AllReferralRecordsDialog = ({
   totalReferrals,
   onRecordClick,
 }: AllReferralRecordsDialogProps) => {
+  const { t } = useTranslation('referral');
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="h-full w-full max-w-full left-0 top-0 translate-x-0 translate-y-0 overflow-y-auto rounded-none p-0 gap-0 border-0">
@@ -129,12 +132,12 @@ export const AllReferralRecordsDialog = ({
             <button onClick={() => onOpenChange(false)} className="flex items-center justify-center w-8 h-8 -ml-2">
               <ChevronRight className="w-5 h-5 rotate-180 text-foreground" />
             </button>
-            <h2 className="flex-1 text-center text-base font-bold text-foreground pr-8">Referral Records</h2>
+            <h2 className="flex-1 text-center text-base font-bold text-foreground pr-8">{t('referralRecords')}</h2>
           </div>
         </div>
 
         <div className="p-4">
-          <p className="text-sm font-bold text-foreground mb-4">Total referrals: {totalReferrals}</p>
+          <p className="text-sm font-bold text-foreground mb-4">{t('totalReferrals')}: {totalReferrals}</p>
 
           <div className="space-y-0">
             {records.map((record) => (

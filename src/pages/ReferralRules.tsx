@@ -1,9 +1,11 @@
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import Header from "../components/Header";
 import { Card } from "@/components/ui/card";
 import { ChevronLeft } from "lucide-react";
 
 const ReferralRules = () => {
+  const { t } = useTranslation('referral');
   const navigate = useNavigate();
 
   return (
@@ -20,76 +22,70 @@ const ReferralRules = () => {
           >
             <ChevronLeft className="w-5 h-5 text-foreground" />
           </button>
-          <h1 className="text-2xl font-bold text-foreground">Rebate Reward Rules</h1>
+          <h1 className="text-2xl font-bold text-foreground">{t('rulesPageTitle')}</h1>
         </div>
         <Card className="p-6 border border-border">
           {/* Overview */}
           <div className="mb-10">
             <p className="text-2xl font-bold text-foreground leading-relaxed whitespace-pre-wrap">
-              Overview: Account levels range from S5 up to S0 (six levels in total), with S0 being the highest.
-              Each level offers two-tier referral rewards, and the rebate rate varies by level. Rebates are
-              calculated based on your own level. Example: If an S0 account invites A, the S0 account can
-              earn up to 56% of A's trading fees on every trade. If A then invites B, the S0 account can
-              additionally earn 14% of B's trading fees. Therefore, for an S0 account the Tier-1 cap is 56%,
-              the Tier-2 cap is 14%, and the combined cap is 70%. If only A exists (no B), then only Tier-1
-              rebates apply.
+              {t('rulesOverview')}
             </p>
           </div>
 
           {/* I. Terms & Roles */}
           <div className="mb-10">
-            <h2 className="text-2xl font-bold text-foreground mb-4">I. Terms &amp; Roles</h2>
+            <h2 className="text-2xl font-bold text-foreground mb-4">{t('termsRoles')}</h2>
             <ul className="list-disc pl-6 space-y-2 text-sm text-foreground">
-              <li>Trade Amount: Notional value of a single matched trade (denominated in USDT).</li>
-              <li>Fee: Charged at 2%.</li>
-              <li>Platform: The service provider that collects the fee.</li>
-              <li>Public Pool: Ecosystem treasury; funded by "Pool Baseline + Market Surplus."</li>
-              <li>Market: Allocation available for agent/broker rebate distribution.</li>
-              <li>L1 (Direct): The account's direct referrer.</li>
-              <li>L2 (Upline): The referrer of your L1.</li>
-              <li>Level: S5 (entry) → S0 (highest); determines the account's total rebate cap.</li>
+              <li>{t('tradeAmount')}</li>
+              <li>{t('fee')}</li>
+              <li>{t('platform')}</li>
+              <li>{t('publicPool')}</li>
+              <li>{t('market')}</li>
+              <li>{t('l1Direct')}</li>
+              <li>{t('l2Upline')}</li>
+              <li>{t('level')}</li>
             </ul>
           </div>
 
           {/* II. Fee Rate & Macro Split (Fixed) */}
           <div className="mb-10">
-            <h2 className="text-2xl font-bold text-foreground mb-4">II. Fee Rate &amp; Macro Split (Fixed)</h2>
+            <h2 className="text-2xl font-bold text-foreground mb-4">{t('feeRateMacro')}</h2>
             <ol className="list-decimal pl-6 space-y-2 text-sm text-foreground mb-4">
-              <li>Trading Fee: 2% (After the handling fee is allocated to the Maker, it will be included in the commission distribution mechanism for this round.)</li>
-              <li>Allocation: Platform 20% | Market 70% | Public Pool Baseline 10%</li>
-              <li>Example (10,000 USDT volume):</li>
+              <li>{t('tradingFee')}</li>
+              <li>{t('allocation')}</li>
+              <li>{t('exampleVolume')}</li>
             </ol>
             <ul className="list-disc pl-12 space-y-2 text-sm text-foreground mb-4">
-              <li>Fee = 200</li>
-              <li>Platform: 40 (20%)</li>
-              <li>Public Pool Baseline: 20 (10%)</li>
-              <li>Market (max distributable): 140 (70%)</li>
+              <li>{t('feeAmount')}</li>
+              <li>{t('platformAmount')}</li>
+              <li>{t('publicPoolBaseline')}</li>
+              <li>{t('marketMax')}</li>
             </ul>
             <p className="text-sm text-muted-foreground pl-6">
-              * Note: Fixed inflow to the Public Pool = Baseline 10% + any undistributed remainder from the Market allocation.
+              {t('noteFixed')}
             </p>
           </div>
 
           {/* III. Fee Rebate Caps by Level */}
           <div className="mb-10">
             <h2 className="text-2xl font-bold text-foreground mb-4">
-              III. Fee Rebate Caps by Level
+              {t('feeRebateCaps')}
             </h2>
-            <p className="text-sm text-foreground mb-4">(Example uses 10,000 USDT volume → 200 USDT fees)</p>
+            <p className="text-sm text-foreground mb-4">{t('exampleFees')}</p>
             
             <div className="overflow-x-auto">
               <table className="w-full text-sm border-collapse">
                 <thead>
                   <tr className="border-b border-border">
-                    <th className="text-left p-3 font-bold text-foreground">Level</th>
-                    <th className="text-left p-3 font-bold text-foreground">Total Rebate Cap</th>
-                    <th className="text-left p-3 font-bold text-foreground">L1 Cap %</th>
-                    <th className="text-left p-3 font-bold text-foreground">L1 Amount</th>
-                    <th className="text-left p-3 font-bold text-foreground">L2 Cap %</th>
-                    <th className="text-left p-3 font-bold text-foreground">L2 Amount</th>
-                    <th className="text-left p-3 font-bold text-foreground">Market Distributed</th>
-                    <th className="text-left p-3 font-bold text-foreground">Public Pool Final Inflow</th>
-                    <th className="text-left p-3 font-bold text-foreground">Platform</th>
+                    <th className="text-left p-3 font-bold text-foreground">{t('rebateLevel')}</th>
+                    <th className="text-left p-3 font-bold text-foreground">{t('totalRebateCap')}</th>
+                    <th className="text-left p-3 font-bold text-foreground">{t('l1CapPercent')}</th>
+                    <th className="text-left p-3 font-bold text-foreground">{t('l1Amount')}</th>
+                    <th className="text-left p-3 font-bold text-foreground">{t('l2CapPercent')}</th>
+                    <th className="text-left p-3 font-bold text-foreground">{t('l2Amount')}</th>
+                    <th className="text-left p-3 font-bold text-foreground">{t('marketDistributed')}</th>
+                    <th className="text-left p-3 font-bold text-foreground">{t('publicPoolFinalInflow')}</th>
+                    <th className="text-left p-3 font-bold text-foreground">{t('platform')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -167,25 +163,25 @@ const ReferralRules = () => {
           {/* IV. SOC Token Rebate Caps by Level */}
           <div className="mb-10">
             <h2 className="text-2xl font-bold text-foreground mb-4">
-              IV. SOC Token Rebate Caps by Level
+              {t('socTokenRebate')}
             </h2>
             <p className="text-sm text-foreground mb-4">
-              (Example: 10,000 USDT volume → 1,000 SOC minted; user keeps 800 SOC as base reward; 200 SOC to allocate)
+              {t('exampleSOC')}
             </p>
             
             <div className="overflow-x-auto">
               <table className="w-full text-sm border-collapse">
                 <thead>
                   <tr className="border-b border-border">
-                    <th className="text-left p-3 font-bold text-foreground">Level</th>
-                    <th className="text-left p-3 font-bold text-foreground">Total Rebate Cap</th>
-                    <th className="text-left p-3 font-bold text-foreground">User Base Reward (SOC)</th>
-                    <th className="text-left p-3 font-bold text-foreground">L1 Cap %</th>
-                    <th className="text-left p-3 font-bold text-foreground">L1 Amount (SOC)</th>
-                    <th className="text-left p-3 font-bold text-foreground">L2 Cap %</th>
-                    <th className="text-left p-3 font-bold text-foreground">L2 Amount (SOC)</th>
-                    <th className="text-left p-3 font-bold text-foreground">Market Distributed (SOC)</th>
-                    <th className="text-left p-3 font-bold text-foreground">Public Pool Final Inflow (SOC)</th>
+                    <th className="text-left p-3 font-bold text-foreground">{t('rebateLevel')}</th>
+                    <th className="text-left p-3 font-bold text-foreground">{t('totalRebateCap')}</th>
+                    <th className="text-left p-3 font-bold text-foreground">{t('userBaseReward')}</th>
+                    <th className="text-left p-3 font-bold text-foreground">{t('l1CapPercent')}</th>
+                    <th className="text-left p-3 font-bold text-foreground">{t('l1AmountSOC')}</th>
+                    <th className="text-left p-3 font-bold text-foreground">{t('l2CapPercent')}</th>
+                    <th className="text-left p-3 font-bold text-foreground">{t('l2AmountSOC')}</th>
+                    <th className="text-left p-3 font-bold text-foreground">{t('marketDistributedSOC')}</th>
+                    <th className="text-left p-3 font-bold text-foreground">{t('publicPoolInflowSOC')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -263,21 +259,21 @@ const ReferralRules = () => {
           {/* V. Upgrade Thresholds & Downgrade Rules */}
           <div className="mb-10">
             <h2 className="text-2xl font-bold text-foreground mb-4">
-              V. Upgrade Thresholds &amp; Downgrade Rules
+              {t('upgradeThresholds')}
             </h2>
             <p className="text-sm text-foreground mb-4">
-              Trading volume and tier will be reset and recalculated each calendar month.
+              {t('volumeReset')}
             </p>
             
             <div className="overflow-x-auto">
               <table className="w-full text-sm border-collapse">
                 <thead>
                   <tr className="border-b border-border">
-                    <th className="text-left p-3 font-bold text-foreground">Level</th>
-                    <th className="text-left p-3 font-bold text-foreground">Total Rebate Cap</th>
-                    <th className="text-left p-3 font-bold text-foreground">L1 Cap %</th>
-                    <th className="text-left p-3 font-bold text-foreground">L2 Cap %</th>
-                    <th className="text-left p-3 font-bold text-foreground">Upgrade Criterion</th>
+                    <th className="text-left p-3 font-bold text-foreground">{t('rebateLevel')}</th>
+                    <th className="text-left p-3 font-bold text-foreground">{t('totalRebateCap')}</th>
+                    <th className="text-left p-3 font-bold text-foreground">{t('l1CapPercent')}</th>
+                    <th className="text-left p-3 font-bold text-foreground">{t('l2CapPercent')}</th>
+                    <th className="text-left p-3 font-bold text-foreground">{t('upgradeCriterion')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -286,42 +282,42 @@ const ReferralRules = () => {
                     <td className="p-3">70%</td>
                     <td className="p-3">56%</td>
                     <td className="p-3">14%</td>
-                    <td className="p-3">Cumulative ≥ 1,000,000</td>
+                    <td className="p-3">{t('cumulative1M')}</td>
                   </tr>
                   <tr className="border-b border-border hover:bg-muted/50">
                     <td className="p-3 font-medium">S1</td>
                     <td className="p-3">60%</td>
                     <td className="p-3">48%</td>
                     <td className="p-3">12%</td>
-                    <td className="p-3">Cumulative ≥ 500,000</td>
+                    <td className="p-3">{t('cumulative500K')}</td>
                   </tr>
                   <tr className="border-b border-border hover:bg-muted/50">
                     <td className="p-3 font-medium">S2</td>
                     <td className="p-3">50%</td>
                     <td className="p-3">40%</td>
                     <td className="p-3">10%</td>
-                    <td className="p-3">Cumulative ≥ 200,000</td>
+                    <td className="p-3">{t('cumulative200K')}</td>
                   </tr>
                   <tr className="border-b border-border hover:bg-muted/50">
                     <td className="p-3 font-medium">S3</td>
                     <td className="p-3">40%</td>
                     <td className="p-3">32%</td>
                     <td className="p-3">8%</td>
-                    <td className="p-3">Cumulative ≥ 50,000</td>
+                    <td className="p-3">{t('cumulative50K')}</td>
                   </tr>
                   <tr className="border-b border-border hover:bg-muted/50">
                     <td className="p-3 font-medium">S4</td>
                     <td className="p-3">30%</td>
                     <td className="p-3">24%</td>
                     <td className="p-3">6%</td>
-                    <td className="p-3">Cumulative ≥ 10,000</td>
+                    <td className="p-3">{t('cumulative10K')}</td>
                   </tr>
                   <tr className="border-b border-border hover:bg-muted/50">
                     <td className="p-3 font-medium">S5</td>
                     <td className="p-3">20%</td>
                     <td className="p-3">16%</td>
                     <td className="p-3">4%</td>
-                    <td className="p-3">Register + complete first valid trade</td>
+                    <td className="p-3">{t('registerFirstTrade')}</td>
                   </tr>
                 </tbody>
               </table>

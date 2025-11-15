@@ -1,5 +1,6 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ChevronRight, ChevronLeft } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { ReferralRecord } from "./ReferralRecordsCard";
 
 interface ReferralRecordsDialogProps {
@@ -22,6 +23,7 @@ const ReferralRecordsDialog = ({
   onBack,
   showBackButton,
 }: ReferralRecordsDialogProps) => {
+  const { t } = useTranslation('referral');
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="h-full w-full max-w-full md:max-w-md md:h-auto md:max-h-[calc(100vh-120px)] left-0 top-0 md:left-[50%] md:top-[50%] translate-x-0 translate-y-0 md:translate-x-[-50%] md:translate-y-[-50%] overflow-y-auto rounded-none md:rounded-lg p-0 gap-0 border-0 md:border">
@@ -46,7 +48,7 @@ const ReferralRecordsDialog = ({
               </button>
             )}
             <h2 className="flex-1 text-center text-base font-bold text-foreground pr-8">
-              {selectedUser?.userName}'s Referral Records
+              {selectedUser?.userName}{t('referralRecordsTitle')}
             </h2>
           </div>
         </div>
@@ -68,13 +70,13 @@ const ReferralRecordsDialog = ({
               className="w-10 h-10 rounded-full bg-muted"
             />
             <DialogTitle className="text-base font-bold">
-              {selectedUser?.userName}'s Referral Records
+              {selectedUser?.userName}{t('referralRecordsTitle')}
             </DialogTitle>
           </div>
         </DialogHeader>
 
         <div className="p-4 md:px-6 md:pb-6 md:pt-0">
-          <p className="text-sm font-bold text-foreground mb-4">Total referrals: 20</p>
+          <p className="text-sm font-bold text-foreground mb-4">{t('totalReferrals')}: 20</p>
 
           <div className="space-y-0">
             {records.slice(0, 5).map((record) => (

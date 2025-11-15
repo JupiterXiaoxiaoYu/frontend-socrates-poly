@@ -1,6 +1,7 @@
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Copy } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface ShareDialogProps {
   open: boolean;
@@ -10,6 +11,7 @@ interface ShareDialogProps {
 
 // 分享弹窗组件（移动端底部弹出）
 const ShareDialog = ({ open, onOpenChange, onCopy }: ShareDialogProps) => {
+  const { t } = useTranslation('referral');
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-full w-full p-0 gap-0 bottom-0 top-auto left-0 translate-x-0 translate-y-0 rounded-t-2xl rounded-b-none border-0 data-[state=open]:slide-in-from-bottom data-[state=closed]:slide-out-to-bottom">
@@ -20,18 +22,18 @@ const ShareDialog = ({ open, onOpenChange, onCopy }: ShareDialogProps) => {
 
         {/* 标题 */}
         <div className="text-center py-4 border-b border-border">
-          <h2 className="text-lg font-bold text-foreground">Share</h2>
+          <h2 className="text-lg font-bold text-foreground">{t('share')}</h2>
         </div>
 
         <div className="p-4 pb-8">
           {/* Referral Link */}
           <div className="bg-card border border-border rounded-lg p-4 mb-4">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Referral link</span>
+              <span className="text-sm text-muted-foreground">{t('referralLink')}</span>
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium text-foreground">Soc……92VA</span>
                 <button
-                  onClick={() => onCopy("https://socrates.com/ref/92VA", "Referral link")}
+                  onClick={() => onCopy("https://socrates.com/ref/92VA", t('referralLink'))}
                   className="text-foreground hover:text-muted-foreground transition-colors"
                 >
                   <Copy className="w-4 h-4" />
@@ -43,11 +45,11 @@ const ShareDialog = ({ open, onOpenChange, onCopy }: ShareDialogProps) => {
           {/* Referral Code */}
           <div className="bg-card border border-border rounded-lg p-4 mb-6">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Referral code</span>
+              <span className="text-sm text-muted-foreground">{t('referralCode')}</span>
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium text-foreground">AKV392VA</span>
                 <button
-                  onClick={() => onCopy("AKV392VA", "Referral code")}
+                  onClick={() => onCopy("AKV392VA", t('referralCode'))}
                   className="text-foreground hover:text-muted-foreground transition-colors"
                 >
                   <Copy className="w-4 h-4" />
@@ -69,7 +71,7 @@ const ShareDialog = ({ open, onOpenChange, onCopy }: ShareDialogProps) => {
               <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center">
                 <Copy className="w-6 h-6 text-foreground" />
               </div>
-              <span className="text-xs text-foreground">Copy link</span>
+              <span className="text-xs text-foreground">{t('copyLink')}</span>
             </button>
 
             {/* X (Twitter) */}
@@ -182,7 +184,7 @@ const ShareDialog = ({ open, onOpenChange, onCopy }: ShareDialogProps) => {
             className="w-full border-border text-foreground hover:bg-muted font-medium text-base py-6 rounded-full"
             onClick={() => onOpenChange(false)}
           >
-            Cancel
+            {t('cancel')}
           </Button>
         </div>
       </DialogContent>
