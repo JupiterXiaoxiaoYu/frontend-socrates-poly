@@ -20,7 +20,7 @@ interface Position {
 
 const PositionTabs = () => {
   const { t } = useTranslation('market');
-  const { positions, orders, currentMarket, cancelOrder, playerId, trades, claim, marketPrices } = useMarket();
+  const { positions, orders, currentMarket, cancelOrder, playerId, trades, marketPrices } = useMarket();
   const { toast } = useToast();
 
   // 转换持仓数据 - 只显示当前市场的持仓
@@ -244,8 +244,8 @@ const PositionTabs = () => {
         if (currentMarket.status === 2) {
           // 市场已 Resolved
           const isWinner =
-            (currentMarket.winningOutcome === 1 && tokenInfo.direction === "UP") ||
-            (currentMarket.winningOutcome === 0 && tokenInfo.direction === "DOWN");
+            (currentMarket.winningOutcome === 1 && tokenInfo.direction === "YES") ||
+            (currentMarket.winningOutcome === 0 && tokenInfo.direction === "NO");
           currentPrice = isWinner ? 1.0 : 0.0; // 赢家 $1，输家 $0
         } else {
           // 市场活跃，使用最新成交价
@@ -258,7 +258,7 @@ const PositionTabs = () => {
         const unrealizedPnLPercent = cost > 0 ? (unrealizedPnL / cost) * 100 : 0;
 
         return {
-          side: (tokenInfo.direction === "UP" ? "yes" : "no") as "yes" | "no",
+          side: (tokenInfo.direction === "YES" ? "yes" : "no") as "yes" | "no",
           shares,
           avg: avgPrice ? formatCurrency(avgPrice) : "-",
           now: formatCurrency(currentPrice),
@@ -275,55 +275,6 @@ const PositionTabs = () => {
       })
       .filter(Boolean) as Position[];
   }, [positions.length, currentMarket?.marketId, positionCostMap, marketPrices]);
-  // 计算可 Claim 金额
-  const claimableInfo = useMemo(() => {
-    if (!currentMarket || currentMarket.status !== 2) {
-      return { canClaim: false, amount: 0, direction: null };
-    }
-
-    const currentMarketId = parseInt(currentMarket.marketId);
-    const winningOutcome = currentMarket.winningOutcome;
-
-    const winningPosition = positions.find((p) => {
-      const tokenInfo = parseTokenIdx(parseInt(p.tokenIdx));
-      return (
-        tokenInfo &&
-        tokenInfo.marketId === currentMarketId &&
-        ((winningOutcome === 1 && tokenInfo.direction === "UP") ||
-          (winningOutcome === 0 && tokenInfo.direction === "DOWN"))
-      );
-    });
-
-    return {
-      canClaim: !!winningPosition && fromUSDCPrecision(winningPosition.balance) > 0,
-      amount: winningPosition ? fromUSDCPrecision(winningPosition.balance) : 0,
-      direction: winningOutcome === 1 ? "YES" : winningOutcome === 0 ? "NO" : "TIE",
-    };
-  }, [currentMarket, positions]);
-
-  // 处理 Claim
-  const [isClaiming, setIsClaiming] = useState(false);
-
-  const handleClaim = async () => {
-    if (!currentMarket || !claimableInfo.canClaim) return;
-
-    setIsClaiming(true);
-    try {
-      await claim(BigInt(currentMarket.marketId));
-      toast({
-        title: t('claimSuccessful'),
-        description: t('claimSuccessfulDesc'),
-      });
-    } catch (error) {
-      toast({
-        title: t('claimFailed'),
-        description: error instanceof Error ? error.message : t('claimFailedDesc'),
-        variant: "destructive",
-      });
-    } finally {
-      setIsClaiming(false);
-    }
-  };
 
   // 处理取消订单
   const [cancellingOrderId, setCancellingOrderId] = useState<string | null>(null);
@@ -370,10 +321,10 @@ const PositionTabs = () => {
             {t('history')}
           </TabsTrigger>
           <TabsTrigger
-            value="claim"
+            value="claimed"
             className="rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent px-6 py-3"
           >
-            {t('claim')}
+            Claimed
           </TabsTrigger>
         </TabsList>
 
@@ -560,37 +511,17 @@ const PositionTabs = () => {
           )}
         </TabsContent>
 
-        <TabsContent value="claim" className="p-4 m-0">
-          {claimableInfo.canClaim ? (
-            <div className="bg-success/10 border border-success/20 p-4 rounded-lg">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <div className="text-xs text-muted-foreground mb-1">{t('claimableAmount')}</div>
-                  <div className="text-2xl font-bold text-success">{formatCurrency(claimableInfo.amount)}</div>
-                  <div className="text-xs text-muted-foreground mt-1">{t('winningDirection')}: {claimableInfo.direction}</div>
-                </div>
-              </div>
-              <Button
-                onClick={handleClaim}
-                disabled={isClaiming}
-                className="w-full bg-success hover:bg-success/90 text-white font-semibold h-12"
-                size="lg"
-              >
-                {isClaiming ? t('claiming') : t('claimWinnings')}
-              </Button>
-            </div>
-          ) : (
-            <div className="flex flex-col items-center gap-3 py-12">
-              <img 
-                src="/favicon.png" 
-                alt="No claims" 
-                className="w-16 h-16 opacity-30"
-              />
-              <p className="text-muted-foreground text-sm">
-                {currentMarket?.status === 2 ? t('noClaimableWinnings') : t('marketNotYetResolved')}
-              </p>
-            </div>
-          )}
+        <TabsContent value="claimed" className="p-4 m-0">
+          <div className="flex flex-col items-center gap-3 py-12">
+            <img 
+              src="/favicon.png" 
+              alt="No claimed" 
+              className="w-16 h-16 opacity-30"
+            />
+            <p className="text-muted-foreground text-sm">
+              No claimed positions yet
+            </p>
+          </div>
         </TabsContent>
       </Tabs>
     </div>

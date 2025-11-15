@@ -164,24 +164,24 @@ export function getTokenIdx(marketId: number, direction: 'UP' | 'DOWN'): number 
 // 从 token 索引反推市场 ID 和方向
 export function parseTokenIdx(tokenIdx: number): {
   marketId: number;
-  direction: 'UP' | 'DOWN';
+  direction: 'YES' | 'NO';
 } | null {
   if (tokenIdx === 0) return null; // USDC
   
-  // tokenIdx 规则：奇数=UP，偶数=DOWN
-  // Market 1: UP=1, DOWN=2
-  // Market 2: UP=3, DOWN=4
-  // Market 82: UP=163, DOWN=164
-  // Market 83: UP=165, DOWN=166
+  // tokenIdx 规则：奇数=YES(UP)，偶数=NO(DOWN)
+  // Market 1: YES=1, NO=2
+  // Market 2: YES=3, NO=4
+  // Market 82: YES=163, NO=164
+  // Market 83: YES=165, NO=166
   
   if (tokenIdx % 2 === 1) {
-    // 奇数 = UP
+    // 奇数 = YES (UP)
     const marketId = (tokenIdx - 1) / 2;
-    return { marketId, direction: 'UP' };
+    return { marketId, direction: 'YES' };
   } else {
-    // 偶数 = DOWN
+    // 偶数 = NO (DOWN)
     const marketId = (tokenIdx - 2) / 2;
-    return { marketId, direction: 'DOWN' };
+    return { marketId, direction: 'NO' };
   }
 }
 

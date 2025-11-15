@@ -46,7 +46,7 @@ const Portfolio = () => {
       const cost = shares * (price / 100); // Convert price to decimal
 
       // Create position key (marketId + direction)
-      const direction = trade.direction === 1 ? "UP" : "DOWN";
+      const direction = trade.direction === 1 ? "YES" : "NO";
       const key = `${trade.marketId}-${direction}`;
 
       const existing = costs.get(key) || { totalCost: 0, totalShares: 0, avgPrice: 0 };
@@ -104,8 +104,8 @@ const Portfolio = () => {
         if (market?.status === MarketStatus.Resolved) {
           // Market is resolved, check if this side won
           const isWinner =
-            (market.winningOutcome === 1 && tokenInfo.direction === "UP") ||
-            (market.winningOutcome === 0 && tokenInfo.direction === "DOWN");
+            (market.winningOutcome === 1 && tokenInfo.direction === "YES") ||
+            (market.winningOutcome === 0 && tokenInfo.direction === "NO");
           currentPrice = isWinner ? 100 : 0; // Winner gets 100%, loser gets 0%
         }
 
@@ -133,8 +133,8 @@ const Portfolio = () => {
           isResolved: market?.status === MarketStatus.Resolved,
           canClaim:
             market?.status === MarketStatus.Resolved &&
-            ((market.winningOutcome === 1 && tokenInfo.direction === "UP") ||
-              (market.winningOutcome === 0 && tokenInfo.direction === "DOWN")),
+            ((market.winningOutcome === 1 && tokenInfo.direction === "YES") ||
+              (market.winningOutcome === 0 && tokenInfo.direction === "NO")),
         };
       })
       .filter(Boolean);
@@ -211,8 +211,15 @@ const Portfolio = () => {
                 <div className="text-3xl font-bold text-foreground">{activeOrders.length}</div>
               </div>
               <div>
-                <div className="text-sm text-muted-foreground mb-1">{t("toClaim")}</div>
-                <div className="text-3xl font-bold text-success">{formatCurrency(claimableAmount)}</div>
+                <div className="text-sm text-muted-foreground mb-1">Est. Value</div>
+                <div className="text-3xl font-bold text-foreground">
+                  {formatCurrency(
+                    displayPositions.reduce((sum: number, p: any) => {
+                      const value = parseFloat(p.estValue.replace(/[$,]/g, ""));
+                      return sum + value;
+                    }, 0)
+                  )}
+                </div>
               </div>
             </div>
 
@@ -283,13 +290,19 @@ const Portfolio = () => {
                   >
                     {t("historyTab")}
                   </TabsTrigger>
+                  <TabsTrigger
+                    value="claimed"
+                    className="border-b-2 border-transparent data-[state=active]:border-primary rounded-none bg-transparent px-4 py-3"
+                  >
+                    Claimed
+                  </TabsTrigger>
                 </TabsList>
               </div>
             </div>
 
             {/* Filter buttons */}
             <div className="px-4 py-3 border-b border-border flex gap-2">
-              {["All", "UP", "DOWN"].map((filter) => (
+              {["All", "YES", "NO"].map((filter) => (
                 <Button
                   key={filter}
                   variant={positionFilter === filter ? "default" : "ghost"}
@@ -297,7 +310,7 @@ const Portfolio = () => {
                   onClick={() => setPositionFilter(filter)}
                   className="h-8 px-4"
                 >
-                  {filter === "All" ? t("all") : filter === "UP" ? t("up") : t("down")}
+                  {filter === "All" ? t("all") : filter === "YES" ? "YES" : "NO"}
                 </Button>
               ))}
             </div>
@@ -324,7 +337,7 @@ const Portfolio = () => {
                         <td colSpan={8} className="py-12 text-center text-muted-foreground">
                           {positionFilter === "All"
                             ? t("noPositions")
-                            : t("noPositionsFilter", { filter: positionFilter === "UP" ? t("up") : t("down") })}
+                            : t("noPositionsFilter", { filter: positionFilter === "YES" ? "YES" : "NO" })}
                         </td>
                       </tr>
                     ) : (
@@ -334,9 +347,9 @@ const Portfolio = () => {
                             <div className="flex items-center gap-2">
                               <span className="text-sm text-foreground">{position.market}</span>
                               <Badge
-                                variant={position.side === "UP" ? "default" : "secondary"}
+                                variant={position.side === "YES" ? "default" : "secondary"}
                                 className={
-                                  position.side === "UP"
+                                  position.side === "YES"
                                     ? "bg-success text-white text-xs"
                                     : "bg-destructive text-white text-xs"
                                 }
@@ -413,7 +426,7 @@ const Portfolio = () => {
                           <td className="px-4 py-3 text-sm">Market #{Math.floor(parseInt(order.marketId))}</td>
                           <td className="px-4 py-3">
                             <Badge variant={order.direction === 1 ? "default" : "secondary"}>
-                              {order.direction === 1 ? "UP" : "DOWN"}
+                              {order.direction === 1 ? "YES" : "NO"}
                             </Badge>
                           </td>
                           <td className="px-4 py-3 text-sm">
@@ -468,6 +481,59 @@ const Portfolio = () => {
                 orders={userAllOrders || []}
                 playerId={playerId}
               />
+            </TabsContent>
+
+            {/* Claimed Tab */}
+            <TabsContent value="claimed" className="m-0">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="border-b border-border bg-muted/30">
+                    <tr>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">{t("market")}</th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">{t("side")}</th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">{t("shares")}</th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Amount</th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">{t("time")}</th>
+                      <th className="text-right px-4 py-3 text-xs font-medium text-muted-foreground">{t("action")}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {displayPositions.filter((p: any) => p.canClaim).length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="py-12 text-center text-muted-foreground">
+                          No claimed positions yet
+                        </td>
+                      </tr>
+                    ) : (
+                      displayPositions
+                        .filter((p: any) => p.canClaim)
+                        .map((position: any) => (
+                          <tr key={position.id} className="border-b border-border hover:bg-muted/20">
+                            <td className="px-4 py-3 text-sm">{position.market}</td>
+                            <td className="px-4 py-3">
+                              <Badge variant={position.side === "YES" ? "default" : "secondary"}>
+                                {position.side}
+                              </Badge>
+                            </td>
+                            <td className="px-4 py-3 text-sm">{position.shares.toFixed(2)}</td>
+                            <td className="px-4 py-3 text-sm text-success font-semibold">{position.estValue}</td>
+                            <td className="px-4 py-3 text-sm text-muted-foreground">-</td>
+                            <td className="px-4 py-3 text-right">
+                              <Button
+                                variant="link"
+                                size="sm"
+                                className="text-primary h-auto p-0 text-sm"
+                                onClick={() => navigate(`/market/${position.marketId}`)}
+                              >
+                                {t("view")}
+                              </Button>
+                            </td>
+                          </tr>
+                        ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </TabsContent>
           </Tabs>
         </Card>
