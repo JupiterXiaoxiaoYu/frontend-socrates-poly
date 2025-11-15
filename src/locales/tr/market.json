@@ -117,6 +117,7 @@
   "notStarted": "Başlamadı",
   "awaitingOracle": "Oracle Bekleniyor",
   "marketResolved": "Piyasa Çözüldü",
+  "marketEnded": "Piyasa Sonlandı",
   "start": "Başlangıç",
   "end": "Bitiş",
   "winner": "Kazanan",

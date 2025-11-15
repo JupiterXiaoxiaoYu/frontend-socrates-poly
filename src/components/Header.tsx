@@ -86,12 +86,14 @@ const Header = () => {
               size="sm"
               onClick={() => setShowDepositDialog(true)}
               disabled={!playerId}
-              className="bg-gray-900 text-white hover:bg-gray-800 font-semibold border-0 shadow-sm"
+              className="hidden md:inline-flex bg-gray-900 text-white hover:bg-gray-800 font-semibold border-0 shadow-sm"
             >
               Deposit
             </Button>
 
-            <ThemeToggle />
+            <div className="hidden md:block">
+              <ThemeToggle />
+            </div>
             <WalletButton />
           </div>
         </div>

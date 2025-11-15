@@ -22,7 +22,6 @@ interface MobileTradingPanelProps {
     price: number;
     amount: number;
   }) => Promise<void>;
-  onClaim?: (marketId: number) => Promise<void>;
   onDirectionChange?: (direction: "UP" | "DOWN") => void;
 }
 
@@ -38,7 +37,6 @@ const MobileTradingPanel = ({
   userBalance,
   isFeeExempt = false,
   onPlaceOrder,
-  onClaim,
   onDirectionChange,
 }: MobileTradingPanelProps) => {
   const { t } = useTranslation("market");
@@ -53,9 +51,14 @@ const MobileTradingPanel = ({
 
   const [orderType, setOrderType] = useState<"market" | "limit">("market");
   const [amount, setAmount] = useState(0);
-  const [limitPrice, setLimitPrice] = useState(
-    market?.currentPrice !== undefined && market?.currentPrice !== null ? market.currentPrice / 100 : 0.5
-  );
+  // 初始限价：优先使用百分比价格（0-100），否则回退到 yes 概率，再否则 0.5
+  const initialLimitPrice =
+    typeof market?.currentPrice === "number" && market.currentPrice > 0 && market.currentPrice <= 100
+      ? market.currentPrice / 100
+      : typeof market?.yesChance === "number"
+      ? Math.max(0.01, Math.min(0.99, market.yesChance / 100))
+      : 0.5;
+  const [limitPrice, setLimitPrice] = useState(initialLimitPrice);
   const [sliderValue, setSliderValue] = useState([0]);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const { playerId, apiClient } = useMarket();
@@ -84,11 +87,28 @@ const MobileTradingPanel = ({
 
   const effectiveBalance = availableBalance !== null ? availableBalance : userBalance;
 
+  // 统一价格含义：接口返回 currentPrice(0-100)，这里转成 0-1 的小数价格
+  const marketPriceDecimal =
+    typeof market?.currentPrice === "number" && market.currentPrice > 0 && market.currentPrice <= 100
+      ? market.currentPrice / 100
+      : typeof market?.yesChance === "number"
+      ? Math.max(0.01, Math.min(0.99, market.yesChance / 100))
+      : 0.5;
+
+  // 下单实际使用的价格：市价单用当前市场价格，限价单用用户输入价格
+  const tradePrice = orderType === "market" ? marketPriceDecimal : limitPrice || marketPriceDecimal;
+
+  // 份额估算：用户输入本金 amount（USDC），shares = amount / price
+  const estimatedShares = amount > 0 && tradePrice > 0 ? amount / tradePrice : 0;
+
   useEffect(() => {
-    if (market?.currentPrice !== undefined && market?.currentPrice !== null) {
+    // 当 market.currentPrice 是百分比（<=100）时更新；否则尝试根据 yesChance 更新
+    if (typeof market?.currentPrice === "number" && market.currentPrice > 0 && market.currentPrice <= 100) {
       setLimitPrice(market.currentPrice / 100);
+    } else if (typeof market?.yesChance === "number") {
+      setLimitPrice(Math.max(0.01, Math.min(0.99, market.yesChance / 100)));
     }
-  }, [market?.currentPrice]);
+  }, [market?.currentPrice, market?.yesChance]);
 
   const handleAmountChange = (value: number) => {
     const clampedValue = Math.max(0, Math.min(value, effectiveBalance));
@@ -108,15 +128,7 @@ const MobileTradingPanel = ({
     handleAmountChange(newAmount);
   };
 
-  const isMarketEnded =
-    market.status === MarketStatus.RESOLVED ||
-    market.status === MarketStatus.CLOSED ||
-    Boolean(market.oracleEndTime && market.oracleEndTime > 0);
-
-  const canClaim =
-    isMarketEnded &&
-    market.winningOutcome !== 255 &&
-    (market.winningOutcome === 1 ? direction === "yes" : direction === "no");
+  const isMarketEnded = market.status === MarketStatus.RESOLVED || market.status === MarketStatus.CLOSED;
 
   const handlePlaceOrder = async () => {
     if (amount < MIN_ORDER_AMOUNT) {
@@ -136,14 +148,21 @@ const MobileTradingPanel = ({
         finalOrderType = action === "buy" ? OrderType.LIMIT_BUY : OrderType.LIMIT_SELL;
       }
 
-      const priceInBps = Math.round(limitPrice * 100);
+      // 价格换算与桌面端一致：limit -> BPS(0-10000)，market -> 0
+      const priceInBps = orderType === "market" ? 0 : Math.round(limitPrice * 10000);
+
+      // 与桌面端保持一致：后端期望 amount = 份额数量 * 100（精度两位）
+      const shares = amount > 0 && tradePrice > 0 ? amount / tradePrice : 0;
+      if (shares <= 0) {
+        return;
+      }
 
       await onPlaceOrder({
         marketId: market.marketId,
         direction: orderDirection,
         orderType: finalOrderType,
         price: priceInBps,
-        amount: amount,
+        amount: Math.round(shares * 100),
       });
 
       setAmount(0);
@@ -155,188 +174,224 @@ const MobileTradingPanel = ({
     }
   };
 
-  const handleClaim = async () => {
-    if (!onClaim || !canClaim) return;
-    try {
-      await onClaim(market.marketId);
-    } catch (error) {
-      console.error("Failed to claim:", error);
-    }
-  };
-
   return (
     <div className="px-3 pt-3 pb-6 h-full flex flex-col overflow-y-auto text-sm">
       {/* Professional Mode - 移动端专用，无标题 */}
       <div className="space-y-3 flex-1 flex flex-col min-h-0">
-        {/* 如果市场已结束且可以领取，显示提示 */}
-        {isMarketEnded && canClaim && (
-          <Alert>
-            <AlertDescription className="flex items-center justify-between">
-              <span className="text-xs">
-                {market.winningOutcome === 2
-                  ? t("marketTied")
-                  : market.winningOutcome === 1
-                  ? t("marketEndedYesWon")
-                  : t("marketEndedNoWon")}
-              </span>
-              <Button size="sm" onClick={handleClaim} className="ml-2">
-                {t("claimWinnings")}
-              </Button>
-            </AlertDescription>
-          </Alert>
+        {/* 市场结束时显示简洁信息 */}
+        {isMarketEnded && (
+          <div className="space-y-3">
+            {/* 状态标题 */}
+            <div className="text-center py-2 px-3 bg-muted/30 rounded-lg">
+              <div className="text-sm font-semibold text-muted-foreground mb-1">
+                {market.status === MarketStatus.RESOLVED ? t("marketResolved") : t("marketEnded")}
+              </div>
+            </div>
+
+            {/* 市场详细信息 - 只显示价格和结果 */}
+            <div className="space-y-2 bg-card border border-border rounded-lg p-3">
+              {/* 价格信息 */}
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-muted-foreground">Start Price:</span>
+                <span className="font-mono font-semibold">
+                  $
+                  {(market.oracleStartPrice / 100).toLocaleString("en-US", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </span>
+              </div>
+
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-muted-foreground">End Price:</span>
+                <span
+                  className={cn(
+                    "font-mono font-semibold",
+                    market.oracleEndPrice > 0 && market.oracleStartPrice > 0
+                      ? market.oracleEndPrice >= market.oracleStartPrice
+                        ? "text-success"
+                        : "text-danger"
+                      : ""
+                  )}
+                >
+                  {market.oracleEndPrice > 0
+                    ? `$${(market.oracleEndPrice / 100).toLocaleString("en-US", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}`
+                    : "N/A"}
+                </span>
+              </div>
+
+              {/* 结果 */}
+              {market.status === MarketStatus.RESOLVED && market.winningOutcome !== undefined && (
+                <>
+                  <div className="border-t border-border my-2"></div>
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-muted-foreground">Result:</span>
+                    <span
+                      className={cn(
+                        "font-semibold text-base",
+                        market.winningOutcome === 1 ? "text-success" : market.winningOutcome === 0 ? "text-danger" : ""
+                      )}
+                    >
+                      {market.winningOutcome === 1 ? "✓ YES" : market.winningOutcome === 0 ? "✗ NO" : "TIE"}
+                    </span>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
         )}
 
-        {/* 始终显示交易界面 */}
-        <>
-          {/* Direction & Action Tabs */}
-          <Tabs value={direction} onValueChange={(v) => handleDirectionChange(v as "yes" | "no")} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 h-8">
-              <TabsTrigger
-                value="yes"
-                className="text-xs data-[state=active]:bg-success data-[state=active]:text-white flex items-center justify-center gap-1"
-              >
-                <TrendingUp className="w-3 h-3" />
-                Yes
-              </TabsTrigger>
-              <TabsTrigger
-                value="no"
-                className="text-xs data-[state=active]:bg-danger data-[state=active]:text-white flex items-center justify-center gap-1"
-              >
-                <TrendingDown className="w-3 h-3" />
-                No
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
+        {/* 只在市场活跃时显示交易界面 */}
+        {!isMarketEnded && (
+          <>
+            {/* Direction & Action Tabs */}
+            <Tabs value={direction} onValueChange={(v) => handleDirectionChange(v as "yes" | "no")} className="w-full">
+              <TabsList className="grid w-full grid-cols-2 h-8">
+                <TabsTrigger
+                  value="yes"
+                  className="text-xs data-[state=active]:bg-success data-[state=active]:text-white flex items-center justify-center gap-1"
+                >
+                  <TrendingUp className="w-3 h-3" />
+                  Yes
+                </TabsTrigger>
+                <TabsTrigger
+                  value="no"
+                  className="text-xs data-[state=active]:bg-danger data-[state=active]:text-white flex items-center justify-center gap-1"
+                >
+                  <TrendingDown className="w-3 h-3" />
+                  No
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
 
-          <Tabs value={action} onValueChange={(v) => setAction(v as "buy" | "sell")} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 h-9">
-              <TabsTrigger value="buy" className="text-xs flex items-center justify-center gap-1">
-                {t("buy")}
-              </TabsTrigger>
-              <TabsTrigger value="sell" className="text-xs flex items-center justify-center gap-1">
-                {t("sell")}
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
+            <Tabs value={action} onValueChange={(v) => setAction(v as "buy" | "sell")} className="w-full">
+              <TabsList className="grid w-full grid-cols-2 h-9">
+                <TabsTrigger value="buy" className="text-xs flex items-center justify-center gap-1">
+                  {t("buy")}
+                </TabsTrigger>
+                <TabsTrigger value="sell" className="text-xs flex items-center justify-center gap-1">
+                  {t("sell")}
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
 
-          {/* Order Type */}
-          <div className="space-y-1">
-            <Select value={orderType} onValueChange={(v) => setOrderType(v as "market" | "limit")}>
-              <SelectTrigger className="h-8 text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="market">{t("market")}</SelectItem>
-                <SelectItem value="limit">{t("limit")}</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Limit Price */}
-          {orderType === "limit" && (
+            {/* Order Type */}
             <div className="space-y-1">
-              <label className="text-xs text-muted-foreground">{t("price")}</label>
+              <Select value={orderType} onValueChange={(v) => setOrderType(v as "market" | "limit")}>
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="market">{t("market")}</SelectItem>
+                  <SelectItem value="limit">{t("limit")}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Limit Price */}
+            {orderType === "limit" && (
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground">{t("price")}</label>
+                <Input
+                  type="number"
+                  value={limitPrice}
+                  onChange={(e) => setLimitPrice(parseFloat(e.target.value) || 0)}
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  className="h-8 text-xs"
+                />
+              </div>
+            )}
+
+            {/* Amount */}
+            <div className="space-y-1">
+              <div className="flex justify-between items-center">
+                <label className="text-xs text-muted-foreground">{t("amount")}</label>
+                <span className="text-xs text-muted-foreground">{formatCurrency(effectiveBalance)} USDC</span>
+              </div>
               <Input
                 type="number"
-                value={limitPrice}
-                onChange={(e) => setLimitPrice(parseFloat(e.target.value) || 0)}
+                value={amount}
+                onChange={(e) => handleAmountChange(parseFloat(e.target.value) || 0)}
                 min={0}
-                max={1}
-                step={0.01}
+                max={effectiveBalance}
+                step={1}
                 className="h-8 text-xs"
               />
             </div>
-          )}
 
-          {/* Amount */}
-          <div className="space-y-1">
-            <div className="flex justify-between items-center">
-              <label className="text-xs text-muted-foreground">{t("amount")}</label>
-              <span className="text-xs text-muted-foreground">{formatCurrency(effectiveBalance)} USDC</span>
-            </div>
-            <Input
-              type="number"
-              value={amount}
-              onChange={(e) => handleAmountChange(parseFloat(e.target.value) || 0)}
-              min={0}
-              max={effectiveBalance}
-              step={1}
-              className="h-8 text-xs"
-            />
-          </div>
+            {/* Slider */}
+            <Slider value={sliderValue} onValueChange={handleSliderChange} max={100} step={1} className="w-full" />
 
-          {/* Slider */}
-          <Slider value={sliderValue} onValueChange={handleSliderChange} max={100} step={1} className="w-full" />
+            {/* Quick Amount Buttons */}
+            <div className="grid grid-cols-5 gap-0.5">
+              {QUICK_AMOUNTS.map((quickAmount) => (
+                <Button
+                  key={quickAmount}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleQuickAmount(quickAmount)}
+                  disabled={quickAmount > effectiveBalance}
+                  className="h-7 text-xs"
+                >
+                  {quickAmount}
+                </Button>
+              ))}
+            </div>
 
-          {/* Quick Amount Buttons */}
-          <div className="grid grid-cols-5 gap-0.5">
-            {QUICK_AMOUNTS.map((quickAmount) => (
-              <Button
-                key={quickAmount}
-                variant="outline"
-                size="sm"
-                onClick={() => handleQuickAmount(quickAmount)}
-                disabled={quickAmount > effectiveBalance}
-                className="h-7 text-xs"
-              >
-                {quickAmount}
-              </Button>
-            ))}
-          </div>
-
-          {/* Order Summary */}
-          <div className="space-y-1 text-xs">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">{t("shares")}</span>
-              <span>{amount > 0 ? Math.floor(amount / limitPrice) : 0}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">{t("avgPrice")}</span>
-              <span>{formatCurrency(limitPrice * 100)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">{t("total")}</span>
-              <span className="font-semibold">{formatCurrency(amount)}</span>
-            </div>
-            {!isFeeExempt && (
+            {/* Order Summary */}
+            <div className="space-y-1 text-xs">
               <div className="flex justify-between">
-                <span className="text-muted-foreground">{t("fee")}</span>
-                <span>{formatCurrency(amount * 0.01)}</span>
+                <span className="text-muted-foreground">{t("shares")}</span>
+                <span>{estimatedShares > 0 ? estimatedShares.toFixed(2) : 0}</span>
               </div>
-            )}
-          </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">{t("avgPrice")}</span>
+                <span>{formatCurrency(limitPrice * 100)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">{t("total")}</span>
+                <span className="font-semibold">{formatCurrency(amount)}</span>
+              </div>
+              {!isFeeExempt && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">{t("fee")}</span>
+                  <span>{formatCurrency(amount * 0.01)}</span>
+                </div>
+              )}
+            </div>
 
-          {/* Warnings */}
-          {amount < MIN_ORDER_AMOUNT && amount > 0 && (
-            <Alert variant="destructive">
-              <AlertTriangle className="h-3 w-3" />
-              <AlertDescription className="text-xs">
-                {t("minimumOrder")}: ${MIN_ORDER_AMOUNT}
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {/* Place Order Button */}
-          <Button
-            onClick={handlePlaceOrder}
-            disabled={
-              Boolean(amount < MIN_ORDER_AMOUNT) ||
-              isPlacingOrder ||
-              Boolean(amount > effectiveBalance) ||
-              isMarketEnded
-            }
-            className={cn(
-              "w-full h-9 text-xs font-semibold",
-              action === "buy" ? "bg-success hover:bg-success/90 text-white" : "bg-danger hover:bg-danger/90 text-white"
+            {/* Warnings */}
+            {amount < MIN_ORDER_AMOUNT && amount > 0 && (
+              <Alert variant="destructive">
+                <AlertTriangle className="h-3 w-3" />
+                <AlertDescription className="text-xs">
+                  {t("minimumOrder")}: ${MIN_ORDER_AMOUNT}
+                </AlertDescription>
+              </Alert>
             )}
-          >
-            {isPlacingOrder
-              ? t("placingOrder")
-              : isMarketEnded
-              ? t("marketEnded")
-              : `${action === "buy" ? t("buy") : t("sell")} ${direction === "yes" ? "Yes" : "No"}`}
-          </Button>
-        </>
+
+            {/* Place Order Button */}
+            <Button
+              onClick={handlePlaceOrder}
+              disabled={Boolean(amount < MIN_ORDER_AMOUNT) || isPlacingOrder || Boolean(amount > effectiveBalance)}
+              className={cn(
+                "w-full h-9 text-xs font-semibold",
+                action === "buy"
+                  ? "bg-success hover:bg-success/90 text-white"
+                  : "bg-danger hover:bg-danger/90 text-white"
+              )}
+            >
+              {isPlacingOrder
+                ? t("placingOrder")
+                : `${action === "buy" ? t("buy") : t("sell")} ${direction === "yes" ? "Yes" : "No"}`}
+            </Button>
+          </>
+        )}
       </div>
     </div>
   );

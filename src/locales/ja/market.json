@@ -117,6 +117,7 @@
   "notStarted": "未開始",
   "awaitingOracle": "オラクル待ち",
   "marketResolved": "マーケット決済済み",
+  "marketEnded": "マーケット終了",
   "start": "開始",
   "end": "終了",
   "winner": "勝者",

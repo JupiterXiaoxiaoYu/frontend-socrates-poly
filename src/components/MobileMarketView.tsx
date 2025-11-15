@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSwipeable } from "react-swipeable";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronUp, Wallet } from "lucide-react";
+import { ChevronDown, ChevronUp, Wallet, ArrowRight } from "lucide-react";
 import PriceChart from "./PriceChart";
 import MobileOrderBook from "./MobileOrderBook";
 import MobileTradingPanel from "./MobileTradingPanel";
@@ -18,7 +18,7 @@ import {
   fromPricePrecision,
   generateMarketTitle,
 } from "../lib/calculations";
-import { OrderType, MarketStatus } from "../types/market";
+import { MarketStatus, Outcome } from "../types/market";
 import type { Market } from "../types/market";
 
 interface MobileMarketViewProps {
@@ -31,7 +31,8 @@ const MobileMarketView = ({ marketId, allMarketIds }: MobileMarketViewProps) => 
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const { currentMarket, positions, orders, trades, setCurrentMarketId, placeOrder, claim } = useMarket();
+  const { currentMarket, positions, orders, trades, setCurrentMarketId, placeOrder, markets, refreshData } =
+    useMarket();
   const { l2Account, isConnected, isL2Connected, connectL2 } = useWallet();
 
   const [selectedDirection, setSelectedDirection] = useState<"UP" | "DOWN">("UP");
@@ -114,19 +115,25 @@ const MobileMarketView = ({ marketId, allMarketIds }: MobileMarketViewProps) => 
 
   // 计算市场数据
   const marketData = useMemo(():
-    | (Market & { endTimestamp: number; targetPrice: number; windowMinutes: number; totalVolume: number })
+    | (Market & {
+        endTimestamp: number;
+        targetPrice: number;
+        windowMinutes: number;
+        totalVolume: number;
+        hasOrders: boolean;
+      })
     | null => {
     if (!currentMarket) return null;
 
+    // 从市场当前价格计算概率（优先使用最新成交价格）
     const { yesChance, noChance } =
-      marketCurrentPrice !== null ? calculateProbabilities(marketCurrentPrice) : { yesChance: 50, noChance: 50 };
+      marketCurrentPrice !== null ? calculateProbabilities(marketCurrentPrice) : calculateProbabilities(); // 默认 50/50
 
     const totalVolume =
       fromUSDCPrecision(currentMarket.upMarket?.volume || "0") +
       fromUSDCPrecision(currentMarket.downMarket?.volume || "0");
 
     const targetPrice = fromPricePrecision(currentMarket.oracleStartPrice);
-    const currentPrice = realtimeBTCPrice || targetPrice;
     const endTimestamp = parseInt(currentMarket.oracleStartTime) + currentMarket.windowMinutes * 60;
 
     // 将API MarketStatus转换为Market MarketStatus
@@ -159,26 +166,29 @@ const MobileMarketView = ({ marketId, allMarketIds }: MobileMarketViewProps) => 
     return {
       marketId: parseInt(currentMarket.marketId),
       title,
-      yesChance,
-      noChance,
+      yesChance: Math.round(yesChance),
+      noChance: Math.round(noChance),
       volume: totalVolume,
       totalVolume,
       endTimestamp,
       status,
       assetId: parseInt(currentMarket.assetId),
       outcomeType: 0,
-      startTick: 0,
-      endTick: 0,
+      startTick: parseInt(currentMarket.startTick),
+      endTick: parseInt(currentMarket.endTick),
       oracleStartTime: parseInt(currentMarket.oracleStartTime),
       oracleStartPrice: parseInt(currentMarket.oracleStartPrice),
       oracleEndTime: parseInt(currentMarket.oracleEndTime || "0"),
       oracleEndPrice: parseInt(currentMarket.oracleEndPrice || "0"),
-      winningOutcome: 255,
+      // 将 API 的 MarketOutcome 转换为 Market 类型的 Outcome
+      winningOutcome:
+        currentMarket.status === 2 ? (currentMarket.winningOutcome as unknown as Outcome) : Outcome.UNRESOLVED,
       targetPrice,
-      currentPrice,
+      currentPrice: marketCurrentPrice ?? undefined,
+      hasOrders: marketCurrentPrice !== null,
       windowMinutes: currentMarket.windowMinutes,
     };
-  }, [currentMarket, marketCurrentPrice, realtimeBTCPrice]);
+  }, [currentMarket?.marketId, currentMarket?.status, marketCurrentPrice]); // 只在关键字段变化时更新
 
   // 计算用户余额
   const userBalance = useMemo(() => {
@@ -212,37 +222,45 @@ const MobileMarketView = ({ marketId, allMarketIds }: MobileMarketViewProps) => 
     }
   };
 
-  // 下单处理
+  // 下单处理 - 与 MarketDetail.tsx 保持一致
   const handlePlaceOrder = async (order: {
     marketId: number;
     direction: string;
-    orderType: OrderType;
+    orderType: any;
     price: number;
     amount: number;
   }) => {
     try {
-      // 将OrderType转换为orderType字符串
-      let orderTypeStr: "limit_buy" | "limit_sell" | "market_buy" | "market_sell";
-      if (order.orderType === OrderType.LIMIT_BUY) {
-        orderTypeStr = "limit_buy";
-      } else if (order.orderType === OrderType.LIMIT_SELL) {
-        orderTypeStr = "limit_sell";
-      } else if (order.orderType === OrderType.MARKET_BUY) {
-        orderTypeStr = "market_buy";
-      } else {
-        orderTypeStr = "market_sell";
-      }
+      // 转换订单类型
+      const orderTypeStr =
+        order.orderType === 0
+          ? "limit_buy"
+          : order.orderType === 1
+          ? "limit_sell"
+          : order.orderType === 2
+          ? "market_buy"
+          : "market_sell";
 
+      // TradingPanel 传过来的参数：
+      // - price: 已经是 BPS (0-10000)，例如 5000 = 50%
+      // - amount: 已经是 2位精度 (100 = 1.0)，例如 1000 = 10.00
       await placeOrder({
         marketId: BigInt(order.marketId),
-        direction: order.direction as "UP" | "DOWN",
-        orderType: orderTypeStr,
-        price: BigInt(Math.round(order.price)),
-        amount: BigInt(Math.round(order.amount * 1000000)), // 转换为精度1e6
+        direction: order.direction as any,
+        orderType: orderTypeStr as any,
+        price: BigInt(order.price), // 直接使用，已经是 BPS
+        amount: BigInt(order.amount), // 直接使用，已经是 2位精度
       });
+
+      // 转换 direction (UP/DOWN) 为 YES/NO 并翻译
+      const directionText = order.direction === "UP" ? t("yes") : t("no");
+
+      // 转换 orderTypeStr 为可读的订单类型
+      const orderTypeText = orderTypeStr.startsWith("limit") ? t("limit") : t("marketType");
+
       toast({
         title: t("orderPlaced"),
-        description: t("orderPlacedDesc"),
+        description: t("orderPlacedDesc", { direction: directionText, orderType: orderTypeText }),
       });
     } catch (error) {
       toast({
@@ -253,24 +271,37 @@ const MobileMarketView = ({ marketId, allMarketIds }: MobileMarketViewProps) => 
     }
   };
 
-  // 领取奖励
-  const handleClaim = async (marketId: number) => {
-    try {
-      await claim(BigInt(marketId));
-      toast({
-        title: t("claimSuccess"),
-        description: t("claimSuccessDesc"),
-      });
-    } catch (error) {
-      toast({
-        title: t("claimFailed"),
-        description: error instanceof Error ? error.message : t("claimFailedDesc"),
-        variant: "destructive",
-      });
-    }
+  // 查找同类型的活跃市场
+  const findSimilarActiveMarket = () => {
+    if (!marketData) return null;
+
+    // 查找相同 assetId 的活跃市场
+    const similarMarket = markets.find(
+      (m: any) =>
+        m.marketId !== marketData.marketId.toString() &&
+        m.assetId === marketData.assetId.toString() &&
+        m.status === MarketStatus.ACTIVE
+    );
+
+    return similarMarket;
+  };
+
+  const handleContinuePredicting = async () => {
+    // 先刷新市场列表，确保获取最新的活跃市场
+    await refreshData();
+
+    // 稍微延迟以确保状态更新完成
+    setTimeout(() => {
+      const similarMarket = findSimilarActiveMarket();
+      if (similarMarket) {
+        navigate(`/market/${similarMarket.marketId}`);
+      }
+    }, 100);
   };
 
   const isWalletConnected = isConnected && isL2Connected && l2Account;
+  const isMarketEnded =
+    marketData && (marketData.status === MarketStatus.RESOLVED || marketData.status === MarketStatus.CLOSED);
 
   if (!marketData) {
     return (
@@ -317,7 +348,10 @@ const MobileMarketView = ({ marketId, allMarketIds }: MobileMarketViewProps) => 
         {/* 当前价格和概率 */}
         <div className="flex items-center justify-between">
           <div>
-            <div className="text-2xl font-bold text-success">${marketData.currentPrice?.toFixed(2)}</div>
+            {/* 显示实际BTC价格（美元），而不是市场交易价格百分比 */}
+            <div className="text-2xl font-bold text-success">
+              ${(realtimeBTCPrice || marketData.targetPrice)?.toFixed(2)}
+            </div>
             <div className="text-xs text-muted-foreground">
               {t("probability")}: {marketData.yesChance}% Yes / {marketData.noChance}% No
             </div>
@@ -356,7 +390,6 @@ const MobileMarketView = ({ marketId, allMarketIds }: MobileMarketViewProps) => 
                   userBalance={userBalance}
                   isFeeExempt={false}
                   onPlaceOrder={handlePlaceOrder}
-                  onClaim={handleClaim}
                   onDirectionChange={setSelectedDirection}
                 />
               ) : (
@@ -401,6 +434,19 @@ const MobileMarketView = ({ marketId, allMarketIds }: MobileMarketViewProps) => 
         {isChartExpanded && (
           <div className="h-64 p-2 border-t border-border bg-card overflow-hidden">
             <PriceChart targetPrice={marketData.targetPrice} onPriceUpdate={setRealtimeBTCPrice} />
+          </div>
+        )}
+
+        {/* Continue 按钮 - 固定在页面最底部 */}
+        {isMarketEnded && findSimilarActiveMarket() && (
+          <div className="px-4 py-3 bg-card border-t border-border">
+            <Button
+              onClick={handleContinuePredicting}
+              className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary/90 text-primary-foreground"
+            >
+              Continue Predicting
+              <ArrowRight className="w-5 h-5 ml-2" />
+            </Button>
           </div>
         )}
       </div>

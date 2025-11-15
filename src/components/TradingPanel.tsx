@@ -6,13 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Slider } from "@/components/ui/slider";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Switch } from "@/components/ui/switch";
-import {
-  TrendingUp,
-  TrendingDown,
-  AlertTriangle,
-  DollarSign,
-  Clock,
-} from "lucide-react";
+import { TrendingUp, TrendingDown, AlertTriangle, DollarSign, Clock } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { cn, formatCurrency, formatPercent } from "@/lib/utils";
@@ -57,7 +51,7 @@ const TradingPanel = ({
   onDirectionChange,
   className,
 }: TradingPanelProps) => {
-  const { t } = useTranslation('market');
+  const { t } = useTranslation("market");
   const navigate = useNavigate();
   const { markets, refreshData } = useMarket();
   const [isProfessional, setIsProfessional] = useState(false);
@@ -234,7 +228,7 @@ const TradingPanel = ({
   // 查找同类型的活跃市场
   const findSimilarActiveMarket = () => {
     if (!market) return null;
-    
+
     // 查找相同 assetId 的活跃市场（优先相同时长）
     const similarMarket = markets.find(
       (m: any) =>
@@ -242,14 +236,14 @@ const TradingPanel = ({
         m.assetId === market.assetId.toString() &&
         m.status === MarketStatus.ACTIVE
     );
-    
+
     return similarMarket;
   };
 
   const handleContinuePredicting = async () => {
     // 先刷新市场列表，确保获取最新的活跃市场
     await refreshData();
-    
+
     // 稍微延迟以确保状态更新完成
     setTimeout(() => {
       const similarMarket = findSimilarActiveMarket();
@@ -288,12 +282,12 @@ const TradingPanel = ({
           <CardContent className="p-4 text-center">
             <div className="text-green-600 mb-2">
               <TrendingUp className="w-8 h-8 mx-auto mb-2" />
-              <div className="text-lg font-bold">{t('youWon')}</div>
+              <div className="text-lg font-bold">{t("youWon")}</div>
             </div>
-            <p className="text-sm text-muted-foreground mb-4">{t('youWonDesc')}</p>
+            <p className="text-sm text-muted-foreground mb-4">{t("youWonDesc")}</p>
             <Button onClick={handleClaim} className="w-full bg-green-600 hover:bg-green-700" size="lg">
               <DollarSign className="w-4 h-4 mr-2" />
-              {t('claimWinningsButton')}
+              {t("claimWinningsButton")}
             </Button>
           </CardContent>
         </Card>
@@ -310,9 +304,9 @@ const TradingPanel = ({
           <CardContent className="p-4 text-center">
             <div className="text-red-600 mb-2">
               <TrendingDown className="w-8 h-8 mx-auto mb-2" />
-              <div className="text-lg font-bold">{t('betterLuckNextTime')}</div>
+              <div className="text-lg font-bold">{t("betterLuckNextTime")}</div>
             </div>
-            <p className="text-sm text-muted-foreground">{t('betterLuckNextTimeDesc')}</p>
+            <p className="text-sm text-muted-foreground">{t("betterLuckNextTimeDesc")}</p>
           </CardContent>
         </Card>
       </div>
@@ -337,10 +331,7 @@ const TradingPanel = ({
           </h3>
           <div className="flex items-center gap-2">
             <span className="text-sm text-muted-foreground">Professional</span>
-            <Switch
-              checked={isProfessional}
-              onCheckedChange={setIsProfessional}
-            />
+            <Switch checked={isProfessional} onCheckedChange={setIsProfessional} />
           </div>
         </div>
         {pairedMarket && (
@@ -360,21 +351,21 @@ const TradingPanel = ({
                 <Clock className="w-10 h-10 mx-auto text-muted-foreground" />
                 <div className="text-lg font-bold">
                   {market?.status === MarketStatus.PENDING
-                    ? t('notStarted')
+                    ? t("notStarted")
                     : market?.status === MarketStatus.CLOSED
-                    ? t('awaitingOracle')
-                    : t('marketResolved')}
+                    ? t("awaitingOracle")
+                    : t("marketResolved")}
                 </div>
 
                 {isResolved && (
                   <>
                     <div className="space-y-3 pt-2">
                       <div className="flex justify-between items-center py-3 border-t">
-                        <span className="text-sm text-muted-foreground">{t('start')}:</span>
+                        <span className="text-sm text-muted-foreground">{t("start")}:</span>
                         <span className="text-xl font-bold font-mono">${(startPrice / 100).toLocaleString()}</span>
                       </div>
                       <div className="flex justify-between items-center py-3 border-t">
-                        <span className="text-sm text-muted-foreground">{t('end')}:</span>
+                        <span className="text-sm text-muted-foreground">{t("end")}:</span>
                         <span className="text-xl font-bold font-mono">${(endPrice / 100).toLocaleString()}</span>
                       </div>
                       <div className="flex justify-between items-center py-3 border-t">
@@ -388,11 +379,15 @@ const TradingPanel = ({
                               : "text-warning"
                           }`}
                         >
-                          {winningOutcome === 1 ? `✓ ${t('yes')}` : winningOutcome === 0 ? `✗ ${t('no')}` : `↔️ ${t('tie')}`}
+                          {winningOutcome === 1
+                            ? `✓ ${t("yes")}`
+                            : winningOutcome === 0
+                            ? `✗ ${t("no")}`
+                            : `↔️ ${t("tie")}`}
                         </span>
                       </div>
                     </div>
-                    
+
                     {/* Continue Predicting Button - 只在有相似市场时显示 */}
                     {findSimilarActiveMarket() && (
                       <Button
@@ -413,8 +408,10 @@ const TradingPanel = ({
               {/* Amount Input */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
-                  <label className="font-medium">{t('amount')}</label>
-                  <span className="text-muted-foreground">{t('balance')}: ${effectiveBalance.toFixed(2)}</span>
+                  <label className="font-medium">{t("amount")}</label>
+                  <span className="text-muted-foreground">
+                    {t("balance")}: ${effectiveBalance.toFixed(2)}
+                  </span>
                 </div>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-lg">$</span>
@@ -449,7 +446,7 @@ const TradingPanel = ({
                 {amount > 0 && amount < MIN_ORDER_AMOUNT && (
                   <div className="text-xs text-red-500 flex items-center gap-1 justify-center">
                     <AlertTriangle className="w-3 h-3" />
-                    {t('minimumOrder', { amount: MIN_ORDER_AMOUNT })}
+                    {t("minimumOrder", { amount: MIN_ORDER_AMOUNT })}
                   </div>
                 )}
               </div>
@@ -475,10 +472,8 @@ const TradingPanel = ({
               {/* Potential Win Display */}
               {amount > 0 && (
                 <div className="text-center p-3 bg-muted/30 rounded-lg">
-                  <div className="text-sm text-muted-foreground mb-1">{t('potentialWin')}</div>
-                  <div className="text-xl font-bold">
-                    ${(amount / marketPriceDecimal).toFixed(2)}
-                  </div>
+                  <div className="text-sm text-muted-foreground mb-1">{t("potentialWin")}</div>
+                  <div className="text-xl font-bold">${(amount / marketPriceDecimal).toFixed(2)}</div>
                 </div>
               )}
 
@@ -526,21 +521,21 @@ const TradingPanel = ({
                 <Clock className="w-10 h-10 mx-auto text-muted-foreground" />
                 <div className="text-lg font-bold">
                   {market?.status === MarketStatus.PENDING
-                    ? t('notStarted')
+                    ? t("notStarted")
                     : market?.status === MarketStatus.CLOSED
-                    ? t('awaitingOracle')
-                    : t('marketResolved')}
+                    ? t("awaitingOracle")
+                    : t("marketResolved")}
                 </div>
 
                 {isResolved && (
                   <>
                     <div className="space-y-3 pt-2">
                       <div className="flex justify-between items-center py-3 border-t">
-                        <span className="text-sm text-muted-foreground">{t('start')}:</span>
+                        <span className="text-sm text-muted-foreground">{t("start")}:</span>
                         <span className="text-xl font-bold font-mono">${(startPrice / 100).toLocaleString()}</span>
                       </div>
                       <div className="flex justify-between items-center py-3 border-t">
-                        <span className="text-sm text-muted-foreground">{t('end')}:</span>
+                        <span className="text-sm text-muted-foreground">{t("end")}:</span>
                         <span className="text-xl font-bold font-mono">${(endPrice / 100).toLocaleString()}</span>
                       </div>
                       <div className="flex justify-between items-center py-3 border-t">
@@ -554,11 +549,15 @@ const TradingPanel = ({
                               : "text-warning"
                           }`}
                         >
-                          {winningOutcome === 1 ? `✓ ${t('yes')}` : winningOutcome === 0 ? `✗ ${t('no')}` : `↔️ ${t('tie')}`}
+                          {winningOutcome === 1
+                            ? `✓ ${t("yes")}`
+                            : winningOutcome === 0
+                            ? `✗ ${t("no")}`
+                            : `↔️ ${t("tie")}`}
                         </span>
                       </div>
                     </div>
-                    
+
                     {/* Continue Predicting Button - 只在有相似市场时显示 */}
                     {findSimilarActiveMarket() && (
                       <Button
@@ -575,227 +574,237 @@ const TradingPanel = ({
             </Card>
           ) : (
             /* 市场活跃 - 显示 YES/NO 标签和交易表单 */
-      <Tabs
-        value={direction}
-        onValueChange={(v) => handleDirectionChange(v as "yes" | "no")}
-        className="space-y-4 flex-1 flex flex-col"
-      >
-        <TabsList className="grid w-full grid-cols-2 h-12 bg-muted">
-          <TabsTrigger
-            value="yes"
-            className="data-[state=active]:bg-success data-[state=active]:text-white font-semibold"
-          >
-            <TrendingUp className="w-4 h-4 mr-2" />
-            YES
-          </TabsTrigger>
-          <TabsTrigger
-            value="no"
-            className="data-[state=active]:bg-danger data-[state=active]:text-white font-semibold"
-          >
-            <TrendingDown className="w-4 h-4 mr-2" />
-            NO
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value={direction} className="space-y-4 flex-1 flex flex-col m-0">
-                {/* 市场活跃 - 显示交易表单 */}
-            <Tabs value={action} onValueChange={(v) => setAction(v as "buy" | "sell")} className="space-y-4">
-              <TabsList className="grid w-full grid-cols-2 h-10">
+            <Tabs
+              value={direction}
+              onValueChange={(v) => handleDirectionChange(v as "yes" | "no")}
+              className="space-y-4 flex-1 flex flex-col"
+            >
+              <TabsList className="grid w-full grid-cols-2 h-12 bg-muted">
                 <TabsTrigger
-                  value="buy"
-                  className="data-[state=active]:bg-black data-[state=active]:text-white dark:data-[state=active]:bg-white dark:data-[state=active]:text-black font-semibold"
+                  value="yes"
+                  className="data-[state=active]:bg-success data-[state=active]:text-white font-semibold"
                 >
-                  {t('buy')}
+                  <TrendingUp className="w-4 h-4 mr-2" />
+                  YES
                 </TabsTrigger>
                 <TabsTrigger
-                  value="sell"
-                  className="data-[state=active]:bg-black data-[state=active]:text-white dark:data-[state=active]:bg-white dark:data-[state=active]:text-black font-semibold"
+                  value="no"
+                  className="data-[state=active]:bg-danger data-[state=active]:text-white font-semibold"
                 >
-                  {t('sell')}
+                  <TrendingDown className="w-4 h-4 mr-2" />
+                  NO
                 </TabsTrigger>
               </TabsList>
 
-              <TabsContent value={action} className="space-y-4 m-0">
-                {/* Order Type Dropdown */}
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">{t('orderType')}</span>
-                  <select
-                    value={orderType}
-                    onChange={(e) => setOrderType(e.target.value as "market" | "limit")}
-                    className="px-3 py-1.5 text-sm border border-border rounded-md bg-background"
-                  >
-                    <option value="market">{t('marketType')}</option>
-                    <option value="limit">{t('limit')}</option>
-                  </select>
-                </div>
-                {/* Price Impact Warning */}
-                {orderType === "market" && priceImpact > 5 && (
-                  <Alert className="border-orange-200 bg-orange-50">
-                    <AlertTriangle className="h-4 w-4" />
-                    <AlertDescription>
-                      {t('highPriceImpact', { impact: formatPercent(priceImpact / 100, 1) })}
-                    </AlertDescription>
-                  </Alert>
-                )}
+              <TabsContent value={direction} className="space-y-4 flex-1 flex flex-col m-0">
+                {/* 市场活跃 - 显示交易表单 */}
+                <Tabs value={action} onValueChange={(v) => setAction(v as "buy" | "sell")} className="space-y-4">
+                  <TabsList className="grid w-full grid-cols-2 h-10">
+                    <TabsTrigger
+                      value="buy"
+                      className="data-[state=active]:bg-black data-[state=active]:text-white dark:data-[state=active]:bg-white dark:data-[state=active]:text-black font-semibold"
+                    >
+                      {t("buy")}
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="sell"
+                      className="data-[state=active]:bg-black data-[state=active]:text-white dark:data-[state=active]:bg-white dark:data-[state=active]:text-black font-semibold"
+                    >
+                      {t("sell")}
+                    </TabsTrigger>
+                  </TabsList>
 
-                {/* Current Price Display - 只在 Limit 模式显示 */}
-                {orderType === "limit" && (
-                  <div className="text-center p-3 bg-muted/30 rounded-lg">
-                    <div className="text-sm text-muted-foreground">{t('yourLimitPrice')}</div>
-                    <div className="text-2xl font-bold">{formatCurrency(limitPrice)}</div>
-                  </div>
-                )}
-
-                {/* Limit Price - Only for limit orders */}
-                {orderType === "limit" && (
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">{t('yourPrice')}</label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
-                      <Input
-                        type="number"
-                        value={limitPrice}
-                        onChange={(e) => setLimitPrice(Number(e.target.value))}
-                        className="pl-7 h-10"
-                        step="0.01"
-                        min="0.01"
-                        max="0.99"
-                      />
+                  <TabsContent value={action} className="space-y-4 m-0">
+                    {/* Order Type Dropdown */}
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">{t("orderType")}</span>
+                      <select
+                        value={orderType}
+                        onChange={(e) => setOrderType(e.target.value as "market" | "limit")}
+                        className="px-3 py-1.5 text-sm border border-border rounded-md bg-background"
+                      >
+                        <option value="market">{t("marketType")}</option>
+                        <option value="limit">{t("limit")}</option>
+                      </select>
                     </div>
-                    {orderBook && (
-                      <div className="text-xs text-muted-foreground">
-                        {t('market')}: {formatCurrency(orderBook.midPrice)} •
-                        {limitPrice > orderBook.midPrice ? ` ${t('aboveMarket')}` : ` ${t('belowMarket')}`}
+                    {/* Price Impact Warning */}
+                    {orderType === "market" && priceImpact > 5 && (
+                      <Alert className="border-orange-200 bg-orange-50">
+                        <AlertTriangle className="h-4 w-4" />
+                        <AlertDescription>
+                          {t("highPriceImpact", { impact: formatPercent(priceImpact / 100, 1) })}
+                        </AlertDescription>
+                      </Alert>
+                    )}
+
+                    {/* Current Price Display - 只在 Limit 模式显示 */}
+                    {orderType === "limit" && (
+                      <div className="text-center p-3 bg-muted/30 rounded-lg">
+                        <div className="text-sm text-muted-foreground">{t("yourLimitPrice")}</div>
+                        <div className="text-2xl font-bold">{formatCurrency(limitPrice)}</div>
                       </div>
                     )}
-                  </div>
-                )}
 
-                {/* Amount Input */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-sm">
-                    <label className="font-medium">{t('amount')}</label>
-                    <span className="text-muted-foreground">{t('balance')}: ${effectiveBalance.toFixed(2)}</span>
-                  </div>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
-                    <Input
-                      type="number"
-                      value={amount || ""}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        if (val === "" || val === ".") {
-                          setAmount(0);
-                        } else {
-                          const numVal = Number(val);
-                          if (!isNaN(numVal)) {
-                            setAmount(numVal);
-                          }
-                        }
-                      }}
-                      onBlur={(e) => {
-                        const val = Number(e.target.value);
-                        if (!isNaN(val) && val > 0) {
-                          setAmount(Number(val.toFixed(2)));
-                        } else if (val === 0 || isNaN(val)) {
-                          setAmount(0);
-                        }
-                      }}
-                      className="pl-7 h-12 text-lg font-semibold"
-                      placeholder="0.00"
-                      min={MIN_ORDER_AMOUNT}
-                      step="0.01"
-                    />
-                  </div>
-                  {amount > 0 && amount < MIN_ORDER_AMOUNT && (
-                    <div className="text-xs text-red-500 flex items-center gap-1">
-                      <AlertTriangle className="w-3 h-3" />
-                      {t('minimumOrder', { amount: MIN_ORDER_AMOUNT })}
+                    {/* Limit Price - Only for limit orders */}
+                    {orderType === "limit" && (
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">{t("yourPrice")}</label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                          <Input
+                            type="number"
+                            value={limitPrice}
+                            onChange={(e) => setLimitPrice(Number(e.target.value))}
+                            className="pl-7 h-10"
+                            step="0.01"
+                            min="0.01"
+                            max="0.99"
+                          />
+                        </div>
+                        {orderBook && (
+                          <div className="text-xs text-muted-foreground">
+                            {t("market")}: {formatCurrency(orderBook.midPrice)} •
+                            {limitPrice > orderBook.midPrice ? ` ${t("aboveMarket")}` : ` ${t("belowMarket")}`}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Amount Input */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <label className="font-medium">{t("amount")}</label>
+                        <span className="text-muted-foreground">
+                          {t("balance")}: ${effectiveBalance.toFixed(2)}
+                        </span>
+                      </div>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                        <Input
+                          type="number"
+                          value={amount || ""}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (val === "" || val === ".") {
+                              setAmount(0);
+                            } else {
+                              const numVal = Number(val);
+                              if (!isNaN(numVal)) {
+                                setAmount(numVal);
+                              }
+                            }
+                          }}
+                          onBlur={(e) => {
+                            const val = Number(e.target.value);
+                            if (!isNaN(val) && val > 0) {
+                              setAmount(Number(val.toFixed(2)));
+                            } else if (val === 0 || isNaN(val)) {
+                              setAmount(0);
+                            }
+                          }}
+                          className="pl-7 h-12 text-lg font-semibold"
+                          placeholder="0.00"
+                          min={MIN_ORDER_AMOUNT}
+                          step="0.01"
+                        />
+                      </div>
+                      {amount > 0 && amount < MIN_ORDER_AMOUNT && (
+                        <div className="text-xs text-red-500 flex items-center gap-1">
+                          <AlertTriangle className="w-3 h-3" />
+                          {t("minimumOrder", { amount: MIN_ORDER_AMOUNT })}
+                        </div>
+                      )}
+                      {amount === 0 && (
+                        <div className="text-xs text-muted-foreground">
+                          {t("minimumOrderDesc", { amount: MIN_ORDER_AMOUNT })}
+                        </div>
+                      )}
                     </div>
-                  )}
-                  {amount === 0 && (
-                    <div className="text-xs text-muted-foreground">{t('minimumOrderDesc', { amount: MIN_ORDER_AMOUNT })}</div>
-                  )}
-                </div>
 
-                {/* Quick Amount Buttons */}
-                <div className="flex gap-2 flex-wrap">
-                  {QUICK_AMOUNTS.map((quickAmount) => (
+                    {/* Quick Amount Buttons */}
+                    <div className="flex gap-2 flex-wrap">
+                      {QUICK_AMOUNTS.map((quickAmount) => (
+                        <Button
+                          key={quickAmount}
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleQuickAmount(quickAmount)}
+                          className="text-xs"
+                          disabled={quickAmount > effectiveBalance}
+                        >
+                          ${quickAmount}
+                        </Button>
+                      ))}
+                    </div>
+
+                    {/* Slider */}
+                    <div className="space-y-2">
+                      <Slider
+                        value={sliderValue}
+                        onValueChange={handleSliderChange}
+                        max={100}
+                        step={1}
+                        className="py-4"
+                      />
+                      <div className="flex gap-2">
+                        {[25, 50, 75, 100].map((percent) => (
+                          <Button
+                            key={percent}
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handlePercentClick(percent)}
+                            className="flex-1 text-xs"
+                          >
+                            {percent}%
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Potential Win Display */}
+                    {amount > 0 && (
+                      <div className="p-4 rounded-lg bg-success/5 border border-success/20">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm text-muted-foreground">{t("sharesLabel")}</span>
+                          <span className="text-lg font-bold">{estimatedShares.toFixed(2)}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-muted-foreground">{t("potentialWin")}</span>
+                          <span className="text-2xl font-bold text-success">${maxWin.toFixed(2)}</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Submit Button */}
                     <Button
-                      key={quickAmount}
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleQuickAmount(quickAmount)}
-                      className="text-xs"
-                      disabled={quickAmount > effectiveBalance}
+                      size="lg"
+                      className={cn(
+                        "w-full h-12 font-semibold text-base mt-auto",
+                        direction === "yes"
+                          ? "bg-success hover:bg-success/90 text-white"
+                          : "bg-danger hover:bg-danger/90 text-white"
+                      )}
+                      disabled={!canPlaceOrder || isPlacingOrder}
+                      onClick={handlePlaceOrder}
                     >
-                      ${quickAmount}
+                      {isPlacingOrder
+                        ? t("placingOrder")
+                        : `${action === "buy" ? t("buy") : t("sell")} ${direction.toUpperCase()} ${
+                            orderType === "market" ? t("marketOrder") : t("limitOrder")
+                          }`}
                     </Button>
-                  ))}
-                </div>
 
-                {/* Slider */}
-                <div className="space-y-2">
-                  <Slider value={sliderValue} onValueChange={handleSliderChange} max={100} step={1} className="py-4" />
-                  <div className="flex gap-2">
-                    {[25, 50, 75, 100].map((percent) => (
-                      <Button
-                        key={percent}
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handlePercentClick(percent)}
-                        className="flex-1 text-xs"
-                      >
-                        {percent}%
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Potential Win Display */}
-                {amount > 0 && (
-                  <div className="p-4 rounded-lg bg-success/5 border border-success/20">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-muted-foreground">{t('sharesLabel')}</span>
-                      <span className="text-lg font-bold">{estimatedShares.toFixed(2)}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">{t('potentialWin')}</span>
-                      <span className="text-2xl font-bold text-success">${maxWin.toFixed(2)}</span>
-                    </div>
-                  </div>
-                )}
-
-                {/* Submit Button */}
-                <Button
-                  size="lg"
-                  className={cn(
-                    "w-full h-12 font-semibold text-base mt-auto",
-                    direction === "yes"
-                      ? "bg-success hover:bg-success/90 text-white"
-                      : "bg-danger hover:bg-danger/90 text-white"
-                  )}
-                  disabled={!canPlaceOrder || isPlacingOrder}
-                  onClick={handlePlaceOrder}
-                >
-                  {isPlacingOrder
-                    ? t('placingOrder')
-                    : `${action === "buy" ? t('buy') : t('sell')} ${direction.toUpperCase()} ${
-                        orderType === "market" ? t('marketOrder') : t('limitOrder')
-                      }`}
-                </Button>
-
-                {/* Position Info */}
-                {userPosition && (
-                  <div className="text-xs text-muted-foreground text-center">{t('youHavePosition')}</div>
-                )}
+                    {/* Position Info */}
+                    {userPosition && (
+                      <div className="text-xs text-muted-foreground text-center">{t("youHavePosition")}</div>
+                    )}
+                  </TabsContent>
+                </Tabs>
               </TabsContent>
             </Tabs>
-        </TabsContent>
-      </Tabs>
           )}
-                </div>
-              )}
+        </div>
+      )}
     </div>
   );
 };

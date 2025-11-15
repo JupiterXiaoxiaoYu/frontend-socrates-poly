@@ -117,6 +117,7 @@
   "notStarted": "Chưa Bắt Đầu",
   "awaitingOracle": "Đang Chờ Oracle",
   "marketResolved": "Thị Trường Đã Giải Quyết",
+  "marketEnded": "Thị Trường Đã Kết Thúc",
   "start": "Bắt Đầu",
   "end": "Kết Thúc",
   "winner": "Người Thắng",

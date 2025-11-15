@@ -14,7 +14,7 @@ import { WithdrawDialog } from "../components/WithdrawDialog";
 // Transaction row shape for display is computed inline; no separate interface needed
 
 const Wallet = () => {
-  const { t } = useTranslation('wallet');
+  const { t } = useTranslation("wallet");
   const { playerId, apiClient, deposit, withdraw } = useMarket();
   const { usdcBalance, refreshBalance } = useBalance();
   const { toast } = useToast();
@@ -34,8 +34,8 @@ const Wallet = () => {
     navigator.clipboard.writeText(pidString);
     setCopiedPid(true);
     toast({
-      title: t('copied'),
-      description: t('playerIdCopied'),
+      title: t("copied"),
+      description: t("playerIdCopied"),
     });
     setTimeout(() => setCopiedPid(false), 2000);
   };
@@ -68,13 +68,13 @@ const Wallet = () => {
       let status: "Completed" | "Failed" | "Pending" = "Completed";
 
       if (tx.type === "deposit") {
-        type = t('depositUSDCType');
+        type = t("depositUSDCType");
         amount = `+${fromUSDCPrecision(tx.amount).toFixed(4)} USDC`;
       } else if (tx.type === "withdrawal") {
-        type = t('withdrawUSDCType');
+        type = t("withdrawUSDCType");
         amount = `-${fromUSDCPrecision(tx.amount).toFixed(4)} USDC`;
       } else if (tx.type === "claim") {
-        type = `${t('claimFromMarket')} #${tx.marketId}`;
+        type = `${t("claimFromMarket")} #${tx.marketId}`;
         amount = `+${fromUSDCPrecision(tx.totalClaimed).toFixed(4)} USDC`;
       }
 
@@ -151,14 +151,14 @@ const Wallet = () => {
       <Header />
 
       <main className="container mx-auto px-4 py-6 max-w-4xl">
-        <h1 className="text-2xl font-bold mb-6 text-foreground">{t('title')}</h1>
+        <h1 className="text-2xl font-bold mb-6 text-foreground">{t("title")}</h1>
 
         {/* Player ID Card */}
         {playerId && (
           <Card className="p-4 border border-border mb-4 bg-muted/20">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-xs text-muted-foreground mb-1">{t('playerId')}</div>
+                <div className="text-xs text-muted-foreground mb-1">{t("playerId")}</div>
                 <div className="font-mono text-sm text-foreground">
                   [{playerId[0]}, {playerId[1]}]
                 </div>
@@ -175,7 +175,7 @@ const Wallet = () => {
           <div className="flex items-start justify-between mb-4">
             <div>
               <div className="flex items-center gap-2 mb-2">
-                <span className="text-sm text-muted-foreground">{t('usdcBalance')}</span>
+                <span className="text-sm text-muted-foreground">{t("usdcBalance")}</span>
                 <button
                   onClick={() => setHideBalance(!hideBalance)}
                   className="text-muted-foreground hover:text-foreground"
@@ -195,7 +195,7 @@ const Wallet = () => {
                 disabled={!playerId}
               >
                 <Download className="w-5 h-5" />
-                <span className="text-xs">{t('deposit')}</span>
+                <span className="text-xs">{t("deposit")}</span>
               </Button>
               <Button
                 variant="outline"
@@ -204,7 +204,7 @@ const Wallet = () => {
                 disabled={!playerId || usdcBalance === 0}
               >
                 <Upload className="w-5 h-5" />
-                <span className="text-xs">{t('withdraw')}</span>
+                <span className="text-xs">{t("withdraw")}</span>
               </Button>
               {/* <Button variant="outline" className="flex flex-col items-center gap-1 h-auto py-3 px-4">
                 <FileText className="w-5 h-5" />
@@ -217,24 +217,24 @@ const Wallet = () => {
         {/* Recent Transactions */}
         <Card className="border border-border">
           <div className="p-4 border-b border-border">
-            <h2 className="text-base font-semibold text-foreground">{t('recentTransactions')}</h2>
+            <h2 className="text-base font-semibold text-foreground">{t("recentTransactions")}</h2>
           </div>
 
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="border-b border-border bg-muted/30">
                 <tr>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">{t('type')}</th>
-                  <th className="text-right px-4 py-3 text-xs font-medium text-muted-foreground">{t('amount')}</th>
-                  <th className="text-right px-4 py-3 text-xs font-medium text-muted-foreground">{t('date')}</th>
-                  <th className="text-right px-4 py-3 text-xs font-medium text-muted-foreground">{t('operate')}</th>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">{t("type")}</th>
+                  <th className="text-right px-4 py-3 text-xs font-medium text-muted-foreground">{t("amount")}</th>
+                  <th className="text-right px-4 py-3 text-xs font-medium text-muted-foreground">{t("date")}</th>
+                  <th className="text-right px-4 py-3 text-xs font-medium text-muted-foreground">{t("operate")}</th>
                 </tr>
               </thead>
               <tbody>
                 {currentTransactions.length === 0 ? (
                   <tr>
                     <td colSpan={4} className="py-12 text-center text-muted-foreground">
-                      {t('noTransactionHistory')}
+                      {t("noTransactionHistory")}
                     </td>
                   </tr>
                 ) : (
@@ -273,7 +273,11 @@ const Wallet = () => {
                           }
                           className="text-xs"
                         >
-                          {transaction.status === "Completed" ? t('completed') : transaction.status === "Failed" ? t('failed') : t('pending')}
+                          {transaction.status === "Completed"
+                            ? t("completed")
+                            : transaction.status === "Failed"
+                            ? t("failed")
+                            : t("pending")}
                         </Badge>
                       </td>
                     </tr>
@@ -288,8 +292,8 @@ const Wallet = () => {
             <div className="p-4 border-t border-border">
               <div className="flex items-center justify-between">
                 <div className="text-sm text-muted-foreground">
-                  {t('showing')} {startIndex + 1} {t('to')} {Math.min(endIndex, displayTransactions.length)} {t('of')}{" "}
-                  {displayTransactions.length} {t('transactions')}
+                  {t("showing")} {startIndex + 1} {t("to")} {Math.min(endIndex, displayTransactions.length)} {t("of")}{" "}
+                  {displayTransactions.length} {t("transactions")}
                 </div>
                 <div className="flex items-center gap-2">
                   <Button

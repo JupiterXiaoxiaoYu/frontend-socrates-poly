@@ -117,6 +117,7 @@
   "notStarted": "Not Started",
   "awaitingOracle": "Awaiting Oracle",
   "marketResolved": "Market Resolved",
+  "marketEnded": "Market Ended",
   "start": "Start",
   "end": "End",
   "winner": "Winner",

@@ -117,6 +117,7 @@
   "notStarted": "未开始",
   "awaitingOracle": "等待预言机",
   "marketResolved": "市场已结算",
+  "marketEnded": "市场已结束",
   "start": "开始",
   "end": "结束",
   "winner": "获胜方",

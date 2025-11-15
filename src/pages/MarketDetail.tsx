@@ -482,10 +482,7 @@ const MarketDetail = () => {
 
                     <TabsContent value="chart" className="flex-1 p-0 m-0 h-full">
                       <div className="h-full p-4">
-                        <PriceChart
-                          targetPrice={marketData.targetPrice}
-                          onPriceUpdate={setRealtimeBTCPrice}
-                        />
+                        <PriceChart targetPrice={marketData.targetPrice} onPriceUpdate={setRealtimeBTCPrice} />
                       </div>
                     </TabsContent>
 

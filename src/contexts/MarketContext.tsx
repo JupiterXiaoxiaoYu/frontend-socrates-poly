@@ -188,7 +188,7 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       // 检查是否是 PlayerAlreadyExists 错误（不区分大小写）
       const errorMessage = error instanceof Error ? error.message : String(error);
       const lowerError = errorMessage.toLowerCase();
-      
+
       if (lowerError.includes("playeralreadyexist") || lowerError.includes("already exist")) {
         // 玩家已存在，静默处理，生成 Player ID
         const generatedPlayerId = generatePlayerIdFromL2();
@@ -196,7 +196,7 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           setPlayerId(generatedPlayerId);
         }
         setIsPlayerInstalled(true);
-        
+
         toast({
           title: "Player Connected",
           description: "Successfully connected to existing player account!",
@@ -259,7 +259,7 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       // 检查是否是 PlayerAlreadyExists 错误（不区分大小写）
       const errorMessage = error instanceof Error ? error.message : String(error);
       const lowerError = errorMessage.toLowerCase();
-      
+
       if (lowerError.includes("playeralreadyexist") || lowerError.includes("already exist")) {
         // 玩家已存在，静默处理
         const generatedPlayerId = generatePlayerIdFromL2();
@@ -267,7 +267,7 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           setPlayerId(generatedPlayerId);
         }
         setIsPlayerInstalled(true);
-        
+
         toast({
           title: "Player Connected",
           description: "Successfully connected to existing player account!",
@@ -321,7 +321,7 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (isNearMinuteBoundary) {
         // 在关键时间段内，启动 1.5 秒轮询（只刷新市场列表）
         if (!currentInterval) {
-          console.log('🔄 启动快速轮询 (1.5s) - 只刷新市场列表');
+          console.log("🔄 启动快速轮询 (1.5s) - 只刷新市场列表");
           currentInterval = setInterval(() => {
             refreshMarketList();
           }, 1500);
@@ -329,7 +329,7 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       } else {
         // 不在关键时间段，停止轮询
         if (currentInterval) {
-          console.log('⏸️  停止轮询');
+          console.log("⏸️  停止轮询");
           clearInterval(currentInterval);
           currentInterval = null;
         }
@@ -338,7 +338,7 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     // 每秒检查一次是否需要启动/停止轮询
     const checkInterval = setInterval(checkAndSchedulePolling, 1000);
-    
+
     // 立即检查一次
     checkAndSchedulePolling();
 
@@ -351,7 +351,7 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   }, [currentMarketId]);
 
   // ==================== 其他数据 5 秒轮询 ====================
-  
+
   useEffect(() => {
     // 轮询当前市场的订单、交易、订单簿等数据
     if (!currentMarketId) return;
@@ -746,7 +746,7 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       try {
         const depth = await apiClient.getOrderBookDepth(marketId, 20);
         const subMarket = direction === "YES" ? depth.yes : depth.no;
-        
+
         const orderBookData: OrderBookData = {
           marketId,
           direction,
