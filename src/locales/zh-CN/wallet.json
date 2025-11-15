@@ -1,0 +1,13 @@
+{
+  "title": "钱包",
+  "balance": "余额",
+  "deposit": "充值",
+  "withdraw": "提现",
+  "transfer": "转账",
+  "history": "历史",
+  "address": "地址",
+  "amount": "金额",
+  "available": "可用",
+  "locked": "锁定"
+}
+

@@ -1,0 +1,28 @@
+{
+  "nav": {
+    "market": "Pazar",
+    "portfolio": "Portföy",
+    "wallet": "Cüzdan",
+    "rewards": "Ödüller",
+    "referral": "Tavsiye",
+    "settings": "Ayarlar",
+    "language": "Dil",
+    "appearance": "Görünüm"
+  },
+  "button": {
+    "connect": "BAĞLAN",
+    "back": "Geri",
+    "close": "Kapat",
+    "cancel": "İptal",
+    "confirm": "Onayla",
+    "copy": "Kopyala",
+    "share": "Paylaş",
+    "viewAll": "Tümünü Görüntüle",
+    "viewRecords": "Kayıtları Görüntüle"
+  },
+  "theme": {
+    "light": "Aydınlık",
+    "dark": "Karanlık"
+  }
+}
+

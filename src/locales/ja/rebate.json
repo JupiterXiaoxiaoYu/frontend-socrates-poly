@@ -1,0 +1,23 @@
+{
+  "title": "マイニング",
+  "myPoints": "マイポイント",
+  "currentPeriod": "現在の期間",
+  "pointPool": "ポイントプール",
+  "makerPointPool": "Makerポイントプール",
+  "takerPointPool": "Takerポイントプール",
+  "myEstimatedPoints": "推定ポイント",
+  "makerVolume": "Maker取引量",
+  "takerVolume": "Taker取引量",
+  "pointsLeaderboard": "ポイントランキング",
+  "volumeLeaderboard": "取引量ランキング",
+  "rank": "順位",
+  "name": "名前",
+  "points": "ポイント",
+  "volume": "取引量",
+  "rules": "ルール",
+  "pointsHistory": "ポイント履歴",
+  "volumeRecords": "取引量記録",
+  "period": "期間",
+  "pointsEarned": "獲得ポイント"
+}
+

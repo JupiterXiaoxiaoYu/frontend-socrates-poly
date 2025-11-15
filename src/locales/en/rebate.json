@@ -1,0 +1,23 @@
+{
+  "title": "Mining",
+  "myPoints": "My Points",
+  "currentPeriod": "Current Period",
+  "pointPool": "Point Pool",
+  "makerPointPool": "Maker Point Pool",
+  "takerPointPool": "Taker Point Pool",
+  "myEstimatedPoints": "My Estimated Points",
+  "makerVolume": "Maker Volume",
+  "takerVolume": "Taker Volume",
+  "pointsLeaderboard": "Points Leaderboard",
+  "volumeLeaderboard": "Volume Leaderboard",
+  "rank": "Rank",
+  "name": "Name",
+  "points": "Points",
+  "volume": "Volume",
+  "rules": "Rules",
+  "pointsHistory": "Points History",
+  "volumeRecords": "Volume Records",
+  "period": "Period",
+  "pointsEarned": "Points Earned"
+}
+

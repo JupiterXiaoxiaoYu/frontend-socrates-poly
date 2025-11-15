@@ -1,0 +1,23 @@
+{
+  "title": "Khai Thác",
+  "myPoints": "Điểm Của Tôi",
+  "currentPeriod": "Kỳ Hiện Tại",
+  "pointPool": "Quỹ Điểm",
+  "makerPointPool": "Quỹ Điểm Maker",
+  "takerPointPool": "Quỹ Điểm Taker",
+  "myEstimatedPoints": "Điểm Ước Tính",
+  "makerVolume": "Khối Lượng Maker",
+  "takerVolume": "Khối Lượng Taker",
+  "pointsLeaderboard": "Bảng Xếp Hạng Điểm",
+  "volumeLeaderboard": "Bảng Xếp Hạng Khối Lượng",
+  "rank": "Xếp Hạng",
+  "name": "Tên",
+  "points": "Điểm",
+  "volume": "Khối Lượng",
+  "rules": "Quy Tắc",
+  "pointsHistory": "Lịch Sử Điểm",
+  "volumeRecords": "Lịch Sử Khối Lượng",
+  "period": "Kỳ",
+  "pointsEarned": "Điểm Kiếm Được"
+}
+

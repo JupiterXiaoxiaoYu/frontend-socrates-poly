@@ -1,0 +1,28 @@
+{
+  "nav": {
+    "market": "マーケット",
+    "portfolio": "ポートフォリオ",
+    "wallet": "ウォレット",
+    "rewards": "報酬",
+    "referral": "紹介",
+    "settings": "設定",
+    "language": "言語",
+    "appearance": "外観"
+  },
+  "button": {
+    "connect": "接続",
+    "back": "戻る",
+    "close": "閉じる",
+    "cancel": "キャンセル",
+    "confirm": "確認",
+    "copy": "コピー",
+    "share": "共有",
+    "viewAll": "すべて見る",
+    "viewRecords": "記録を見る"
+  },
+  "theme": {
+    "light": "ライト",
+    "dark": "ダーク"
+  }
+}
+

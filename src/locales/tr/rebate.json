@@ -1,0 +1,23 @@
+{
+  "title": "Madencilik",
+  "myPoints": "Puanlarım",
+  "currentPeriod": "Mevcut Dönem",
+  "pointPool": "Puan Havuzu",
+  "makerPointPool": "Maker Puan Havuzu",
+  "takerPointPool": "Taker Puan Havuzu",
+  "myEstimatedPoints": "Tahmini Puanlarım",
+  "makerVolume": "Maker Hacmi",
+  "takerVolume": "Taker Hacmi",
+  "pointsLeaderboard": "Puan Sıralaması",
+  "volumeLeaderboard": "Hacim Sıralaması",
+  "rank": "Sıra",
+  "name": "İsim",
+  "points": "Puanlar",
+  "volume": "Hacim",
+  "rules": "Kurallar",
+  "pointsHistory": "Puan Geçmişi",
+  "volumeRecords": "Hacim Kayıtları",
+  "period": "Dönem",
+  "pointsEarned": "Kazanılan Puanlar"
+}
+

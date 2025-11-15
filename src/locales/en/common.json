@@ -1,0 +1,28 @@
+{
+  "nav": {
+    "market": "Market",
+    "portfolio": "Portfolio",
+    "wallet": "Wallet",
+    "rewards": "Rewards",
+    "referral": "Referral",
+    "settings": "Settings",
+    "language": "Language",
+    "appearance": "Appearance"
+  },
+  "button": {
+    "connect": "CONNECT",
+    "back": "Back",
+    "close": "Close",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "copy": "Copy",
+    "share": "Share",
+    "viewAll": "View All",
+    "viewRecords": "View Records"
+  },
+  "theme": {
+    "light": "Light",
+    "dark": "Dark"
+  }
+}
+

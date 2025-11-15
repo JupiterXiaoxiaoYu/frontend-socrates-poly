@@ -1,0 +1,23 @@
+{
+  "title": "推荐",
+  "rebateStatistics": "返佣统计",
+  "feeRebate": "手续费返佣",
+  "miningRebate": "挖矿返佣",
+  "claimable": "可领取",
+  "claim": "领取",
+  "dashboard": "仪表盘",
+  "totalReferrals": "总推荐人数",
+  "totalRebate": "总返佣",
+  "rebateLevel": "返佣等级",
+  "myLevel": "我的等级",
+  "rebateRecords": "返佣记录",
+  "referralRecords": "推荐记录",
+  "allRecords": "全部记录",
+  "refer": "推荐",
+  "referralLink": "推荐链接",
+  "referralCode": "推荐码",
+  "copyLink": "复制链接",
+  "shareOn": "分享到",
+  "rules": "规则"
+}
+

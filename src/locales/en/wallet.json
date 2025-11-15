@@ -1,0 +1,13 @@
+{
+  "title": "Wallet",
+  "balance": "Balance",
+  "deposit": "Deposit",
+  "withdraw": "Withdraw",
+  "transfer": "Transfer",
+  "history": "History",
+  "address": "Address",
+  "amount": "Amount",
+  "available": "Available",
+  "locked": "Locked"
+}
+

@@ -1,0 +1,13 @@
+{
+  "title": "Ví",
+  "balance": "Số Dư",
+  "deposit": "Nạp Tiền",
+  "withdraw": "Rút Tiền",
+  "transfer": "Chuyển Tiền",
+  "history": "Lịch Sử",
+  "address": "Địa Chỉ",
+  "amount": "Số Tiền",
+  "available": "Khả Dụng",
+  "locked": "Bị Khóa"
+}
+

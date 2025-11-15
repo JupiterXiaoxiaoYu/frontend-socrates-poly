@@ -1,0 +1,13 @@
+{
+  "title": "Cüzdan",
+  "balance": "Bakiye",
+  "deposit": "Yatır",
+  "withdraw": "Çek",
+  "transfer": "Transfer",
+  "history": "Geçmiş",
+  "address": "Adres",
+  "amount": "Miktar",
+  "available": "Kullanılabilir",
+  "locked": "Kilitli"
+}
+

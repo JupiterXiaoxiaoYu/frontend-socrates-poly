@@ -1,0 +1,13 @@
+{
+  "title": "ウォレット",
+  "balance": "残高",
+  "deposit": "入金",
+  "withdraw": "出金",
+  "transfer": "送金",
+  "history": "履歴",
+  "address": "アドレス",
+  "amount": "金額",
+  "available": "利用可能",
+  "locked": "ロック中"
+}
+

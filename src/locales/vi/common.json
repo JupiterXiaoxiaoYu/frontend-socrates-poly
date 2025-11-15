@@ -1,0 +1,28 @@
+{
+  "nav": {
+    "market": "Thị Trường",
+    "portfolio": "Danh Mục",
+    "wallet": "Ví",
+    "rewards": "Phần Thưởng",
+    "referral": "Giới Thiệu",
+    "settings": "Cài Đặt",
+    "language": "Ngôn Ngữ",
+    "appearance": "Giao Diện"
+  },
+  "button": {
+    "connect": "KẾT NỐI",
+    "back": "Quay Lại",
+    "close": "Đóng",
+    "cancel": "Hủy",
+    "confirm": "Xác Nhận",
+    "copy": "Sao Chép",
+    "share": "Chia Sẻ",
+    "viewAll": "Xem Tất Cả",
+    "viewRecords": "Xem Lịch Sử"
+  },
+  "theme": {
+    "light": "Sáng",
+    "dark": "Tối"
+  }
+}
+

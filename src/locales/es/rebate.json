@@ -1,0 +1,23 @@
+{
+  "title": "Minería",
+  "myPoints": "Mis Puntos",
+  "currentPeriod": "Período Actual",
+  "pointPool": "Fondo de Puntos",
+  "makerPointPool": "Fondo de Puntos Maker",
+  "takerPointPool": "Fondo de Puntos Taker",
+  "myEstimatedPoints": "Mis Puntos Estimados",
+  "makerVolume": "Volumen Maker",
+  "takerVolume": "Volumen Taker",
+  "pointsLeaderboard": "Clasificación de Puntos",
+  "volumeLeaderboard": "Clasificación de Volumen",
+  "rank": "Rango",
+  "name": "Nombre",
+  "points": "Puntos",
+  "volume": "Volumen",
+  "rules": "Reglas",
+  "pointsHistory": "Historial de Puntos",
+  "volumeRecords": "Registros de Volumen",
+  "period": "Período",
+  "pointsEarned": "Puntos Ganados"
+}
+

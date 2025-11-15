@@ -1,0 +1,13 @@
+{
+  "title": "Billetera",
+  "balance": "Saldo",
+  "deposit": "Depositar",
+  "withdraw": "Retirar",
+  "transfer": "Transferir",
+  "history": "Historial",
+  "address": "Dirección",
+  "amount": "Cantidad",
+  "available": "Disponible",
+  "locked": "Bloqueado"
+}
+

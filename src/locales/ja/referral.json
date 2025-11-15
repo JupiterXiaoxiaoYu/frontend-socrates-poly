@@ -1,0 +1,23 @@
+{
+  "title": "紹介",
+  "rebateStatistics": "リベート統計",
+  "feeRebate": "手数料リベート",
+  "miningRebate": "マイニングリベート",
+  "claimable": "請求可能",
+  "claim": "請求",
+  "dashboard": "ダッシュボード",
+  "totalReferrals": "総紹介数",
+  "totalRebate": "総リベート",
+  "rebateLevel": "リベートレベル",
+  "myLevel": "マイレベル",
+  "rebateRecords": "リベート記録",
+  "referralRecords": "紹介記録",
+  "allRecords": "すべての記録",
+  "refer": "紹介する",
+  "referralLink": "紹介リンク",
+  "referralCode": "紹介コード",
+  "copyLink": "リンクをコピー",
+  "shareOn": "共有",
+  "rules": "ルール"
+}
+

@@ -1,0 +1,23 @@
+{
+  "title": "Referidos",
+  "rebateStatistics": "Estadísticas de Reembolso",
+  "feeRebate": "Reembolso de Comisiones",
+  "miningRebate": "Reembolso de Minería",
+  "claimable": "Reclamable",
+  "claim": "Reclamar",
+  "dashboard": "Panel",
+  "totalReferrals": "Total de Referidos",
+  "totalRebate": "Reembolso Total",
+  "rebateLevel": "Nivel de Reembolso",
+  "myLevel": "Mi Nivel",
+  "rebateRecords": "Registros de Reembolso",
+  "referralRecords": "Registros de Referidos",
+  "allRecords": "Todos los Registros",
+  "refer": "Referir",
+  "referralLink": "Enlace de Referido",
+  "referralCode": "Código de Referido",
+  "copyLink": "Copiar Enlace",
+  "shareOn": "Compartir en",
+  "rules": "Reglas"
+}
+

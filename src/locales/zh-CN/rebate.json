@@ -1,0 +1,23 @@
+{
+  "title": "挖矿",
+  "myPoints": "我的积分",
+  "currentPeriod": "当前周期",
+  "pointPool": "积分池",
+  "makerPointPool": "Maker 积分池",
+  "takerPointPool": "Taker 积分池",
+  "myEstimatedPoints": "我的预计积分",
+  "makerVolume": "Maker 交易量",
+  "takerVolume": "Taker 交易量",
+  "pointsLeaderboard": "积分排行榜",
+  "volumeLeaderboard": "交易量排行榜",
+  "rank": "排名",
+  "name": "名称",
+  "points": "积分",
+  "volume": "交易量",
+  "rules": "规则",
+  "pointsHistory": "积分历史",
+  "volumeRecords": "交易量记录",
+  "period": "周期",
+  "pointsEarned": "获得积分"
+}
+
