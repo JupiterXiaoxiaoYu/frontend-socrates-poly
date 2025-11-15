@@ -20,7 +20,6 @@ interface Position {
 
 const PositionTabs = () => {
   const { t } = useTranslation('market');
-<<<<<<< HEAD
   const {
     positions,
     orders,
@@ -33,9 +32,6 @@ const PositionTabs = () => {
     userAllOrders,
     userAllTrades,
   } = useMarket();
-=======
-  const { positions, orders, currentMarket, cancelOrder, playerId, trades, marketPrices } = useMarket();
->>>>>>> cc6b25f623e5a5a10836a2e94e5c18d0e188505a
   const { toast } = useToast();
 
   // 转换持仓数据 - 只显示当前市场的持仓

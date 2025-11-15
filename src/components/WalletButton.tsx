@@ -106,24 +106,21 @@ export function WalletButton() {
   if (isConnected && isReallyL2Connected && displayAddress) {
     // 从地址生成用户名首字母
     const userInitials = displayAddress.substring(2, 4).toUpperCase();
-    
+
     return (
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
             variant="outline"
             size="sm"
-            className="font-mono bg-transparent border-success text-success hover:border-success hover:text-success gap-2 h-9"
+            className="font-mono bg-transparent border-0 sm:border border-success text-success hover:border-success hover:text-success gap-2 h-auto sm:h-9 sm:px-3 p-0"
           >
-            <Avatar className="h-6 w-6">
+            <Avatar className="h-8 w-8 sm:h-6 sm:w-6">
               <AvatarImage src="" />
-              <AvatarFallback className="text-xs bg-success text-white">
-                {userInitials}
-              </AvatarFallback>
+              <AvatarFallback className="text-sm sm:text-xs bg-success text-white">{userInitials}</AvatarFallback>
             </Avatar>
             <span className="hidden sm:inline">{formatAddress(displayAddress)}</span>
-            <span className="sm:hidden">OK</span>
-            <ChevronDown className="h-3 w-3" />
+            <ChevronDown className="h-3 w-3 hidden sm:block" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-64 p-2">
@@ -132,15 +129,11 @@ export function WalletButton() {
             <div className="flex items-center gap-3">
               <Avatar className="h-10 w-10">
                 <AvatarImage src="" />
-                <AvatarFallback className="text-sm bg-success text-white">
-                  {userInitials}
-                </AvatarFallback>
+                <AvatarFallback className="text-sm bg-success text-white">{userInitials}</AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
                 <div className="font-semibold text-sm text-foreground">User</div>
-                <div className="font-mono text-xs text-muted-foreground truncate">
-                  {formatAddress(displayAddress)}
-                </div>
+                <div className="font-mono text-xs text-muted-foreground truncate">{formatAddress(displayAddress)}</div>
               </div>
             </div>
           </div>
@@ -168,7 +161,10 @@ export function WalletButton() {
             <Copy className="h-4 w-4 mr-3" />
             <span>Copy Address</span>
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={handleDisconnect} className="cursor-pointer py-2.5 px-3 text-destructive focus:text-destructive">
+          <DropdownMenuItem
+            onClick={handleDisconnect}
+            className="cursor-pointer py-2.5 px-3 text-destructive focus:text-destructive"
+          >
             <LogOut className="h-4 w-4 mr-3" />
             <span>Disconnect</span>
           </DropdownMenuItem>

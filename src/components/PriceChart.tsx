@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { useTranslation } from "react-i18next";
 import { createChart, LineStyle, ColorType, AreaSeries as AreaSeriesType, Time } from "lightweight-charts";
 import { useTheme } from "next-themes";
 import { Card } from "@/components/ui/card";
@@ -13,7 +12,6 @@ interface PriceChartProps {
 }
 
 const PriceChart = ({ targetPrice, currentPrice, onPriceUpdate }: PriceChartProps) => {
-  const { t } = useTranslation('market');
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const [latestPrice, setLatestPrice] = useState<number | null>(currentPrice || null);
   const { resolvedTheme } = useTheme();
@@ -25,22 +23,23 @@ const PriceChart = ({ targetPrice, currentPrice, onPriceUpdate }: PriceChartProp
       onPriceUpdate(latestPrice);
     }
   }, [latestPrice, onPriceUpdate]);
-  const [isLoading, setIsLoading] = useState(true);
   const chartRef = useRef<any>(null);
   const lineSeriesRef = useRef<any>(null);
   const partialPriceLineRef = useRef<any>(null);
   const smoothPriceRef = useRef<number | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const targetPriceRef = useRef<number | null>(null);
+  const targetPriceLineRef = useRef<any>(null);
+  const unsubscribeRef = useRef<(() => void) | null>(null);
 
+  // 图表初始化 - 只在组件挂载时执行一次
   useEffect(() => {
-    if (!chartContainerRef.current) return;
+    if (!chartContainerRef.current || chartRef.current) return;
 
     let isSubscribed = true;
-    let unsubscribe: (() => void) | null = null;
 
     const initializeChart = async () => {
-      if (!chartContainerRef.current) return;
+      if (!chartContainerRef.current || chartRef.current) return;
 
       // Create chart with dark mode support
       const chart = createChart(chartContainerRef.current, {
@@ -112,7 +111,7 @@ const PriceChart = ({ targetPrice, currentPrice, onPriceUpdate }: PriceChartProp
       partialPriceLineRef.current = partialPriceLine;
 
       // Add target price line with more visible styling (no title to hide legend)
-      lineSeries.createPriceLine({
+      const targetPriceLine = lineSeries.createPriceLine({
         price: targetPrice,
         color: "#3b82f6", // Blue color for better visibility
         lineWidth: 2,
@@ -120,6 +119,7 @@ const PriceChart = ({ targetPrice, currentPrice, onPriceUpdate }: PriceChartProp
         axisLabelVisible: true,
         title: "", // Empty title to hide legend
       });
+      targetPriceLineRef.current = targetPriceLine;
 
       // Get 60 seconds of historical data
       try {
@@ -139,7 +139,6 @@ const PriceChart = ({ targetPrice, currentPrice, onPriceUpdate }: PriceChartProp
           const latestPriceValue = parseFloat(latestHistoricalPrice.price);
           setLatestPrice(latestPriceValue);
           smoothPriceRef.current = latestPriceValue;
-          setIsLoading(false);
         }
       } catch (error) {
         // Fallback to mock data with currentPrice
@@ -162,14 +161,13 @@ const PriceChart = ({ targetPrice, currentPrice, onPriceUpdate }: PriceChartProp
         lineSeries.setData(fallbackData);
         setLatestPrice(basePrice);
         smoothPriceRef.current = basePrice;
-        setIsLoading(false);
       }
 
       // Scroll to real-time
       chart.timeScale().scrollToRealTime();
       chart.timeScale().fitContent();
 
-      // Smooth animation function
+      // Smooth animation function - 减少动画时长，避免闪屏
       const animateToTarget = (targetValue: number, currentTime: number) => {
         if (animationFrameRef.current) {
           cancelAnimationFrame(animationFrameRef.current);
@@ -177,9 +175,11 @@ const PriceChart = ({ targetPrice, currentPrice, onPriceUpdate }: PriceChartProp
 
         const startValue = smoothPriceRef.current || targetValue;
         const startTime = performance.now();
-        const duration = 500; // 500ms for smooth transition
+        const duration = 200; // 减少到200ms，使动画更快更平滑
 
         const animate = (currentTime_ms: number) => {
+          if (!isSubscribed || !lineSeriesRef.current) return;
+
           const elapsed = currentTime_ms - startTime;
           const progress = Math.min(elapsed / duration, 1);
 
@@ -197,9 +197,13 @@ const PriceChart = ({ targetPrice, currentPrice, onPriceUpdate }: PriceChartProp
           };
 
           // Update chart with smooth point
-          lineSeries.update(smoothPoint);
-          if (partialPriceLineRef.current) {
-            partialPriceLineRef.current.updateAllViews();
+          try {
+            lineSeries.update(smoothPoint);
+            if (partialPriceLineRef.current) {
+              partialPriceLineRef.current.updateAllViews();
+            }
+          } catch (error) {
+            // 忽略更新错误
           }
 
           smoothPriceRef.current = smoothValue;
@@ -213,7 +217,7 @@ const PriceChart = ({ targetPrice, currentPrice, onPriceUpdate }: PriceChartProp
       };
 
       // Subscribe to real-time updates with smooth animation
-      unsubscribe = await socratesOracleService.subscribeToPriceUpdates("BTC/USD", (priceData: PriceData) => {
+      const unsubscribe = await socratesOracleService.subscribeToPriceUpdates("BTC/USD", (priceData: PriceData) => {
         if (!isSubscribed) return;
 
         const newPrice = parseFloat(priceData.price);
@@ -230,6 +234,8 @@ const PriceChart = ({ targetPrice, currentPrice, onPriceUpdate }: PriceChartProp
         // Scroll to real-time
         chart.timeScale().scrollToRealTime();
       });
+
+      unsubscribeRef.current = unsubscribe;
 
       // Handle resize
       const handleResize = () => {
@@ -248,24 +254,26 @@ const PriceChart = ({ targetPrice, currentPrice, onPriceUpdate }: PriceChartProp
 
     return () => {
       isSubscribed = false;
-      if (unsubscribe) {
+      if (unsubscribeRef.current) {
         socratesOracleService.unsubscribe("BTC/USD");
+        unsubscribeRef.current = null;
       }
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
       if (chartRef.current) {
         chartRef.current.remove();
+        chartRef.current = null;
       }
     };
-  }, [targetPrice, currentPrice]);
+  }, []); // 只在组件挂载/卸载时执行
 
   // 主题变化时更新图表样式
   useEffect(() => {
     if (!chartRef.current) return;
     chartRef.current.applyOptions({
       layout: {
-        background: { type: ColorType.Solid, color: isDark ? "#000000" : "#ffffff" },
+        background: { type: ColorType.Solid, color: isDark ? "#0b0b0b" : "#ffffff" },
         textColor: isDark ? "#e5e5e5" : "#999999",
       },
       grid: {
@@ -285,6 +293,26 @@ const PriceChart = ({ targetPrice, currentPrice, onPriceUpdate }: PriceChartProp
       partialPriceLineRef.current.updateAllViews();
     }
   }, [isDark]);
+
+  // 当 targetPrice 变化时，只更新价格线，不重新初始化图表
+  useEffect(() => {
+    if (!lineSeriesRef.current || !targetPriceLineRef.current) return;
+
+    // 移除旧的价格线
+    lineSeriesRef.current.removePriceLine(targetPriceLineRef.current);
+
+    // 创建新的价格线
+    const newTargetPriceLine = lineSeriesRef.current.createPriceLine({
+      price: targetPrice,
+      color: "#3b82f6",
+      lineWidth: 2,
+      lineStyle: LineStyle.Dashed,
+      axisLabelVisible: true,
+      title: "",
+    });
+
+    targetPriceLineRef.current = newTargetPriceLine;
+  }, [targetPrice]);
 
   return (
     <Card className="p-4 border border-border bg-card h-full flex flex-col">

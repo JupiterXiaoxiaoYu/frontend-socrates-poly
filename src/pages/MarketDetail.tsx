@@ -10,6 +10,7 @@ import StatusBadge from "../components/StatusBadge";
 import RecentTrades from "../components/RecentTrades";
 import { AppSidebar } from "../components/AppSidebar";
 import BTCIcon from "../components/BTCIcon";
+import MobileMarketView from "../components/MobileMarketView";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import { Button } from "../components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "../components/ui/sheet";
@@ -28,6 +29,7 @@ import {
 } from "../lib/calculations";
 import { MarketStatus } from "../types/api";
 import { useTranslation } from "react-i18next";
+import { ExchangeAPI, GATEWAY_BASE_URL } from "../services/api";
 
 const MarketDetail = () => {
   const { t } = useTranslation("market");
@@ -39,6 +41,33 @@ const MarketDetail = () => {
   const [isTradingOpen, setIsTradingOpen] = useState(false);
   const [selectedDirection, setSelectedDirection] = useState<"UP" | "DOWN">("UP");
   const [realtimeBTCPrice, setRealtimeBTCPrice] = useState<number | null>(null);
+  const [allMarketIds, setAllMarketIds] = useState<string[]>([]);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // 检测是否为移动端
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 1024);
+    };
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
+  // 获取所有市场ID
+  useEffect(() => {
+    const fetchMarkets = async () => {
+      try {
+        const apiClient = new ExchangeAPI(GATEWAY_BASE_URL);
+        const markets = await apiClient.getMarkets();
+        const ids = markets.map((m: any) => m.marketId).filter(Boolean);
+        setAllMarketIds(ids);
+      } catch (error) {
+        console.error("Failed to fetch markets:", error);
+      }
+    };
+    fetchMarkets();
+  }, []);
 
   // 设置当前市场 ID
   useEffect(() => {
@@ -259,6 +288,16 @@ const MarketDetail = () => {
     }
   };
 
+  // 移动端使用专门的组件
+  if (isMobile && id && allMarketIds.length > 0) {
+    return (
+      <>
+        <Header />
+        <MobileMarketView marketId={id} allMarketIds={allMarketIds} />
+      </>
+    );
+  }
+
   // 加载中状态
   if (isLoading && !currentMarket) {
     return (
@@ -364,7 +403,7 @@ const MarketDetail = () => {
                           </div>
                         </div>
                       </div>
-                      
+
                       {/* Countdown on the right - aligned to bottom */}
                       <div className="text-2xl font-bold text-foreground">
                         <CountdownTimer targetTimestamp={marketData.endTimestamp} format="compact" />
@@ -377,7 +416,9 @@ const MarketDetail = () => {
                         <div className="text-muted-foreground">
                           {t("marketPrice")}:{" "}
                           {marketData.hasOrders ? (
-                            <span className="font-semibold text-foreground">{marketData.currentPrice?.toFixed(2)}%</span>
+                            <span className="font-semibold text-foreground">
+                              {marketData.currentPrice?.toFixed(2)}%
+                            </span>
                           ) : (
                             <span className="text-muted-foreground text-xs">{t("noOrders")}</span>
                           )}
@@ -555,7 +596,7 @@ const MarketDetail = () => {
               ) : (
                 <Button
                   size="lg"
-                  className="flex-1 h-12 bg-primary hover:bg-primary/90 text-white font-semibold text-base rounded-full"
+                  className="flex-1 h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-base rounded-full"
                   onClick={handleConnectWallet}
                 >
                   <Wallet className="w-5 h-5 mr-2" />

@@ -65,17 +65,20 @@ const Header = () => {
               </div>
             </div>
 
-            {/* Deposit Button */}
+            {/* Deposit Button - 仅在桌面端显示 */}
             <Button
               variant="default"
               size="sm"
               onClick={() => navigate("/wallet")}
-              className="bg-white text-black hover:bg-gray-200 font-semibold"
+              className="hidden md:inline-flex bg-white text-black hover:bg-gray-200 font-semibold"
             >
               Deposit
             </Button>
 
-            <ThemeToggle />
+            {/* Theme Toggle - 仅在桌面端显示 */}
+            <div className="hidden md:block">
+              <ThemeToggle />
+            </div>
             <WalletButton />
           </div>
         </div>
