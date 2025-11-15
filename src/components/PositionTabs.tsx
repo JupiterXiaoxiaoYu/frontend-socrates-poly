@@ -20,22 +20,33 @@ interface Position {
 
 const PositionTabs = () => {
   const { t } = useTranslation('market');
-  const { positions, orders, currentMarket, cancelOrder, playerId, trades, claim, marketPrices } = useMarket();
+  const {
+    positions,
+    orders,
+    currentMarket,
+    cancelOrder,
+    playerId,
+    trades,
+    claim,
+    marketPrices,
+    userAllOrders,
+    userAllTrades,
+  } = useMarket();
   const { toast } = useToast();
 
   // 转换持仓数据 - 只显示当前市场的持仓
 
-  // 转换订单数据 - 只显示用户自己的订单
+  // 转换订单数据 - 当前市场 + 当前用户的活跃订单
   const displayOrders = useMemo(() => {
-    if (!currentMarket || !playerId) return [];
+    if (!currentMarket) return [];
 
-    return orders
-      .filter(
-        (o) =>
-          o.status === 0 && // 只显示活跃订单
-          o.pid1 === playerId[0] &&
-          o.pid2 === playerId[1] // 只显示自己的订单
-      )
+    const currentMarketId = currentMarket.marketId;
+
+    return userAllOrders
+      .filter((o) => {
+        // 0 = ACTIVE，仅显示当前市场的活跃订单
+        return o.status === 0 && o.marketId === currentMarketId;
+      })
       .map((o) => {
         const shares = fromUSDCPrecision(o.totalAmount);
         const filled = fromUSDCPrecision(o.filledAmount);
@@ -55,52 +66,60 @@ const PositionTabs = () => {
           total: formatCurrency(shares * priceDecimal),
         };
       });
-  }, [orders, currentMarket?.marketId, playerId]); // 订单、市场或玩家变化时更新
+  }, [userAllOrders, currentMarket?.marketId]); // 订单或市场变化时更新
 
-  // 转换交易历史 - 只显示用户参与的成交
+  // 转换交易历史 - 当前市场 + 当前用户参与的成交
   const userTrades = useMemo(() => {
-    if (!playerId) return [];
+    if (!currentMarket) return [];
 
-    // 获取用户的所有订单ID
-    const userOrderIds = new Set(displayOrders.map((o) => o.orderId));
+    const currentMarketId = currentMarket.marketId;
 
-    // 同时检查已成交和已取消的订单
-    const allUserOrders = orders.filter((o) => o.pid1 === playerId[0] && o.pid2 === playerId[1]);
-    allUserOrders.forEach((o) => userOrderIds.add(o.orderId));
+    // 只取当前市场的成交
+    const marketTrades = userAllTrades.filter((t) => t.marketId === currentMarketId);
 
-    // 过滤用户参与的成交
-    return trades
-      .filter((t) => userOrderIds.has(t.buyOrderId) || userOrderIds.has(t.sellOrderId))
+    // 使用用户所有订单记录来判断是买方还是卖方
+    return marketTrades
       .slice(0, 20)
       .map((t) => {
-        // 判断用户是买方还是卖方
-        const isBuyer = userOrderIds.has(t.buyOrderId);
+        // 判断用户是买方还是卖方（订单一定属于当前用户）
+        const isBuyer = userAllOrders.some((o) => o.orderId === t.buyOrderId);
+        const isSeller = userAllOrders.some((o) => o.orderId === t.sellOrderId);
 
         // trade.direction 表示成交发生在哪个子市场（YES 或 NO）
-        // 买方获得该方向的份额，卖方获得相反方向的份额
         const tradeDirection = t.direction === 1 ? "YES" : "NO";
 
         let userAction: string;
         let userDirection: string;
 
-        // 交易发生在哪个市场就显示哪个方向
-        // 不管用户是买方还是卖方，都显示成交市场的方向
-        userAction = isBuyer ? "Buy" : "Sell";
+        // 简化：买单 → Buy，卖单 → Sell，无法识别时标记为 Trade
+        if (isBuyer) {
+          userAction = "Buy";
+        } else if (isSeller) {
+          userAction = "Sell";
+        } else {
+          userAction = "Trade";
+        }
+
         userDirection = tradeDirection; // 显示交易发生的市场方向
 
-        const priceDecimal = parseInt(t.price) / 10000; // BPS to decimal
+        const priceBps = parseInt(t.price); // 0-10000
+        const pricePercent = priceBps / 100; // 0-100
+        const priceDecimal = pricePercent / 100; // 0-1
         const shares = fromUSDCPrecision(t.amount);
         const tradeCost = shares * priceDecimal;
 
+        // createdAt 为秒级时间戳字符串
+        const createdAtMs = Number(t.createdAt) * 1000;
+
         return {
           tradeId: t.tradeId,
-          price: (parseInt(t.price) / 100).toFixed(2) + "%",
+          price: pricePercent.toFixed(2) + "%",
           amount: shares.toFixed(2),
           cost: formatCurrency(tradeCost),
           side: `${userAction} ${userDirection}`,
           action: userAction,
           direction: userDirection,
-          time: new Date(t.createdAt).toLocaleString("en-US", {
+          time: new Date(createdAtMs).toLocaleString("en-US", {
             month: "short",
             day: "numeric",
             hour: "2-digit",
@@ -109,7 +128,7 @@ const PositionTabs = () => {
           }),
         };
       });
-  }, [trades, playerId, orders, displayOrders]);
+  }, [userAllTrades, userAllOrders, currentMarket?.marketId]);
 
   // 从 userTrades 计算份额、成本和平均价格
   const positionCostMap = useMemo(() => {

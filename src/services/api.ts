@@ -208,6 +208,77 @@ export class ExchangeAPI {
     this.baseUrl = baseUrl.replace(/\/+$/, "");
   }
 
+  // ==================== 辅助映射方法 ====================
+
+  /**
+   * 将 Query API 返回的订单记录映射为前端 Order 类型
+   */
+  private mapGatewayOrder(raw: any): Order {
+    // symbol 形如 "marketId-YES" 或 "marketId-NO"
+    const symbol: string = raw.symbol || "";
+    const [marketIdPart, sideSuffix] = symbol.split("-");
+    const marketId = marketIdPart || "";
+    const direction = (sideSuffix || "").toUpperCase() === "YES" ? 1 : 0;
+
+    // side: BUY/SELL, type: LIMIT/MARKET
+    const side = (raw.side || "").toUpperCase();
+    const type = (raw.type || "").toUpperCase();
+
+    let orderType: number = 0;
+    if (type === "LIMIT" && side === "BUY") orderType = 0;
+    else if (type === "LIMIT" && side === "SELL") orderType = 1;
+    else if (type === "MARKET" && side === "BUY") orderType = 2;
+    else if (type === "MARKET" && side === "SELL") orderType = 3;
+
+    // status: OPEN/FILLED/PARTIALLY_FILLED/CANCELLED
+    const statusStr = (raw.status || "").toUpperCase();
+    let status: number = 0;
+    if (statusStr === "FILLED") status = 1;
+    else if (statusStr === "CANCELLED") status = 2;
+    else status = 0; // OPEN 或 PARTIALLY_FILLED 视为 ACTIVE
+
+    return {
+      orderId: String(raw.order_id ?? ""),
+      pid1: "", // 聚合表不包含 pid，前端当前未使用
+      pid2: "",
+      marketId,
+      direction: direction as any,
+      orderType: orderType as any,
+      status: status as any,
+      price: String(raw.price ?? "0"),
+      totalAmount: String(raw.amount ?? "0"),
+      filledAmount: String(raw.filled_amount ?? "0"),
+      lockedAmount: String(raw.locked_amount ?? "0"),
+      createTick: "0",
+      updatedAt: String(raw.updated_at ?? raw.created_at ?? ""),
+    };
+  }
+
+  /**
+   * 将 Query API 返回的成交记录映射为前端 Trade 类型
+   */
+  private mapGatewayTrade(raw: any): Trade {
+    const symbol: string = raw.symbol || "";
+    const [marketIdPart, sideSuffix] = symbol.split("-");
+    const marketId = marketIdPart || "";
+    const direction = (sideSuffix || "").toUpperCase() === "YES" ? 1 : 0;
+
+    const createdAtStr = String(raw.created_at ?? "");
+    const createdAtTs = createdAtStr ? Math.floor(new Date(createdAtStr).getTime() / 1000).toString() : "0";
+
+    return {
+      tradeId: String(raw.trade_id ?? ""),
+      marketId,
+      direction: direction as any,
+      buyOrderId: String(raw.buy_order_id ?? ""),
+      sellOrderId: String(raw.sell_order_id ?? ""),
+      price: String(raw.price ?? "0"),
+      amount: String(raw.amount ?? "0"),
+      tick: "0",
+      createdAt: createdAtTs,
+    };
+  }
+
   // ========== 市场相关 ==========
 
   async getMarkets(): Promise<Market[]> {
@@ -369,10 +440,8 @@ export class ExchangeAPI {
     };
   }> {
     try {
-      const res = await fetch(
-        `${this.baseUrl}/v1/markets/${encodeURIComponent(marketId)}/depth?levels=${levels}`
-      );
-      
+      const res = await fetch(`${this.baseUrl}/v1/markets/${encodeURIComponent(marketId)}/depth?levels=${levels}`);
+
       // If market doesn't exist or has no depth, return empty order book
       if (!res.ok) {
         console.warn(`Order book not available for market ${marketId}`);
@@ -383,9 +452,9 @@ export class ExchangeAPI {
           no: { bids: [], asks: [], timestamp: Date.now() },
         };
       }
-      
+
       const json = await res.json();
-      
+
       // Handle error response from gateway
       if (json.code && json.code !== 0) {
         console.warn(`Order book error for market ${marketId}:`, json.message);
@@ -396,7 +465,7 @@ export class ExchangeAPI {
           no: { bids: [], asks: [], timestamp: Date.now() },
         };
       }
-      
+
       return {
         market_id: json.market_id || marketId,
         levels: json.levels || levels,
@@ -489,7 +558,8 @@ export class ExchangeAPI {
         return [];
       }
 
-      return json.data.orders;
+      const rawOrders: any[] = json.data.orders || [];
+      return rawOrders.map((o) => this.mapGatewayOrder(o));
     } catch (error) {
       console.warn("Failed to fetch user orders:", error);
       return [];
@@ -497,13 +567,19 @@ export class ExchangeAPI {
   }
 
   /**
-   * 获取市场订单（兼容旧接口）
+   * 获取订单列表（按当前登录用户过滤）
+   * 如果需要更细粒度的查询，可以直接调用 getUserOrders
    */
-  async getOrders(marketId: string): Promise<Order[]> {
-    void marketId;
-    // Gateway API doesn't support per-market order query
-    // Use getUserOrders instead
-    return [];
+  async getOrders(
+    userId: string,
+    params?: {
+      symbol?: string;
+      status?: "OPEN" | "FILLED" | "CANCELLED" | "PARTIALLY_FILLED";
+      limit?: number;
+      offset?: number;
+    }
+  ): Promise<Order[]> {
+    return this.getUserOrders(userId, params);
   }
 
   // ========== 余额 ==========
@@ -526,15 +602,65 @@ export class ExchangeAPI {
 
   // ========== 成交相关 ==========
 
-  async getTrades(marketId: string): Promise<Trade[]> {
-    void marketId;
-    // Not available yet via gateway per-market; return empty to avoid breaking UI
-    // TODO: add /v1/markets/:market_id/trades when backend supports it
+  /**
+   * 获取用户成交列表（基于 /v1/trades 聚合查询）
+   * @param userId 用户 ID（pid1:pid2）
+   */
+  async getUserTrades(
+    userId: string,
+    params?: {
+      symbol?: string;
+      limit?: number;
+      offset?: number;
+    }
+  ): Promise<Trade[]> {
+    const queryParams = new URLSearchParams();
+    if (params?.symbol) queryParams.append("symbol", params.symbol);
+    if (params?.limit) queryParams.append("limit", params.limit.toString());
+    if (params?.offset) queryParams.append("offset", params.offset.toString());
+
+    const queryString = queryParams.toString();
+    const url = `${this.baseUrl}/v1/trades${queryString ? `?${queryString}` : ""}`;
+
+    try {
+      const res = await fetch(url, {
+        headers: {
+          "X-User-ID": userId,
+        },
+      });
+
+      if (!res.ok) {
+        console.warn(`Failed to fetch trades for user ${userId}`);
+        return [];
+      }
+
+      const json = await res.json();
+      if (json.code !== 0 || !json.data?.trades) {
+        return [];
+      }
+
+      const rawTrades: any[] = json.data.trades || [];
+      return rawTrades.map((t) => this.mapGatewayTrade(t));
+    } catch (error) {
+      console.warn("Failed to fetch user trades:", error);
+      return [];
+    }
+  }
+
+  /**
+   * 按市场获取用户成交记录（兼容旧接口）
+   */
+  async getTradesForMarket(userId: string, marketId: string): Promise<Trade[]> {
+    const symbol = `${marketId}-YES`; // 后端 symbol 使用 "marketId-YES/NO" 形式，用户成交历史不区分方向时可不强制筛选
+    return this.getUserTrades(userId, { symbol });
+  }
+
+  // 兼容旧签名：仅按市场 ID 查询（不带 userId），目前返回空列表以避免破坏 UI
+  async getTrades(_marketId: string): Promise<Trade[]> {
     return [];
   }
 
-  async getTradeHistory(marketId: string): Promise<Trade[]> {
-    void marketId;
+  async getTradeHistory(_marketId: string): Promise<Trade[]> {
     return [];
   }
 

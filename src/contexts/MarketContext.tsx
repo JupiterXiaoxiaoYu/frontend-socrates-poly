@@ -427,10 +427,11 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const userId = `${playerId[0]}:${playerId[1]}`;
 
     try {
-      // 加载用户持仓和订单
-      const [positionsData, userOrdersData] = await Promise.all([
+      // 加载用户持仓、订单和成交记录
+      const [positionsData, userOrdersData, userTradesData] = await Promise.all([
         apiClient.getUserPositions(userId),
         apiClient.getUserOrders(userId, { limit: 100 }),
+        apiClient.getUserTrades(userId, { limit: 200 }),
       ]);
 
       // 转换持仓数据为前端格式
@@ -449,8 +450,7 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       setPositions(convertedPositions as Position[]);
       setUserAllOrders(userOrdersData);
-      // TODO: 添加用户成交记录查询
-      setUserAllTrades([]);
+      setUserAllTrades(userTradesData);
     } catch (error) {
       console.error("Failed to load user data:", error);
       // Silently skip user data errors
