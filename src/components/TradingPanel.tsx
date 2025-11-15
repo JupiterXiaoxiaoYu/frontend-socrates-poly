@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Slider } from "@/components/ui/slider";
-import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Dialog,
@@ -17,19 +16,15 @@ import {
 import {
   TrendingUp,
   TrendingDown,
-  Sparkles,
-  Info,
   AlertTriangle,
-  Calculator,
-  Zap,
   DollarSign,
   Clock,
   Shield,
 } from "lucide-react";
-import { cn, formatCurrency, formatPercent, formatTimeRemaining } from "@/lib/utils";
-import { Market, OrderType, OrderStatus, MarketStatus } from "@/types/market";
+import { useTranslation } from "react-i18next";
+import { cn, formatCurrency, formatPercent } from "@/lib/utils";
+import { Market, OrderType, MarketStatus } from "@/types/market";
 import { webSocketService } from "@/services/websocket";
-import { calculateSharesFromUSDC } from "@/utils/shareCalculator";
 
 interface TradingPanelProps {
   market: Market;
@@ -69,6 +64,7 @@ const TradingPanel = ({
   onDirectionChange,
   className,
 }: TradingPanelProps) => {
+  const { t } = useTranslation('market');
   const [direction, setDirection] = useState<"yes" | "no">("yes");
   const [action, setAction] = useState<"buy" | "sell">("buy");
 
@@ -160,13 +156,9 @@ const TradingPanel = ({
   const actualCost = amount; // 用户输入的就是本金
   const tradingFee = isFeeExempt ? 0 : amount * FEE_RATE;
   const totalCost = actualCost + tradingFee;
-  const totalFees = tradingFee;
 
   // P&L calculations
   const maxWin = estimatedShares * 1.0; // $1 per share if win
-  const maxLoss = totalCost; // 最大损失就是总成本（含手续费）
-  const breakeven = price * (1 + FEE_RATE); // 盈亏平衡点（含手续费）
-  const roi = totalCost > 0 ? ((maxWin - totalCost) / totalCost) * 100 : 0;
 
   // Order validation
   const canPlaceOrder =
@@ -255,12 +247,12 @@ const TradingPanel = ({
           <CardContent className="p-4 text-center">
             <div className="text-green-600 mb-2">
               <TrendingUp className="w-8 h-8 mx-auto mb-2" />
-              <div className="text-lg font-bold">You Won! 🎉</div>
+              <div className="text-lg font-bold">{t('youWon')}</div>
             </div>
-            <p className="text-sm text-muted-foreground mb-4">Your prediction was correct. Claim your winnings now.</p>
+            <p className="text-sm text-muted-foreground mb-4">{t('youWonDesc')}</p>
             <Button onClick={handleClaim} className="w-full bg-green-600 hover:bg-green-700" size="lg">
               <DollarSign className="w-4 h-4 mr-2" />
-              Claim Winnings
+              {t('claimWinningsButton')}
             </Button>
           </CardContent>
         </Card>
@@ -277,9 +269,9 @@ const TradingPanel = ({
           <CardContent className="p-4 text-center">
             <div className="text-red-600 mb-2">
               <TrendingDown className="w-8 h-8 mx-auto mb-2" />
-              <div className="text-lg font-bold">Better Luck Next Time</div>
+              <div className="text-lg font-bold">{t('betterLuckNextTime')}</div>
             </div>
-            <p className="text-sm text-muted-foreground">The market resolved against your position.</p>
+            <p className="text-sm text-muted-foreground">{t('betterLuckNextTimeDesc')}</p>
           </CardContent>
         </Card>
       </div>
@@ -342,24 +334,24 @@ const TradingPanel = ({
                   <Clock className="w-8 h-8 mx-auto text-muted-foreground" />
                   <div className="text-base font-semibold">
                     {market?.status === MarketStatus.PENDING
-                      ? "Not Started"
+                      ? t('notStarted')
                       : market?.status === MarketStatus.CLOSED
-                      ? "Awaiting Oracle"
-                      : "Market Resolved"}
+                      ? t('awaitingOracle')
+                      : t('marketResolved')}
                   </div>
 
                   {isResolved && (
                     <div className="space-y-2 text-sm pt-2">
                       <div className="flex justify-between py-1.5 border-t">
-                        <span className="text-muted-foreground">Start:</span>
+                        <span className="text-muted-foreground">{t('start')}:</span>
                         <span className="font-mono">${(startPrice / 100).toLocaleString()}</span>
                       </div>
                       <div className="flex justify-between py-1.5 border-t">
-                        <span className="text-muted-foreground">End:</span>
+                        <span className="text-muted-foreground">{t('end')}:</span>
                         <span className="font-mono">${(endPrice / 100).toLocaleString()}</span>
                       </div>
                       <div className="flex justify-between py-1.5 border-t">
-                        <span className="text-muted-foreground">Winner:</span>
+                        <span className="text-muted-foreground">{t('winner')}:</span>
                         <span
                           className={`font-semibold ${
                             winningOutcome === 1
@@ -369,7 +361,7 @@ const TradingPanel = ({
                               : "text-warning"
                           }`}
                         >
-                          {winningOutcome === 1 ? "✓ YES" : winningOutcome === 0 ? "✗ NO" : "↔️ TIE"}
+                          {winningOutcome === 1 ? `✓ ${t('yes')}` : winningOutcome === 0 ? `✗ ${t('no')}` : `↔️ ${t('tie')}`}
                         </span>
                       </div>
                     </div>
@@ -385,27 +377,27 @@ const TradingPanel = ({
                   value="buy"
                   className="data-[state=active]:bg-black data-[state=active]:text-white dark:data-[state=active]:bg-white dark:data-[state=active]:text-black font-semibold"
                 >
-                  Buy
+                  {t('buy')}
                 </TabsTrigger>
                 <TabsTrigger
                   value="sell"
                   className="data-[state=active]:bg-black data-[state=active]:text-white dark:data-[state=active]:bg-white dark:data-[state=active]:text-black font-semibold"
                 >
-                  Sell
+                  {t('sell')}
                 </TabsTrigger>
               </TabsList>
 
               <TabsContent value={action} className="space-y-4 m-0">
                 {/* Order Type Dropdown */}
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Order Type</span>
+                  <span className="text-sm text-muted-foreground">{t('orderType')}</span>
                   <select
                     value={orderType}
                     onChange={(e) => setOrderType(e.target.value as "market" | "limit")}
                     className="px-3 py-1.5 text-sm border border-border rounded-md bg-background"
                   >
-                    <option value="market">Market</option>
-                    <option value="limit">Limit</option>
+                    <option value="market">{t('marketType')}</option>
+                    <option value="limit">{t('limit')}</option>
                   </select>
                 </div>
                 {/* Price Impact Warning */}
@@ -413,8 +405,7 @@ const TradingPanel = ({
                   <Alert className="border-orange-200 bg-orange-50">
                     <AlertTriangle className="h-4 w-4" />
                     <AlertDescription>
-                      High price impact detected: {formatPercent(priceImpact / 100, 1)}. Consider using a limit order or
-                      reducing your trade size.
+                      {t('highPriceImpact', { impact: formatPercent(priceImpact / 100, 1) })}
                     </AlertDescription>
                   </Alert>
                 )}
@@ -422,7 +413,7 @@ const TradingPanel = ({
                 {/* Current Price Display - 只在 Limit 模式显示 */}
                 {orderType === "limit" && (
                   <div className="text-center p-3 bg-muted/30 rounded-lg">
-                    <div className="text-sm text-muted-foreground">Your Limit Price</div>
+                    <div className="text-sm text-muted-foreground">{t('yourLimitPrice')}</div>
                     <div className="text-2xl font-bold">{formatCurrency(limitPrice)}</div>
                   </div>
                 )}
@@ -430,7 +421,7 @@ const TradingPanel = ({
                 {/* Limit Price - Only for limit orders */}
                 {orderType === "limit" && (
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Your Price</label>
+                    <label className="text-sm font-medium">{t('yourPrice')}</label>
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
                       <Input
@@ -445,8 +436,8 @@ const TradingPanel = ({
                     </div>
                     {orderBook && (
                       <div className="text-xs text-muted-foreground">
-                        Market: {formatCurrency(orderBook.midPrice)} •
-                        {limitPrice > orderBook.midPrice ? " Above market" : " Below market"}
+                        {t('market')}: {formatCurrency(orderBook.midPrice)} •
+                        {limitPrice > orderBook.midPrice ? ` ${t('aboveMarket')}` : ` ${t('belowMarket')}`}
                       </div>
                     )}
                   </div>
@@ -455,8 +446,8 @@ const TradingPanel = ({
                 {/* Amount Input */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-sm">
-                    <label className="font-medium">Amount</label>
-                    <span className="text-muted-foreground">Balance: ${userBalance.toFixed(2)}</span>
+                    <label className="font-medium">{t('amount')}</label>
+                    <span className="text-muted-foreground">{t('balance')}: ${userBalance.toFixed(2)}</span>
                   </div>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
@@ -491,11 +482,11 @@ const TradingPanel = ({
                   {amount > 0 && amount < MIN_ORDER_AMOUNT && (
                     <div className="text-xs text-red-500 flex items-center gap-1">
                       <AlertTriangle className="w-3 h-3" />
-                      Minimum order is ${MIN_ORDER_AMOUNT}
+                      {t('minimumOrder', { amount: MIN_ORDER_AMOUNT })}
                     </div>
                   )}
                   {amount === 0 && (
-                    <div className="text-xs text-muted-foreground">Minimum order: ${MIN_ORDER_AMOUNT}</div>
+                    <div className="text-xs text-muted-foreground">{t('minimumOrderDesc', { amount: MIN_ORDER_AMOUNT })}</div>
                   )}
                 </div>
 
@@ -537,11 +528,11 @@ const TradingPanel = ({
                 {amount > 0 && (
                   <div className="p-4 rounded-lg bg-success/5 border border-success/20">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-muted-foreground">Shares</span>
+                      <span className="text-sm text-muted-foreground">{t('sharesLabel')}</span>
                       <span className="text-lg font-bold">{estimatedShares.toFixed(2)}</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Potential Win</span>
+                      <span className="text-sm text-muted-foreground">{t('potentialWin')}</span>
                       <span className="text-2xl font-bold text-success">${maxWin.toFixed(2)}</span>
                     </div>
                   </div>
@@ -560,15 +551,15 @@ const TradingPanel = ({
                   onClick={handlePlaceOrder}
                 >
                   {isPlacingOrder
-                    ? "Placing Order..."
-                    : `${action === "buy" ? "Buy" : "Sell"} ${direction.toUpperCase()} ${
-                        orderType === "market" ? "(Market)" : "(Limit)"
+                    ? t('placingOrder')
+                    : `${action === "buy" ? t('buy') : t('sell')} ${direction.toUpperCase()} ${
+                        orderType === "market" ? t('marketOrder') : t('limitOrder')
                       }`}
                 </Button>
 
                 {/* Position Info */}
                 {userPosition && (
-                  <div className="text-xs text-muted-foreground text-center">You have a position in this market</div>
+                  <div className="text-xs text-muted-foreground text-center">{t('youHavePosition')}</div>
                 )}
               </TabsContent>
             </Tabs>
@@ -580,39 +571,39 @@ const TradingPanel = ({
       <Dialog open={showConfirmation} onOpenChange={setShowConfirmation}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Confirm Order</DialogTitle>
-            <DialogDescription>Please review your order details before confirming.</DialogDescription>
+            <DialogTitle>{t('confirmOrder')}</DialogTitle>
+            <DialogDescription>{t('confirmOrderDesc')}</DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <span className="text-muted-foreground">Market:</span>
+                <span className="text-muted-foreground">{t('market')}:</span>
                 <div className="font-medium">
                   {market.assetId === 1 ? "BTC" : market.assetId === 2 ? "ETH" : "SOL"}{" "}
                   {market.outcomeType === 1 ? "UP" : "DOWN"}
                 </div>
               </div>
               <div>
-                <span className="text-muted-foreground">Action:</span>
+                <span className="text-muted-foreground">{t('action')}:</span>
                 <div className="font-medium">
-                  {action === "buy" ? "Buy" : "Sell"} {direction.toUpperCase()}
+                  {action === "buy" ? t('buy') : t('sell')} {direction.toUpperCase()}
                 </div>
               </div>
               <div>
-                <span className="text-muted-foreground">Type:</span>
-                <div className="font-medium capitalize">{orderType}</div>
+                <span className="text-muted-foreground">{t('type')}:</span>
+                <div className="font-medium capitalize">{orderType === "market" ? t('marketType') : t('limit')}</div>
               </div>
               <div>
-                <span className="text-muted-foreground">Price:</span>
+                <span className="text-muted-foreground">{t('price')}:</span>
                 <div className="font-medium">{formatCurrency(price)}</div>
               </div>
               <div>
-                <span className="text-muted-foreground">Amount:</span>
+                <span className="text-muted-foreground">{t('amount')}:</span>
                 <div className="font-medium">{formatCurrency(amount)}</div>
               </div>
               <div>
-                <span className="text-muted-foreground">Shares:</span>
+                <span className="text-muted-foreground">{t('shares')}:</span>
                 <div className="font-medium">{estimatedShares.toFixed(2)}</div>
               </div>
             </div>
@@ -620,49 +611,48 @@ const TradingPanel = ({
             {priceImpact > 1 && (
               <Alert className="border-orange-200 bg-orange-50">
                 <AlertTriangle className="h-4 w-4" />
-                <AlertDescription>Price impact: {formatPercent(priceImpact / 100, 1)}</AlertDescription>
+                <AlertDescription>{t('highPriceImpact', { impact: formatPercent(priceImpact / 100, 1) })}</AlertDescription>
               </Alert>
             )}
 
             <div className="border-t pt-4">
               <div className="flex justify-between text-sm mb-2">
-                <span>Trading Fee:</span>
-                <span>{isFeeExempt ? "Exempt" : formatCurrency(tradingFee)}</span>
+                <span>{t('tradingFee')}:</span>
+                <span>{isFeeExempt ? t('exempt') : formatCurrency(tradingFee)}</span>
               </div>
               {!isFeeExempt && (
                 <div className="flex justify-between text-sm mb-2">
-                  <span>Protocol Fee (2%):</span>
+                  <span>{t('protocolFee')}:</span>
                   <span>{formatCurrency(tradingFee)}</span>
                 </div>
               )}
               <div className="flex justify-between font-semibold text-base">
-                <span>Total Cost:</span>
-                <span>{formatCurrency(amount + totalFees)}</span>
+                <span>{t('totalCost')}:</span>
+                <span>{formatCurrency(totalCost)}</span>
               </div>
             </div>
 
             <div className="bg-muted/30 p-3 rounded-lg text-sm">
               <div className="flex items-center gap-2 mb-1">
                 <Shield className="h-4 w-4 text-muted-foreground" />
-                <span className="font-medium">Risk Warning</span>
+                <span className="font-medium">{t('riskWarning')}</span>
               </div>
               <p className="text-muted-foreground text-xs">
-                This is a high-risk prediction market. You could lose your entire investment. Only trade what you can
-                afford to lose.
+                {t('riskWarningDesc')}
               </p>
             </div>
           </div>
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowConfirmation(false)} disabled={isPlacingOrder}>
-              Cancel
+              {t('cancel')}
             </Button>
             <Button
               onClick={confirmOrder}
               disabled={isPlacingOrder}
               className={cn(direction === "yes" ? "bg-success hover:bg-success/90" : "bg-danger hover:bg-danger/90")}
             >
-              {isPlacingOrder ? "Placing Order..." : "Confirm Order"}
+              {isPlacingOrder ? t('placingOrder') : t('confirmOrderButton')}
             </Button>
           </DialogFooter>
         </DialogContent>

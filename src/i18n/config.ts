@@ -11,6 +11,7 @@ const resources = {
     wallet: () => import('../locales/en/wallet.json'),
     rewards: () => import('../locales/en/rewards.json'),
     portfolio: () => import('../locales/en/portfolio.json'),
+    market: () => import('../locales/en/market.json'),
   },
   'zh-CN': {
     common: () => import('../locales/zh-CN/common.json'),
@@ -19,6 +20,7 @@ const resources = {
     wallet: () => import('../locales/zh-CN/wallet.json'),
     rewards: () => import('../locales/zh-CN/rewards.json'),
     portfolio: () => import('../locales/zh-CN/portfolio.json'),
+    market: () => import('../locales/zh-CN/market.json'),
   },
   ja: {
     common: () => import('../locales/ja/common.json'),
@@ -27,6 +29,7 @@ const resources = {
     wallet: () => import('../locales/ja/wallet.json'),
     rewards: () => import('../locales/ja/rewards.json'),
     portfolio: () => import('../locales/ja/portfolio.json'),
+    market: () => import('../locales/ja/market.json'),
   },
   tr: {
     common: () => import('../locales/tr/common.json'),
@@ -35,6 +38,7 @@ const resources = {
     wallet: () => import('../locales/tr/wallet.json'),
     rewards: () => import('../locales/tr/rewards.json'),
     portfolio: () => import('../locales/tr/portfolio.json'),
+    market: () => import('../locales/tr/market.json'),
   },
   vi: {
     common: () => import('../locales/vi/common.json'),
@@ -43,6 +47,7 @@ const resources = {
     wallet: () => import('../locales/vi/wallet.json'),
     rewards: () => import('../locales/vi/rewards.json'),
     portfolio: () => import('../locales/vi/portfolio.json'),
+    market: () => import('../locales/vi/market.json'),
   },
   es: {
     common: () => import('../locales/es/common.json'),
@@ -51,6 +56,7 @@ const resources = {
     wallet: () => import('../locales/es/wallet.json'),
     rewards: () => import('../locales/es/rewards.json'),
     portfolio: () => import('../locales/es/portfolio.json'),
+    market: () => import('../locales/es/market.json'),
   },
 };
 
@@ -63,7 +69,7 @@ i18n
     fallbackLng: 'en',
     lng: 'en', // 默认语言为英文
     defaultNS: 'common',
-    ns: ['common', 'rebate', 'referral', 'wallet', 'rewards', 'portfolio'],
+    ns: ['common', 'rebate', 'referral', 'wallet', 'rewards', 'portfolio', 'market'],
     
     interpolation: {
       escapeValue: false, // React 已经安全处理

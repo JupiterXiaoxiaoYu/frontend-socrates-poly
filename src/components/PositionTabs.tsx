@@ -1,9 +1,10 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useTranslation } from "react-i18next";
 import { useMarket } from "../contexts";
 import { fromUSDCPrecision, parseTokenIdx, formatCurrency } from "../lib/calculations";
-import { useMemo, useState, useCallback } from "react";
+import { useMemo, useState } from "react";
 import { useToast } from "../hooks/use-toast";
 
 interface Position {
@@ -17,50 +18,8 @@ interface Position {
   pnlPercent: string;
 }
 
-interface OpenOrder {
-  side: "yes" | "no";
-  type: string;
-  price: string;
-  shares: number;
-  filled: string;
-  total: string;
-}
-
-const mockPositions: Position[] = [
-  {
-    side: "yes",
-    shares: 24,
-    avg: "$55",
-    now: "$55",
-    cost: "$100.00",
-    estValue: "$100.00",
-    unrealizedPnL: "+$120.00 (+41%)",
-    pnlPercent: "+41%",
-  },
-  {
-    side: "no",
-    shares: 100,
-    avg: "$55",
-    now: "$100.00",
-    cost: "$100.00",
-    estValue: "$100.00",
-    unrealizedPnL: "+$120.00 (+41%)",
-    pnlPercent: "+41%",
-  },
-];
-
-const mockOpenOrders: OpenOrder[] = [
-  {
-    side: "yes",
-    type: "Limit",
-    price: "$0.65",
-    shares: 100,
-    filled: "0/100",
-    total: "$65.00",
-  },
-];
-
 const PositionTabs = () => {
+  const { t } = useTranslation('market');
   const { positions, orders, currentMarket, cancelOrder, playerId, trades, claim, marketPrices } = useMarket();
   const { toast } = useToast();
 
@@ -352,13 +311,13 @@ const PositionTabs = () => {
     try {
       await claim(BigInt(currentMarket.marketId));
       toast({
-        title: "Claim Successful",
-        description: `Successfully claimed ${formatCurrency(claimableInfo.amount)}!`,
+        title: t('claimSuccessful'),
+        description: t('claimSuccessfulDesc'),
       });
     } catch (error) {
       toast({
-        title: "Claim Failed",
-        description: error instanceof Error ? error.message : "Failed to claim",
+        title: t('claimFailed'),
+        description: error instanceof Error ? error.message : t('claimFailedDesc'),
         variant: "destructive",
       });
     } finally {
@@ -374,13 +333,13 @@ const PositionTabs = () => {
     try {
       await cancelOrder(BigInt(orderId));
       toast({
-        title: "Order Cancelled",
-        description: "Successfully cancelled order",
+        title: t('orderCancelled'),
+        description: t('orderCancelledDesc'),
       });
     } catch (error) {
       toast({
-        title: "Cancel Failed",
-        description: error instanceof Error ? error.message : "Failed to cancel order",
+        title: t('cancelFailed'),
+        description: error instanceof Error ? error.message : t('cancelFailedDesc'),
         variant: "destructive",
       });
     } finally {
@@ -396,25 +355,25 @@ const PositionTabs = () => {
             value="positions"
             className="rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent px-6 py-3"
           >
-            Position({displayPositions.length})
+            {t('position')}({displayPositions.length})
           </TabsTrigger>
           <TabsTrigger
             value="orders"
             className="rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent px-6 py-3"
           >
-            Open orders({displayOrders.length})
+            {t('openOrders')}({displayOrders.length})
           </TabsTrigger>
           <TabsTrigger
             value="history"
             className="rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent px-6 py-3"
           >
-            History
+            {t('history')}
           </TabsTrigger>
           <TabsTrigger
             value="claim"
             className="rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent px-6 py-3"
           >
-            Claim
+            {t('claim')}
           </TabsTrigger>
         </TabsList>
 
@@ -423,20 +382,20 @@ const PositionTabs = () => {
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-xs text-muted-foreground border-b border-border">
-                  <th className="text-left pb-2 font-medium">Side</th>
-                  <th className="text-right pb-2 font-medium">Shares</th>
-                  <th className="text-right pb-2 font-medium">Avg</th>
-                  <th className="text-right pb-2 font-medium">Now</th>
-                  <th className="text-right pb-2 font-medium">Cost</th>
-                  <th className="text-right pb-2 font-medium">Est. Value</th>
-                  <th className="text-right pb-2 font-medium">P&L</th>
+                  <th className="text-left pb-2 font-medium">{t('side')}</th>
+                  <th className="text-right pb-2 font-medium">{t('shares')}</th>
+                  <th className="text-right pb-2 font-medium">{t('avg')}</th>
+                  <th className="text-right pb-2 font-medium">{t('now')}</th>
+                  <th className="text-right pb-2 font-medium">{t('cost')}</th>
+                  <th className="text-right pb-2 font-medium">{t('estValue')}</th>
+                  <th className="text-right pb-2 font-medium">{t('pnl')}</th>
                 </tr>
               </thead>
               <tbody>
                 {displayPositions.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="py-8 text-center text-muted-foreground text-sm">
-                      No positions in this market
+                      {t('noPositionsInMarket')}
                     </td>
                   </tr>
                 ) : (
@@ -480,19 +439,19 @@ const PositionTabs = () => {
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-xs text-muted-foreground border-b border-border">
-                  <th className="text-left pb-2 font-medium">Side</th>
-                  <th className="text-right pb-2 font-medium">Price</th>
-                  <th className="text-right pb-2 font-medium">Shares</th>
-                  <th className="text-right pb-2 font-medium">Filled</th>
-                  <th className="text-right pb-2 font-medium">Total</th>
-                  <th className="text-right pb-2 font-medium">Action</th>
+                  <th className="text-left pb-2 font-medium">{t('side')}</th>
+                  <th className="text-right pb-2 font-medium">{t('price')}</th>
+                  <th className="text-right pb-2 font-medium">{t('shares')}</th>
+                  <th className="text-right pb-2 font-medium">{t('filled')}</th>
+                  <th className="text-right pb-2 font-medium">{t('totalCost')}</th>
+                  <th className="text-right pb-2 font-medium">{t('action')}</th>
                 </tr>
               </thead>
               <tbody>
                 {displayOrders.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="py-8 text-center text-muted-foreground text-sm">
-                      No open orders
+                      {t('noOpenOrders')}
                     </td>
                   </tr>
                 ) : (
@@ -525,7 +484,7 @@ const PositionTabs = () => {
                           onClick={() => handleCancelOrder(order.orderId)}
                           disabled={cancellingOrderId === order.orderId}
                         >
-                          {cancellingOrderId === order.orderId ? "Cancelling..." : "Cancel"}
+                          {cancellingOrderId === order.orderId ? t('cancelling') : t('cancel')}
                         </Button>
                       </td>
                     </tr>
@@ -539,18 +498,18 @@ const PositionTabs = () => {
         <TabsContent value="history" className="p-4 m-0">
           {userTrades.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              <p>No trading history in this market</p>
+              <p>{t('noTradingHistory')}</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-xs text-muted-foreground border-b border-border">
-                    <th className="text-left pb-2 font-medium">Side</th>
-                    <th className="text-right pb-2 font-medium">Price</th>
-                    <th className="text-right pb-2 font-medium">Amount</th>
-                    <th className="text-right pb-2 font-medium">Cost</th>
-                    <th className="text-right pb-2 font-medium">Time</th>
+                    <th className="text-left pb-2 font-medium">{t('side')}</th>
+                    <th className="text-right pb-2 font-medium">{t('price')}</th>
+                    <th className="text-right pb-2 font-medium">{t('amount')}</th>
+                    <th className="text-right pb-2 font-medium">{t('cost')}</th>
+                    <th className="text-right pb-2 font-medium">{t('timeAgo')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -587,9 +546,9 @@ const PositionTabs = () => {
             <div className="bg-success/10 border border-success/20 p-4 rounded-lg">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <div className="text-xs text-muted-foreground mb-1">Claimable Amount</div>
+                  <div className="text-xs text-muted-foreground mb-1">{t('claimableAmount')}</div>
                   <div className="text-2xl font-bold text-success">{formatCurrency(claimableInfo.amount)}</div>
-                  <div className="text-xs text-muted-foreground mt-1">Winning direction: {claimableInfo.direction}</div>
+                  <div className="text-xs text-muted-foreground mt-1">{t('winningDirection')}: {claimableInfo.direction}</div>
                 </div>
               </div>
               <Button
@@ -598,12 +557,12 @@ const PositionTabs = () => {
                 className="w-full bg-success hover:bg-success/90 text-white font-semibold h-12"
                 size="lg"
               >
-                {isClaiming ? "Claiming..." : "Claim Winnings"}
+                {isClaiming ? t('claiming') : t('claimWinnings')}
               </Button>
             </div>
           ) : (
             <div className="text-center py-8 text-muted-foreground">
-              <p>{currentMarket?.status === 2 ? "No claimable winnings in this market" : "Market not yet resolved"}</p>
+              <p>{currentMarket?.status === 2 ? t('noClaimableWinnings') : t('marketNotYetResolved')}</p>
             </div>
           )}
         </TabsContent>
