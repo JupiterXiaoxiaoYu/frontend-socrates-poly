@@ -38,7 +38,7 @@ const Header = () => {
             <Link to="/portfolio" className="text-sm font-medium hover:text-gray-300 transition-colors">
               {t('nav.portfolio')}
             </Link>
-            <Link to="/rewards" className="text-sm font-medium hover:text-gray-300 transition-colors">
+            <Link to="/mining" className="text-sm font-medium hover:text-gray-300 transition-colors">
               {t('nav.rewards')}
             </Link>
             <Link to="/referral" className="text-sm font-medium hover:text-gray-300 transition-colors">

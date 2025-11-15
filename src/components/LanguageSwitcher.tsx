@@ -15,6 +15,7 @@ import {
   DialogPortal,
   DialogOverlay,
 } from "@/components/ui/dialog";
+import { loadLanguageResources } from "@/i18n/config";
 
 // 语言列表配置
 const languages = [
@@ -36,8 +37,10 @@ const LanguageSwitcher = ({ variant = 'mobile' }: LanguageSwitcherProps) => {
 
   const currentLanguage = languages.find(lang => lang.code === i18n.language) || languages[0];
 
-  const handleLanguageChange = (languageCode: string) => {
-    i18n.changeLanguage(languageCode);
+  const handleLanguageChange = async (languageCode: string) => {
+    // 先加载资源，然后再切换语言，确保资源已加载完成
+    await loadLanguageResources(languageCode);
+    await i18n.changeLanguage(languageCode);
     setIsOpen(false);
   };
 

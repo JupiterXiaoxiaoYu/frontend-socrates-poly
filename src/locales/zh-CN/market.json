@@ -126,7 +126,7 @@
   "priceToBeat": "目标价格",
   "loading": "加载中...",
   "orderPlaced": "订单已提交",
-  "orderPlacedDesc": "成功提交 {direction} {orderType} 订单",
+  "orderPlacedDesc": "成功提交 {{direction}} {{orderType}} 订单",
   "orderFailed": "订单失败",
   "orderFailedDesc": "提交订单失败",
   "claimSuccessful": "领取成功",

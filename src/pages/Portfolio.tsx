@@ -20,7 +20,7 @@ import { useToast } from "../hooks/use-toast";
 import { useTranslation } from "react-i18next";
 
 const Portfolio = () => {
-  const { t } = useTranslation('portfolio');
+  const { t } = useTranslation("portfolio");
   const navigate = useNavigate();
   const { positions = [], markets = [], userAllOrders = [], userAllTrades = [], playerId, cancelOrder } = useMarket();
   const { toast } = useToast();
@@ -40,13 +40,13 @@ const Portfolio = () => {
 
     const costs = new Map<string, { totalCost: number; totalShares: number; avgPrice: number }>();
 
-    userAllTrades.forEach(trade => {
+    userAllTrades.forEach((trade) => {
       const shares = fromUSDCPrecision(trade.amount);
       const price = parseInt(trade.price) / 100; // BPS to percent
       const cost = shares * (price / 100); // Convert price to decimal
 
       // Create position key (marketId + direction)
-      const direction = trade.direction === 1 ? 'UP' : 'DOWN';
+      const direction = trade.direction === 1 ? "UP" : "DOWN";
       const key = `${trade.marketId}-${direction}`;
 
       const existing = costs.get(key) || { totalCost: 0, totalShares: 0, avgPrice: 0 };
@@ -84,7 +84,12 @@ const Portfolio = () => {
         if (market) {
           const asset = market.assetId === "1" ? "BTC" : "ETH";
           const targetPrice = fromPricePrecision(market.oracleStartPrice);
-          marketTitle = generateMarketTitle(asset as any, targetPrice, parseInt(market.oracleStartTime), market.windowMinutes);
+          marketTitle = generateMarketTitle(
+            asset as any,
+            targetPrice,
+            parseInt(market.oracleStartTime),
+            market.windowMinutes
+          );
         }
 
         // Get cost data from trades
@@ -95,11 +100,12 @@ const Portfolio = () => {
 
         // Calculate current price based on market outcome
         let currentPrice = 50; // Default for active markets
-        
+
         if (market?.status === MarketStatus.Resolved) {
           // Market is resolved, check if this side won
-          const isWinner = (market.winningOutcome === 1 && tokenInfo.direction === "UP") ||
-                          (market.winningOutcome === 0 && tokenInfo.direction === "DOWN");
+          const isWinner =
+            (market.winningOutcome === 1 && tokenInfo.direction === "UP") ||
+            (market.winningOutcome === 0 && tokenInfo.direction === "DOWN");
           currentPrice = isWinner ? 100 : 0; // Winner gets 100%, loser gets 0%
         }
 
@@ -108,7 +114,7 @@ const Portfolio = () => {
         // Calculate PnL
         const unrealizedPnL = currentValue - totalCost;
         const unrealizedPnLPercent = totalCost > 0 ? (unrealizedPnL / totalCost) * 100 : 0;
-        const pnlColor = unrealizedPnL >= 0 ? 'text-success' : 'text-destructive';
+        const pnlColor = unrealizedPnL >= 0 ? "text-success" : "text-destructive";
 
         return {
           id: p.tokenIdx,
@@ -120,7 +126,9 @@ const Portfolio = () => {
           now: currentPrice,
           cost: formatCurrency(totalCost),
           estValue: formatCurrency(currentValue),
-          unrealizedPnL: `${unrealizedPnL >= 0 ? '+' : ''}${formatCurrency(unrealizedPnL)} (${unrealizedPnLPercent >= 0 ? '+' : ''}${unrealizedPnLPercent.toFixed(2)}%)`,
+          unrealizedPnL: `${unrealizedPnL >= 0 ? "+" : ""}${formatCurrency(unrealizedPnL)} (${
+            unrealizedPnLPercent >= 0 ? "+" : ""
+          }${unrealizedPnLPercent.toFixed(2)}%)`,
           pnlColor,
           isResolved: market?.status === MarketStatus.Resolved,
           canClaim:
@@ -156,13 +164,13 @@ const Portfolio = () => {
     try {
       await cancelOrder(BigInt(orderId));
       toast({
-        title: t('orderCancelled'),
-        description: t('orderCancelledDesc'),
+        title: t("orderCancelled"),
+        description: t("orderCancelledDesc"),
       });
     } catch (error) {
       toast({
-        title: t('cancelFailed'),
-        description: error instanceof Error ? error.message : t('cancelFailedDesc'),
+        title: t("cancelFailed"),
+        description: error instanceof Error ? error.message : t("cancelFailedDesc"),
         variant: "destructive",
       });
     } finally {
@@ -175,14 +183,14 @@ const Portfolio = () => {
       <Header />
 
       <main className="container mx-auto px-4 py-6 max-w-7xl">
-        <h1 className="text-2xl font-bold mb-4 text-foreground">{t('title')}</h1>
+        <h1 className="text-2xl font-bold mb-4 text-foreground">{t("title")}</h1>
 
         {/* Web3 wallet status */}
         <div className="mb-4">
           <a href="#" className="text-sm text-primary hover:underline">
-            {t('web3Wallet')}
+            {t("web3Wallet")}
           </a>
-          <span className="text-sm text-muted-foreground ml-1">{t('inUse')}</span>
+          <span className="text-sm text-muted-foreground ml-1">{t("inUse")}</span>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
@@ -191,19 +199,19 @@ const Portfolio = () => {
             {/* Stats Grid */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <div className="text-sm text-muted-foreground mb-1">{t('cashUSDC')}</div>
+                <div className="text-sm text-muted-foreground mb-1">{t("cashUSDC")}</div>
                 <div className="text-3xl font-bold text-foreground">{formatCurrency(usdcBalance)}</div>
               </div>
               <div>
-                <div className="text-sm text-muted-foreground mb-1">{t('positions')}</div>
+                <div className="text-sm text-muted-foreground mb-1">{t("positions")}</div>
                 <div className="text-3xl font-bold text-foreground">{displayPositions.length}</div>
               </div>
               <div>
-                <div className="text-sm text-muted-foreground mb-1">{t('activeOrders')}</div>
+                <div className="text-sm text-muted-foreground mb-1">{t("activeOrders")}</div>
                 <div className="text-3xl font-bold text-foreground">{activeOrders.length}</div>
               </div>
               <div>
-                <div className="text-sm text-muted-foreground mb-1">{t('toClaim')}</div>
+                <div className="text-sm text-muted-foreground mb-1">{t("toClaim")}</div>
                 <div className="text-3xl font-bold text-success">{formatCurrency(claimableAmount)}</div>
               </div>
             </div>
@@ -213,13 +221,13 @@ const Portfolio = () => {
               <Card className="p-4 border border-border bg-muted/20">
                 <div className="flex items-center justify-between">
                   <div className="text-base font-medium text-foreground">
-                    {formatCurrency(claimableAmount)} {t('toClaimAmount')}
+                    {formatCurrency(claimableAmount)} {t("toClaimAmount")}
                   </div>
                   <Button
                     className="bg-foreground text-background hover:bg-foreground/90"
-                    onClick={() => navigate("/rewards")}
+                    onClick={() => navigate("/mining")}
                   >
-                    {t('claim')}
+                    {t("claim")}
                   </Button>
                 </div>
               </Card>
@@ -229,7 +237,7 @@ const Portfolio = () => {
           {/* Right: Chart */}
           <Card className="p-4 border border-border">
             <div className="flex items-center justify-between mb-4">
-              <div className="text-sm font-medium text-foreground">{t('realizedPnL')}</div>
+              <div className="text-sm font-medium text-foreground">{t("realizedPnL")}</div>
               <div className="flex gap-2">
                 {["1D", "1W", "1M", "All"].map((period) => (
                   <Button
@@ -261,19 +269,19 @@ const Portfolio = () => {
                     value="positions"
                     className="border-b-2 border-transparent data-[state=active]:border-primary rounded-none bg-transparent px-4 py-3"
                   >
-                    {t('positionsTab')}({filteredPositions.length})
+                    {t("positionsTab")}({filteredPositions.length})
                   </TabsTrigger>
                   <TabsTrigger
                     value="orders"
                     className="border-b-2 border-transparent data-[state=active]:border-primary rounded-none bg-transparent px-4 py-3"
                   >
-                    {t('openOrdersTab')}({activeOrders.length})
+                    {t("openOrdersTab")}({activeOrders.length})
                   </TabsTrigger>
                   <TabsTrigger
                     value="history"
                     className="border-b-2 border-transparent data-[state=active]:border-primary rounded-none bg-transparent px-4 py-3"
                   >
-                    {t('historyTab')}
+                    {t("historyTab")}
                   </TabsTrigger>
                 </TabsList>
               </div>
@@ -289,7 +297,7 @@ const Portfolio = () => {
                   onClick={() => setPositionFilter(filter)}
                   className="h-8 px-4"
                 >
-                  {filter === "All" ? t('all') : filter === "UP" ? t('up') : t('down')}
+                  {filter === "All" ? t("all") : filter === "UP" ? t("up") : t("down")}
                 </Button>
               ))}
             </div>
@@ -300,23 +308,23 @@ const Portfolio = () => {
                 <table className="w-full">
                   <thead className="border-b border-border bg-muted/30">
                     <tr>
-                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">{t('market')}</th>
-                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">{t('shares')}</th>
-                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">{t('avg')}</th>
-                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">{t('result')}</th>
-                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">{t('cost')}</th>
-                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">{t('value')}</th>
-                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">{t('pnl')}</th>
-                      <th className="text-right px-4 py-3 text-xs font-medium text-muted-foreground">{t('action')}</th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">{t("market")}</th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">{t("shares")}</th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">{t("avg")}</th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">{t("result")}</th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">{t("cost")}</th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">{t("value")}</th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">{t("pnl")}</th>
+                      <th className="text-right px-4 py-3 text-xs font-medium text-muted-foreground">{t("action")}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredPositions.length === 0 ? (
                       <tr>
                         <td colSpan={8} className="py-12 text-center text-muted-foreground">
-                          {positionFilter === "All" 
-                            ? t('noPositions')
-                            : t('noPositionsFilter', { filter: positionFilter === "UP" ? t('up') : t('down') })}
+                          {positionFilter === "All"
+                            ? t("noPositions")
+                            : t("noPositionsFilter", { filter: positionFilter === "UP" ? t("up") : t("down") })}
                         </td>
                       </tr>
                     ) : (
@@ -325,12 +333,12 @@ const Portfolio = () => {
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2">
                               <span className="text-sm text-foreground">{position.market}</span>
-                              <Badge 
-                                variant={position.side === 'UP' ? 'default' : 'secondary'}
+                              <Badge
+                                variant={position.side === "UP" ? "default" : "secondary"}
                                 className={
-                                  position.side === 'UP'
-                                    ? 'bg-success text-white text-xs'
-                                    : 'bg-destructive text-white text-xs'
+                                  position.side === "UP"
+                                    ? "bg-success text-white text-xs"
+                                    : "bg-destructive text-white text-xs"
                                 }
                               >
                                 {position.side}
@@ -341,31 +349,31 @@ const Portfolio = () => {
                           <td className="px-4 py-3 text-sm text-foreground">{position.avg.toFixed(1)}%</td>
                           <td className="px-4 py-3">
                             {position.isResolved ? (
-                              <Badge 
-                                variant={position.now === 100 ? 'default' : 'secondary'}
+                              <Badge
+                                variant={position.now === 100 ? "default" : "secondary"}
                                 className={
-                                  position.now === 100
-                                    ? 'bg-success text-white'
-                                    : 'bg-muted text-muted-foreground'
+                                  position.now === 100 ? "bg-success text-white" : "bg-muted text-muted-foreground"
                                 }
                               >
-                                {position.now === 100 ? t('won') : t('lost')}
+                                {position.now === 100 ? t("won") : t("lost")}
                               </Badge>
                             ) : (
-                              <span className="text-sm text-muted-foreground">{t('active')}</span>
+                              <span className="text-sm text-muted-foreground">{t("active")}</span>
                             )}
                           </td>
                           <td className="px-4 py-3 text-sm text-foreground">{position.cost}</td>
                           <td className="px-4 py-3 text-sm text-foreground">{position.estValue}</td>
-                          <td className={`px-4 py-3 text-sm font-medium ${position.pnlColor}`}>{position.unrealizedPnL}</td>
+                          <td className={`px-4 py-3 text-sm font-medium ${position.pnlColor}`}>
+                            {position.unrealizedPnL}
+                          </td>
                           <td className="px-4 py-3 text-right">
-                            <Button 
-                              variant="ghost" 
+                            <Button
+                              variant="ghost"
                               size="sm"
                               className="h-auto p-0 text-xs text-primary hover:text-primary/80"
                               onClick={() => navigate(`/market/${position.marketId}`)}
                             >
-                              {t('view')}
+                              {t("view")}
                             </Button>
                           </td>
                         </tr>
@@ -382,13 +390,13 @@ const Portfolio = () => {
                 <table className="w-full">
                   <thead className="border-b border-border bg-muted/30">
                     <tr>
-                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">{t('market')}</th>
-                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">{t('side')}</th>
-                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">{t('type')}</th>
-                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">{t('price')}</th>
-                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">{t('shares')}</th>
-                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">{t('filled')}</th>
-                      <th className="text-right px-4 py-3 text-xs font-medium text-muted-foreground">{t('action')}</th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">{t("market")}</th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">{t("side")}</th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">{t("type")}</th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">{t("price")}</th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">{t("shares")}</th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">{t("filled")}</th>
+                      <th className="text-right px-4 py-3 text-xs font-medium text-muted-foreground">{t("action")}</th>
                       <th className="text-right px-4 py-3 text-xs font-medium text-muted-foreground"></th>
                     </tr>
                   </thead>
@@ -396,7 +404,7 @@ const Portfolio = () => {
                     {activeOrders.length === 0 ? (
                       <tr>
                         <td colSpan={8} className="py-12 text-center text-muted-foreground">
-                          {t('noOpenOrders')}
+                          {t("noOpenOrders")}
                         </td>
                       </tr>
                     ) : (
@@ -410,12 +418,12 @@ const Portfolio = () => {
                           </td>
                           <td className="px-4 py-3 text-sm">
                             {order.orderType === 0
-                              ? t('limitBuy')
+                              ? t("limitBuy")
                               : order.orderType === 1
-                              ? t('limitSell')
+                              ? t("limitSell")
                               : order.orderType === 2
-                              ? t('marketBuy')
-                              : t('marketSell')}
+                              ? t("marketBuy")
+                              : t("marketSell")}
                           </td>
                           <td className="px-4 py-3 text-sm">{(parseInt(order.price) / 100).toFixed(2)}%</td>
                           <td className="px-4 py-3 text-sm">{fromUSDCPrecision(order.totalAmount).toFixed(2)}</td>
@@ -431,7 +439,7 @@ const Portfolio = () => {
                               onClick={() => handleCancelOrder(order.orderId)}
                               disabled={cancellingOrderId === order.orderId}
                             >
-                              {cancellingOrderId === order.orderId ? t('cancelling') : t('cancel')}
+                              {cancellingOrderId === order.orderId ? t("cancelling") : t("cancel")}
                             </Button>
                           </td>
                           <td className="px-4 py-3 text-right">
@@ -441,7 +449,7 @@ const Portfolio = () => {
                               className="text-primary h-auto p-0 text-sm"
                               onClick={() => navigate(`/market/${order.marketId}`)}
                             >
-                              {t('view')}
+                              {t("view")}
                             </Button>
                           </td>
                         </tr>
@@ -454,8 +462,8 @@ const Portfolio = () => {
 
             {/* History Tab */}
             <TabsContent value="history" className="m-0 p-4">
-              <TradesHistory 
-                trades={userAllTrades || []} 
+              <TradesHistory
+                trades={userAllTrades || []}
                 markets={markets}
                 orders={userAllOrders || []}
                 playerId={playerId}

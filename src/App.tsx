@@ -9,7 +9,6 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import Index from "./pages/Index";
 import MarketDetail from "./pages/MarketDetail";
 import Portfolio from "./pages/Portfolio";
-import Rewards from "./pages/Rewards";
 import Wallet from "./pages/Wallet";
 import Admin from "./pages/Admin";
 import Referral from "./pages/Referral";
@@ -46,7 +45,7 @@ const App = () => (
                     <Route path="/" element={<Index />} />
                     <Route path="/market/:id" element={<MarketDetail />} />
                     <Route path="/portfolio" element={<Portfolio />} />
-                    <Route path="/rewards" element={<Rewards />} />
+                    <Route path="/mining" element={<Rebate />} />
                     <Route path="/wallet" element={<Wallet />} />
                     <Route path="/admin" element={<Admin />} />
                     <Route path="/referral" element={<Referral />} />

@@ -126,7 +126,7 @@
   "priceToBeat": "目標価格",
   "loading": "読み込み中...",
   "orderPlaced": "注文が提出されました",
-  "orderPlacedDesc": "{direction} {orderType} 注文が正常に提出されました",
+  "orderPlacedDesc": "{{direction}} {{orderType}} 注文が正常に提出されました",
   "orderFailed": "注文失敗",
   "orderFailedDesc": "注文の提出に失敗しました",
   "claimSuccessful": "請求成功",

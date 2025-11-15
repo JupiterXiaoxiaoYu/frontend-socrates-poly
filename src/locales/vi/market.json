@@ -126,7 +126,7 @@
   "priceToBeat": "Giá Cần Đánh Bại",
   "loading": "Đang tải...",
   "orderPlaced": "Lệnh Đã Đặt",
-  "orderPlacedDesc": "Đã đặt lệnh {direction} {orderType} thành công",
+  "orderPlacedDesc": "Đã đặt lệnh {{direction}} {{orderType}} thành công",
   "orderFailed": "Lệnh Thất Bại",
   "orderFailedDesc": "Không thể đặt lệnh",
   "claimSuccessful": "Nhận Thành Công",

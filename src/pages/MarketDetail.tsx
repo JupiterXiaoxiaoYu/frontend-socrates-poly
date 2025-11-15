@@ -29,15 +29,14 @@ import { MarketStatus } from "../types/api";
 import { useTranslation } from "react-i18next";
 
 const MarketDetail = () => {
-  const { t } = useTranslation('market');
+  const { t } = useTranslation("market");
   const { id } = useParams();
-  const { currentMarket, positions, orders, trades, setCurrentMarketId, placeOrder, claim, isLoading } =
-    useMarket();
+  const { currentMarket, positions, orders, trades, setCurrentMarketId, placeOrder, claim, isLoading } = useMarket();
   const { l2Account, isConnected, isL2Connected, connectL2 } = useWallet();
   const { openConnectModal } = useConnectModal();
   const { toast } = useToast();
   const [isTradingOpen, setIsTradingOpen] = useState(false);
-  const [selectedDirection, setSelectedDirection] = useState<'UP' | 'DOWN'>('UP');
+  const [selectedDirection, setSelectedDirection] = useState<"UP" | "DOWN">("UP");
 
   // 设置当前市场 ID
   useEffect(() => {
@@ -89,9 +88,8 @@ const MarketDetail = () => {
     if (!currentMarket) return null;
 
     // 从市场当前价格计算概率（优先使用最新成交价格）
-    const { yesChance, noChance } = marketCurrentPrice !== null 
-      ? calculateProbabilities(marketCurrentPrice)
-      : calculateProbabilities(); // 默认 50/50
+    const { yesChance, noChance } =
+      marketCurrentPrice !== null ? calculateProbabilities(marketCurrentPrice) : calculateProbabilities(); // 默认 50/50
 
     // 计算总成交量
     const totalVolume =
@@ -155,7 +153,13 @@ const MarketDetail = () => {
   }, [positions]);
 
   // 处理下单
-  const handlePlaceOrder = async (order: { marketId: number; direction: string; orderType: any; price: number; amount: number }) => {
+  const handlePlaceOrder = async (order: {
+    marketId: number;
+    direction: string;
+    orderType: any;
+    price: number;
+    amount: number;
+  }) => {
     try {
       // 转换订单类型
       const orderTypeStr =
@@ -178,14 +182,20 @@ const MarketDetail = () => {
         amount: BigInt(order.amount), // 直接使用，已经是 2位精度
       });
 
+      // 转换 direction (UP/DOWN) 为 YES/NO 并翻译
+      const directionText = order.direction === "UP" ? t("yes") : t("no");
+
+      // 转换 orderTypeStr 为可读的订单类型
+      const orderTypeText = orderTypeStr.startsWith("limit") ? t("limit") : t("marketType");
+
       toast({
-        title: t('orderPlaced'),
-        description: t('orderPlacedDesc', { direction: order.direction, orderType: orderTypeStr }),
+        title: t("orderPlaced"),
+        description: t("orderPlacedDesc", { direction: directionText, orderType: orderTypeText }),
       });
     } catch (error) {
       toast({
-        title: t('orderFailed'),
-        description: error instanceof Error ? error.message : t('orderFailedDesc'),
+        title: t("orderFailed"),
+        description: error instanceof Error ? error.message : t("orderFailedDesc"),
         variant: "destructive",
       });
     }
@@ -196,13 +206,13 @@ const MarketDetail = () => {
     try {
       await claim(BigInt(marketId));
       toast({
-        title: t('claimSuccessful'),
-        description: t('claimSuccessfulDesc'),
+        title: t("claimSuccessful"),
+        description: t("claimSuccessfulDesc"),
       });
     } catch (error) {
       toast({
-        title: t('claimFailed'),
-        description: error instanceof Error ? error.message : t('claimFailedDesc'),
+        title: t("claimFailed"),
+        description: error instanceof Error ? error.message : t("claimFailedDesc"),
         variant: "destructive",
       });
     }
@@ -220,19 +230,19 @@ const MarketDetail = () => {
       } else if (!isL2Connected && !l2Account) {
         // 连接 L2
         toast({
-          title: t('connectingToApp'),
-          description: t('connectingToAppDesc'),
+          title: t("connectingToApp"),
+          description: t("connectingToAppDesc"),
         });
         await connectL2();
         toast({
-          title: t('connected'),
-          description: t('connectedDesc'),
+          title: t("connected"),
+          description: t("connectedDesc"),
         });
       }
     } catch (error) {
       toast({
-        title: t('connectionFailed'),
-        description: t('connectionFailedDesc'),
+        title: t("connectionFailed"),
+        description: t("connectionFailedDesc"),
         variant: "destructive",
       });
     }
@@ -254,7 +264,7 @@ const MarketDetail = () => {
         <Header />
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
-            <p className="text-muted-foreground">{t('loadingMarket')}</p>
+            <p className="text-muted-foreground">{t("loadingMarket")}</p>
           </div>
         </div>
       </div>
@@ -268,7 +278,7 @@ const MarketDetail = () => {
         <Header />
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
-            <p className="text-muted-foreground">{t('marketNotFound')}</p>
+            <p className="text-muted-foreground">{t("marketNotFound")}</p>
           </div>
         </div>
       </div>
@@ -293,15 +303,15 @@ const MarketDetail = () => {
           <div className="flex items-center justify-between text-xs">
             <div className="hidden md:flex items-center gap-3">
               <div className="text-muted-foreground">
-                {t('marketPrice')}:{" "}
+                {t("marketPrice")}:{" "}
                 {marketData.hasOrders ? (
                   <span className="font-semibold text-foreground">{marketData.currentPrice?.toFixed(2)}%</span>
                 ) : (
-                  <span className="text-muted-foreground text-xs">{t('noOrders')}</span>
+                  <span className="text-muted-foreground text-xs">{t("noOrders")}</span>
                 )}
               </div>
               <div className="text-muted-foreground">
-                {t('target')}:{" "}
+                {t("target")}:{" "}
                 <span className="text-foreground font-semibold">
                   $
                   {marketData.targetPrice.toLocaleString("en-US", {
@@ -311,21 +321,29 @@ const MarketDetail = () => {
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-muted-foreground">{t('probability')}:</span>
-                <span className="text-success font-semibold">{marketData.yesChance}% {t('yes')}</span>
+                <span className="text-muted-foreground">{t("probability")}:</span>
+                <span className="text-success font-semibold">
+                  {marketData.yesChance}% {t("yes")}
+                </span>
                 <span className="text-muted-foreground">/</span>
-                <span className="text-danger font-semibold">{marketData.noChance}% {t('no')}</span>
+                <span className="text-danger font-semibold">
+                  {marketData.noChance}% {t("no")}
+                </span>
               </div>
             </div>
 
             <div className="flex items-center gap-4 text-muted-foreground">
               <div className="flex items-center gap-1">
                 <DollarSign className="w-3 h-3" />
-                <span>{t('volume')} ${(marketData.totalVolume / 1000).toFixed(1)}K</span>
+                <span>
+                  {t("volume")} ${(marketData.totalVolume / 1000).toFixed(1)}K
+                </span>
               </div>
               <span>/</span>
               <div className="flex items-center gap-1">
-                <span>{marketData.windowMinutes}m {t('window')}</span>
+                <span>
+                  {marketData.windowMinutes}m {t("window")}
+                </span>
               </div>
             </div>
           </div>
@@ -352,19 +370,19 @@ const MarketDetail = () => {
                         value="chart"
                         className="rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent px-6 py-3"
                       >
-                        {t('chart')}
+                        {t("chart")}
                       </TabsTrigger>
                       <TabsTrigger
                         value="orderbook"
                         className="rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent px-6 py-3"
                       >
-                        {t('orderBook')}
+                        {t("orderBook")}
                       </TabsTrigger>
                       <TabsTrigger
                         value="rules"
                         className="rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent px-6 py-3"
                       >
-                        {t('rules')}
+                        {t("rules")}
                       </TabsTrigger>
                     </TabsList>
 
@@ -390,14 +408,14 @@ const MarketDetail = () => {
 
                     <TabsContent value="rules" className="flex-1 p-4 m-0 overflow-auto">
                       <div className="space-y-2 text-sm text-muted-foreground">
-                        <p>• {t('rule1', { price: marketData.targetPrice.toLocaleString() })}</p>
-                        <p>• {t('rule2', { price: marketData.targetPrice.toLocaleString() })}</p>
-                        <p>• {t('rule3', { price: marketData.targetPrice.toLocaleString() })}</p>
-                        <p>• {t('rule4')}</p>
-                        <p>• {t('rule5')}</p>
-                        <p>• {t('rule6')}</p>
-                        <p>• {t('rule7', { minutes: marketData.windowMinutes })}</p>
-                        <p>• {t('rule8')}</p>
+                        <p>• {t("rule1", { price: marketData.targetPrice.toLocaleString() })}</p>
+                        <p>• {t("rule2", { price: marketData.targetPrice.toLocaleString() })}</p>
+                        <p>• {t("rule3", { price: marketData.targetPrice.toLocaleString() })}</p>
+                        <p>• {t("rule4")}</p>
+                        <p>• {t("rule5")}</p>
+                        <p>• {t("rule6")}</p>
+                        <p>• {t("rule7", { minutes: marketData.windowMinutes })}</p>
+                        <p>• {t("rule8")}</p>
                       </div>
                     </TabsContent>
                   </Tabs>
@@ -434,10 +452,10 @@ const MarketDetail = () => {
                   <div className="text-center space-y-4">
                     <Wallet className="w-12 h-12 mx-auto text-muted-foreground" />
                     <div>
-                      <p className="text-sm font-medium text-foreground mb-1">{t('connectWalletToTrade')}</p>
-                      <p className="text-xs text-muted-foreground">{t('connectWalletDesc')}</p>
+                      <p className="text-sm font-medium text-foreground mb-1">{t("connectWalletToTrade")}</p>
+                      <p className="text-xs text-muted-foreground">{t("connectWalletDesc")}</p>
                     </div>
-                    <Button onClick={handleConnectWallet}>{t('connectWallet')}</Button>
+                    <Button onClick={handleConnectWallet}>{t("connectWallet")}</Button>
                   </div>
                 </div>
               )}
@@ -463,7 +481,7 @@ const MarketDetail = () => {
                     </SheetTrigger>
                     <SheetContent side="bottom" className="h-[90vh] p-0">
                       <SheetHeader className="px-6 py-4 border-b border-border">
-                        <SheetTitle>{t('buyYesShares')}</SheetTitle>
+                        <SheetTitle>{t("buyYesShares")}</SheetTitle>
                       </SheetHeader>
                       <div className="h-[calc(90vh-73px)] overflow-auto">
                         <TradingPanel
@@ -487,14 +505,14 @@ const MarketDetail = () => {
                   </Button>
                 </>
               ) : (
-                  <Button
-                    size="lg"
-                    className="flex-1 h-12 bg-primary hover:bg-primary/90 text-white font-semibold text-base rounded-full"
-                    onClick={handleConnectWallet}
-                  >
-                    <Wallet className="w-5 h-5 mr-2" />
-                    {t('connectWalletToTrade')}
-                  </Button>
+                <Button
+                  size="lg"
+                  className="flex-1 h-12 bg-primary hover:bg-primary/90 text-white font-semibold text-base rounded-full"
+                  onClick={handleConnectWallet}
+                >
+                  <Wallet className="w-5 h-5 mr-2" />
+                  {t("connectWalletToTrade")}
+                </Button>
               )}
             </div>
           </div>

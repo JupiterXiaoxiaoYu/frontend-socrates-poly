@@ -126,7 +126,7 @@
   "priceToBeat": "Yenilmesi Gereken Fiyat",
   "loading": "Yükleniyor...",
   "orderPlaced": "Sipariş Verildi",
-  "orderPlacedDesc": "{direction} {orderType} siparişi başarıyla verildi",
+  "orderPlacedDesc": "{{direction}} {{orderType}} siparişi başarıyla verildi",
   "orderFailed": "Sipariş Başarısız",
   "orderFailedDesc": "Sipariş verilemedi",
   "claimSuccessful": "Talep Başarılı",

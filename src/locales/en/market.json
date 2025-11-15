@@ -126,7 +126,7 @@
   "priceToBeat": "Price to Beat",
   "loading": "Loading...",
   "orderPlaced": "Order Placed",
-  "orderPlacedDesc": "Successfully placed {direction} {orderType} order",
+  "orderPlacedDesc": "Successfully placed {{direction}} {{orderType}} order",
   "orderFailed": "Order Failed",
   "orderFailedDesc": "Failed to place order",
   "claimSuccessful": "Claim Successful",

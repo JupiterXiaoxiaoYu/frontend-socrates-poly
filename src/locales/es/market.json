@@ -126,7 +126,7 @@
   "priceToBeat": "Precio a Vencer",
   "loading": "Cargando...",
   "orderPlaced": "Orden Colocada",
-  "orderPlacedDesc": "Orden {direction} {orderType} colocada exitosamente",
+  "orderPlacedDesc": "Orden {{direction}} {{orderType}} colocada exitosamente",
   "orderFailed": "Orden Fallida",
   "orderFailedDesc": "Error al colocar la orden",
   "claimSuccessful": "Reclamación Exitosa",

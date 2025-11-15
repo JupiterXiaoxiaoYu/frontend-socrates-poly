@@ -106,7 +106,7 @@ const MobileNav = ({ isOpen, onClose }: MobileNavProps) => {
 
             {/* Rewards */}
             <Link
-              to="/rewards"
+              to="/mining"
               onClick={onClose}
               className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted/50 transition-colors"
             >
