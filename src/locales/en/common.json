@@ -23,6 +23,11 @@
   "theme": {
     "light": "Light",
     "dark": "Dark"
+  },
+  "notFound": {
+    "title": "404",
+    "message": "Oops! Page not found",
+    "returnHome": "Return to Home"
   }
 }
 

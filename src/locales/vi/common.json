@@ -23,6 +23,11 @@
   "theme": {
     "light": "Sáng",
     "dark": "Tối"
+  },
+  "notFound": {
+    "title": "404",
+    "message": "Ối! Không tìm thấy trang",
+    "returnHome": "Về Trang Chủ"
   }
 }
 

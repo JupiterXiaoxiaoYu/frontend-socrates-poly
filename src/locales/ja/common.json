@@ -23,6 +23,11 @@
   "theme": {
     "light": "ライト",
     "dark": "ダーク"
+  },
+  "notFound": {
+    "title": "404",
+    "message": "おっと！ページが見つかりません",
+    "returnHome": "ホームに戻る"
   }
 }
 

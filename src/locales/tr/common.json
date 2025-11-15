@@ -23,6 +23,11 @@
   "theme": {
     "light": "Aydınlık",
     "dark": "Karanlık"
+  },
+  "notFound": {
+    "title": "404",
+    "message": "Hay aksi! Sayfa bulunamadı",
+    "returnHome": "Ana Sayfaya Dön"
   }
 }
 
