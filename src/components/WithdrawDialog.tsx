@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Dialog,
   DialogContent,
@@ -22,6 +23,7 @@ interface WithdrawDialogProps {
 }
 
 export function WithdrawDialog({ open, onOpenChange, onConfirm, balance = 0, isLoading = false }: WithdrawDialogProps) {
+  const { t } = useTranslation('wallet');
   const [amount, setAmount] = useState("");
   const [error, setError] = useState("");
 
@@ -52,22 +54,22 @@ export function WithdrawDialog({ open, onOpenChange, onConfirm, balance = 0, isL
     const numAmount = parseFloat(amount);
 
     if (!amount || isNaN(numAmount)) {
-      setError("Please enter a valid amount");
+      setError(t('pleaseEnterValidAmount'));
       return;
     }
 
     if (numAmount <= 0) {
-      setError("Amount must be greater than 0");
+      setError(t('amountMustBeGreaterThanZero'));
       return;
     }
 
     if (numAmount < 1) {
-      setError("Minimum withdrawal amount is 1 USDC");
+      setError(t('minWithdrawalAmountError'));
       return;
     }
 
     if (numAmount > balance) {
-      setError("Withdrawal amount exceeds available balance");
+      setError(t('withdrawalAmountExceedsBalance'));
       return;
     }
 
@@ -77,7 +79,7 @@ export function WithdrawDialog({ open, onOpenChange, onConfirm, balance = 0, isL
       setError("");
       onOpenChange(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Withdrawal failed");
+      setError(err instanceof Error ? err.message : t('withdrawalFailed'));
     }
   };
 
@@ -91,25 +93,25 @@ export function WithdrawDialog({ open, onOpenChange, onConfirm, balance = 0, isL
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Withdraw USDC</DialogTitle>
-          <DialogDescription>Withdraw USDC from your trading account</DialogDescription>
+          <DialogTitle>{t('withdrawUSDC')}</DialogTitle>
+          <DialogDescription>{t('withdrawUSDCDesc')}</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6 py-4">
           {/* Balance Display */}
           <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
             <div>
-              <div className="text-sm text-muted-foreground">Available Balance</div>
+              <div className="text-sm text-muted-foreground">{t('availableBalance')}</div>
               <div className="text-2xl font-bold">{balance.toFixed(2)} USDC</div>
             </div>
             <Button variant="link" size="sm" onClick={handleMaxAmount} disabled={isLoading} className="text-primary">
-              Withdraw All
+              {t('withdrawAll')}
             </Button>
           </div>
 
           {/* Amount Input */}
           <div className="space-y-2">
-            <Label htmlFor="amount">Withdrawal Amount</Label>
+            <Label htmlFor="amount">{t('withdrawalAmount')}</Label>
             <div className="relative">
               <Input
                 id="amount"
@@ -134,7 +136,7 @@ export function WithdrawDialog({ open, onOpenChange, onConfirm, balance = 0, isL
 
           {/* Quick Amount */}
           <div className="space-y-2">
-            <Label>Quick Amount</Label>
+            <Label>{t('quickAmount')}</Label>
             <div className="grid grid-cols-5 gap-2">
               {[10, 50, 100, 500].map((value) => (
                 <Button
@@ -155,7 +157,7 @@ export function WithdrawDialog({ open, onOpenChange, onConfirm, balance = 0, isL
                 disabled={isLoading || balance === 0}
                 className="h-9"
               >
-                Max
+                {t('max')}
               </Button>
             </div>
           </div>
@@ -165,10 +167,10 @@ export function WithdrawDialog({ open, onOpenChange, onConfirm, balance = 0, isL
             <Info className="h-4 w-4" />
             <AlertDescription className="text-xs">
               <ul className="list-disc list-inside space-y-1">
-                <li>Minimum withdrawal amount: 1 USDC</li>
-                <li>Funds will be deducted from your account immediately</li>
-                <li>Transaction requires signature confirmation</li>
-                <li>Please ensure you have no pending orders</li>
+                <li>{t('minWithdrawalAmount')}</li>
+                <li>{t('fundsDeductedImmediately')}</li>
+                <li>{t('transactionRequiresSignature')}</li>
+                <li>{t('ensureNoPendingOrders')}</li>
               </ul>
             </AlertDescription>
           </Alert>
@@ -176,7 +178,7 @@ export function WithdrawDialog({ open, onOpenChange, onConfirm, balance = 0, isL
 
         <DialogFooter>
           <Button variant="outline" onClick={handleClose} disabled={isLoading}>
-            Cancel
+            {t('cancel')}
           </Button>
           <Button
             onClick={handleConfirm}
@@ -184,7 +186,7 @@ export function WithdrawDialog({ open, onOpenChange, onConfirm, balance = 0, isL
             className="min-w-[100px]"
             variant="destructive"
           >
-            {isLoading ? "Processing..." : "Confirm Withdrawal"}
+            {isLoading ? t('processing') : t('confirmWithdrawal')}
           </Button>
         </DialogFooter>
       </DialogContent>
