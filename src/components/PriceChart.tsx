@@ -265,7 +265,7 @@ const PriceChart = ({ targetPrice, currentPrice, onPriceUpdate }: PriceChartProp
     if (!chartRef.current) return;
     chartRef.current.applyOptions({
       layout: {
-        background: { type: ColorType.Solid, color: isDark ? "#0b0b0b" : "#ffffff" },
+        background: { type: ColorType.Solid, color: isDark ? "#000000" : "#ffffff" },
         textColor: isDark ? "#e5e5e5" : "#999999",
       },
       grid: {

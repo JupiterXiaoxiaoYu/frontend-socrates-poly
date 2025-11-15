@@ -61,7 +61,7 @@ class PartialPriceLineRenderer implements IPrimitivePaneRenderer {
       ctx.setLineDash([]);
       ctx.arc(xPosition, yCentre, 6 * scope.verticalPixelRatio, 0, 2 * Math.PI);
       // 根据主题设置圆圈填充颜色
-      ctx.fillStyle = this._isDark ? "#0b0b0b" : "#ffffff";
+      ctx.fillStyle = this._isDark ? "#000000" : "#ffffff";
       ctx.fill();
       ctx.strokeStyle = this._color;
       ctx.lineWidth = 2 * scope.verticalPixelRatio;

@@ -125,7 +125,7 @@ export const TradingViewChart: React.FC<TradingViewChartProps> = ({
       width: chartContainerRef.current.clientWidth,
       height: height,
       layout: {
-        background: { type: ColorType.Solid, color: isDark ? "#0b0b0b" : "#ffffff" },
+        background: { type: ColorType.Solid, color: isDark ? "#000000" : "#ffffff" },
         textColor: isDark ? "#e5e5e5" : "#333333",
       },
       grid: {
@@ -251,7 +251,7 @@ export const TradingViewChart: React.FC<TradingViewChartProps> = ({
     if (!chartRef.current) return;
     chartRef.current.applyOptions({
       layout: {
-        background: { type: ColorType.Solid, color: isDark ? "#0b0b0b" : "#ffffff" },
+        background: { type: ColorType.Solid, color: isDark ? "#000000" : "#ffffff" },
         textColor: isDark ? "#e5e5e5" : "#333333",
       },
       grid: {

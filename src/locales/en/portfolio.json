@@ -24,7 +24,7 @@
   "pnl": "P&L",
   "action": "Action",
   "noPositions": "No positions yet",
-  "noPositionsFilter": "No {filter} positions",
+  "noPositionsFilter": "No {{filter}} positions",
   "won": "Won",
   "lost": "Lost",
   "active": "Active",
@@ -48,4 +48,3 @@
   "noTradeHistory": "No trade history yet",
   "noTradeHistoryDesc": "Your completed trades will appear here"
 }
-
