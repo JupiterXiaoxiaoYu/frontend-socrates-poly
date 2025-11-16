@@ -1,6 +1,5 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { useSwipeable } from "react-swipeable";
 import { Button } from "@/components/ui/button";
 import { ChevronDown, ChevronUp, Wallet, ArrowRight } from "lucide-react";
 import PriceChart from "./PriceChart";
@@ -40,6 +39,11 @@ const MobileMarketView = ({ marketId, allMarketIds }: MobileMarketViewProps) => 
   const [isChartExpanded, setIsChartExpanded] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
 
+  // 触摸事件相关状态
+  const touchStartX = useRef<number | null>(null);
+  const touchStartY = useRef<number | null>(null);
+  const minSwipeDistance = 50; // 最小滑动距离
+
   // 找到当前市场在列表中的索引
   useEffect(() => {
     const index = allMarketIds.findIndex((id) => id === marketId);
@@ -58,27 +62,44 @@ const MobileMarketView = ({ marketId, allMarketIds }: MobileMarketViewProps) => 
     };
   }, [marketId, setCurrentMarketId]);
 
-  // 滑动切换市场
-  const handleSwipe = (direction: "left" | "right") => {
-    let newIndex = currentIndex;
-    if (direction === "left" && currentIndex < allMarketIds.length - 1) {
-      newIndex = currentIndex + 1;
-    } else if (direction === "right" && currentIndex > 0) {
-      newIndex = currentIndex - 1;
-    }
-
-    if (newIndex !== currentIndex) {
-      const newMarketId = allMarketIds[newIndex];
-      navigate(`/market/${newMarketId}`);
-    }
+  // 原生触摸事件处理
+  const handleTouchStart = (e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    touchStartX.current = touch.clientX;
+    touchStartY.current = touch.clientY;
   };
 
-  const swipeHandlers = useSwipeable({
-    onSwipedLeft: () => handleSwipe("left"),
-    onSwipedRight: () => handleSwipe("right"),
-    trackMouse: false,
-    trackTouch: true,
-  });
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX.current === null || touchStartY.current === null) return;
+
+    const touch = e.changedTouches[0];
+    const touchEndX = touch.clientX;
+    const touchEndY = touch.clientY;
+
+    const deltaX = touchEndX - touchStartX.current;
+    const deltaY = touchEndY - touchStartY.current;
+
+    // 判断是否为水平滑动（水平距离大于垂直距离，且水平距离超过阈值）
+    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > minSwipeDistance) {
+      if (deltaX > 0) {
+        // 向右滑动，切换到前一个市场
+        if (currentIndex > 0) {
+          const newMarketId = allMarketIds[currentIndex - 1];
+          navigate(`/market/${newMarketId}`);
+        }
+      } else {
+        // 向左滑动，切换到下一个市场
+        if (currentIndex < allMarketIds.length - 1) {
+          const newMarketId = allMarketIds[currentIndex + 1];
+          navigate(`/market/${newMarketId}`);
+        }
+      }
+    }
+
+    // 重置触摸起点
+    touchStartX.current = null;
+    touchStartY.current = null;
+  };
 
   // 计算市场当前价格
   const marketCurrentPrice = useMemo(() => {
@@ -315,7 +336,7 @@ const MobileMarketView = ({ marketId, allMarketIds }: MobileMarketViewProps) => 
   }
 
   return (
-    <div className="h-screen flex flex-col bg-background">
+    <div className="h-screen flex flex-col bg-background" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
       {/* 市场切换指示器 */}
       <div className="flex items-center justify-center gap-1 py-2 border-b border-border">
         {allMarketIds.map((_, index) => (
@@ -331,7 +352,7 @@ const MobileMarketView = ({ marketId, allMarketIds }: MobileMarketViewProps) => 
       {/* 市场信息头部 */}
       <div className="flex-shrink-0 px-4 py-3 border-b border-border">
         <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 mr-2">
             <BTCIcon className="w-6 h-6" />
             <div>
               <h1 className="text-lg font-bold">{marketData.title}</h1>
@@ -342,7 +363,14 @@ const MobileMarketView = ({ marketId, allMarketIds }: MobileMarketViewProps) => 
               </div>
             </div>
           </div>
-          <CountdownTimer targetTimestamp={marketData.endTimestamp} format="compact" />
+          <div className="flex flex-col items-end gap-1 w-[125px]">
+            <CountdownTimer targetTimestamp={marketData.endTimestamp} format="compact" />
+            {/* 窗口时间 - 突出显示，放在倒计时下方 */}
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 border border-primary/20">
+              <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></div>
+              <span className="text-xs font-semibold text-primary">{marketData.windowMinutes}min</span>
+            </div>
+          </div>
         </div>
 
         {/* 当前价格和概率 */}
@@ -360,16 +388,12 @@ const MobileMarketView = ({ marketId, allMarketIds }: MobileMarketViewProps) => 
             <div>
               {t("volume")}: ${(marketData.totalVolume / 1000).toFixed(1)}K
             </div>
-            <div>
-              {marketData.windowMinutes}m {t("window")}
-            </div>
           </div>
         </div>
       </div>
 
       {/* 可滑动的内容区域 - 根据chart展开状态调整底部padding */}
       <div
-        {...swipeHandlers}
         className={`flex-1 overflow-auto flex flex-col relative transition-all duration-300 ${
           isChartExpanded ? "pb-[320px]" : "pb-14"
         }`}
@@ -378,12 +402,20 @@ const MobileMarketView = ({ marketId, allMarketIds }: MobileMarketViewProps) => 
         <div className="flex-shrink-0 p-2 border-b border-border">
           <div className="grid grid-cols-2 gap-2">
             {/* 订单簿 - 固定高度，隐藏滚动条 */}
-            <div className="h-[400px] overflow-hidden border border-border rounded">
+            <div
+              className="h-[400px] overflow-hidden border border-border rounded"
+              onTouchStart={(e) => e.stopPropagation()}
+              onTouchMove={(e) => e.stopPropagation()}
+            >
               <MobileOrderBook marketId={marketData.marketId} direction={selectedDirection} />
             </div>
 
             {/* 交易面板 - 固定高度，隐藏滚动条 */}
-            <div className="h-[400px] overflow-hidden border border-border rounded">
+            <div
+              className="h-[400px] overflow-hidden border border-border rounded"
+              onTouchStart={(e) => e.stopPropagation()}
+              onTouchMove={(e) => e.stopPropagation()}
+            >
               {isWalletConnected ? (
                 <MobileTradingPanel
                   market={marketData}

@@ -42,14 +42,22 @@ const MarketDetail = () => {
   const [selectedDirection, setSelectedDirection] = useState<"UP" | "DOWN">("UP");
   const [realtimeBTCPrice, setRealtimeBTCPrice] = useState<number | null>(null);
   const [allMarketIds, setAllMarketIds] = useState<string[]>([]);
-  const [isMobile, setIsMobile] = useState(false);
+  // 初始检测是否为移动端（使用 SSR 安全的方式）
+  const [isMobile, setIsMobile] = useState(() => {
+    if (typeof window !== "undefined") {
+      return window.innerWidth < 1024;
+    }
+    return false;
+  });
 
-  // 检测是否为移动端
+  // 检测是否为移动端并监听窗口大小变化
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 1024);
     };
+    // 初始检查
     checkMobile();
+    // 监听窗口大小变化
     window.addEventListener("resize", checkMobile);
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
@@ -78,6 +86,29 @@ const MarketDetail = () => {
       setCurrentMarketId(null);
     };
   }, [id, setCurrentMarketId]);
+
+  if (isMobile && id) {
+    if (allMarketIds.length === 0) {
+      return (
+        <div className="min-h-screen bg-background flex flex-col">
+          <Header />
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+              <p className="text-muted-foreground">{t("loadingMarket")}</p>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    // 渲染移动端组件
+    return (
+      <>
+        <Header />
+        <MobileMarketView marketId={id} allMarketIds={allMarketIds} />
+      </>
+    );
+  }
 
   // 计算市场当前价格（优先从最新成交，否则从订单簿）
   const marketCurrentPrice = useMemo(() => {
@@ -288,17 +319,7 @@ const MarketDetail = () => {
     }
   };
 
-  // 移动端使用专门的组件
-  if (isMobile && id && allMarketIds.length > 0) {
-    return (
-      <>
-        <Header />
-        <MobileMarketView marketId={id} allMarketIds={allMarketIds} />
-      </>
-    );
-  }
-
-  // 加载中状态
+  // 桌面端：加载中状态
   if (isLoading && !currentMarket) {
     return (
       <div className="min-h-screen bg-background flex flex-col">
