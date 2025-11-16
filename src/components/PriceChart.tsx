@@ -40,6 +40,71 @@ const PriceChart = ({ targetPrice, onPriceUpdate }: PriceChartProps) => {
 
     let isSubscribed = true;
     let unsubscribe: (() => void) | null = null;
+    let animationFrameId: number | null = null;
+    let currentAnimationPrice: number | null = null;
+    let targetAnimationPrice: number | null = null;
+    let animationStartTime: number = 0;
+    let animationStartPrice: number = 0;
+    let lastUpdateTime: Time | null = null;
+    let lastScrollTime: number = 0;
+
+    // 平滑动画函数（easeOutCubic）
+    const easeOutCubic = (t: number): number => {
+      return 1 - Math.pow(1 - t, 3);
+    };
+
+    // 动画更新函数
+    const animatePrice = () => {
+      if (!isSubscribed || currentAnimationPrice === null || targetAnimationPrice === null || !lineSeriesRef.current) {
+        animationFrameId = null;
+        return;
+      }
+
+      const now = performance.now();
+      const elapsed = now - animationStartTime;
+      const duration = 800; // 800ms动画时长，更流畅
+
+      // 如果目标价格在动画过程中改变了，重新计算起始值
+      const actualStartPrice = animationStartPrice;
+      const actualTargetPrice = targetAnimationPrice;
+      const priceDiff = actualTargetPrice - actualStartPrice;
+
+      if (elapsed < duration && Math.abs(priceDiff) > 0.001) {
+        const progress = Math.min(elapsed / duration, 1);
+        const easedProgress = easeOutCubic(progress);
+        currentAnimationPrice = actualStartPrice + priceDiff * easedProgress;
+
+        // 更新图表（使用最后更新时间）
+        if (lastUpdateTime && lineSeriesRef.current) {
+          lineSeriesRef.current.update({
+            time: lastUpdateTime,
+            value: currentAnimationPrice,
+          });
+        }
+
+        // 更新 PartialPriceLine（节流，每2帧更新一次以减少性能开销）
+        if (partialPriceLineRef.current && Math.floor(progress * 60) % 2 === 0) {
+          partialPriceLineRef.current.updateAllViews();
+        }
+
+        animationFrameId = requestAnimationFrame(animatePrice);
+      } else {
+        // 动画完成，设置最终值
+        if (actualTargetPrice !== null && lastUpdateTime && lineSeriesRef.current) {
+          lineSeriesRef.current.update({
+            time: lastUpdateTime,
+            value: actualTargetPrice,
+          });
+        }
+        currentAnimationPrice = actualTargetPrice;
+        animationFrameId = null;
+
+        // 最终更新 PartialPriceLine
+        if (partialPriceLineRef.current) {
+          partialPriceLineRef.current.updateAllViews();
+        }
+      }
+    };
 
     const initializeChart = async () => {
       if (!chartContainerRef.current) return;
@@ -91,7 +156,7 @@ const PriceChart = ({ targetPrice, onPriceUpdate }: PriceChartProps) => {
 
       // Create line series with curved line (平滑曲线)
       const lineSeries = chart.addSeries(LineSeries, {
-        lastPriceAnimation: LastPriceAnimationMode.OnDataUpdate,
+        lastPriceAnimation: LastPriceAnimationMode.Continuous, // 使用连续动画模式，实现平滑动画
         color: "#f59e0b", // 橙色
         lineWidth: 3,
         lineType: LineType.Curved, // ← 平滑曲线
@@ -119,8 +184,8 @@ const PriceChart = ({ targetPrice, onPriceUpdate }: PriceChartProps) => {
       lineSeries.attachPrimitive(partialPriceLine);
       partialPriceLineRef.current = partialPriceLine;
 
-      // Target price line reference
-      let targetPriceLine: any = null;
+      // Target price line reference (保留用于将来可能的删除或更新操作)
+      let _targetPriceLine: any = null;
 
       // 获取 60 秒历史数据
       try {
@@ -157,7 +222,7 @@ const PriceChart = ({ targetPrice, onPriceUpdate }: PriceChartProps) => {
               displayPrice = minPrice;
             }
 
-            targetPriceLine = lineSeries.createPriceLine({
+            _targetPriceLine = lineSeries.createPriceLine({
               price: displayPrice,
               color: "#3b82f6",
               lineWidth: 2,
@@ -165,6 +230,7 @@ const PriceChart = ({ targetPrice, onPriceUpdate }: PriceChartProps) => {
               axisLabelVisible: true,
               title: "",
             });
+            void _targetPriceLine;
           }, 100);
         }
       } catch (error) {
@@ -180,23 +246,46 @@ const PriceChart = ({ targetPrice, onPriceUpdate }: PriceChartProps) => {
         if (!isSubscribed) return;
 
         const newPrice = parseFloat(priceData.price);
-        const currentTime = priceData.unix_time;
+        const currentTime = priceData.unix_time as Time;
 
         setLatestPrice(newPrice);
+        lastUpdateTime = currentTime;
 
-        // 直接更新图表
-        lineSeries.update({
-          time: currentTime as Time,
-          value: newPrice,
-        });
+        // 初始化动画状态
+        if (currentAnimationPrice === null) {
+          // 第一次更新，直接设置
+          currentAnimationPrice = newPrice;
+          targetAnimationPrice = newPrice;
+          animationStartPrice = newPrice;
+          if (lineSeriesRef.current) {
+            lineSeriesRef.current.update({
+              time: currentTime,
+              value: newPrice,
+            });
+          }
+          // 更新 PartialPriceLine
+          if (partialPriceLineRef.current) {
+            partialPriceLineRef.current.updateAllViews();
+          }
+        } else {
+          // 后续更新，启动平滑动画
+          // 如果动画正在进行，从当前动画价格继续，否则从当前价格开始
+          animationStartPrice = currentAnimationPrice;
+          targetAnimationPrice = newPrice;
+          animationStartTime = performance.now();
 
-        // 更新 PartialPriceLine
-        if (partialPriceLineRef.current) {
-          partialPriceLineRef.current.updateAllViews();
+          // 启动或继续动画
+          if (animationFrameId === null) {
+            animationFrameId = requestAnimationFrame(animatePrice);
+          }
         }
 
-        // Scroll to real-time
-        chart.timeScale().scrollToRealTime();
+        // Scroll to real-time（节流，每500ms最多滚动一次）
+        const now = Date.now();
+        if (now - lastScrollTime > 500) {
+          chart.timeScale().scrollToRealTime();
+          lastScrollTime = now;
+        }
       });
 
       // Handle resize
@@ -216,6 +305,11 @@ const PriceChart = ({ targetPrice, onPriceUpdate }: PriceChartProps) => {
 
     return () => {
       isSubscribed = false;
+      // 取消动画帧
+      if (animationFrameId !== null) {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
+      }
       if (unsubscribe) {
         socratesOracleService.unsubscribe("BTC/USD");
       }

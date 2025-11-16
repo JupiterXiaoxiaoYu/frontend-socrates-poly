@@ -87,29 +87,6 @@ const MarketDetail = () => {
     };
   }, [id, setCurrentMarketId]);
 
-  if (isMobile && id) {
-    if (allMarketIds.length === 0) {
-      return (
-        <div className="min-h-screen bg-background flex flex-col">
-          <Header />
-          <div className="flex-1 flex items-center justify-center">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-              <p className="text-muted-foreground">{t("loadingMarket")}</p>
-            </div>
-          </div>
-        </div>
-      );
-    }
-    // 渲染移动端组件
-    return (
-      <>
-        <Header />
-        <MobileMarketView marketId={id} allMarketIds={allMarketIds} />
-      </>
-    );
-  }
-
   // 计算市场当前价格（优先从最新成交，否则从订单簿）
   const marketCurrentPrice = useMemo(() => {
     // 1. 优先使用最新成交价格
@@ -214,6 +191,9 @@ const MarketDetail = () => {
     return usdcPosition ? fromUSDCPrecision(usdcPosition.balance) : 0;
   }, [positions]);
 
+  // 检查是否已完全连接（L1 + L2）
+  const isWalletConnected = isConnected && (isL2Connected || !!l2Account);
+
   // 处理下单
   const handlePlaceOrder = async (order: {
     marketId: number;
@@ -280,9 +260,6 @@ const MarketDetail = () => {
     }
   };
 
-  // 检查是否已完全连接（L1 + L2）
-  const isWalletConnected = isConnected && (isL2Connected || !!l2Account);
-
   // 处理钱包连接（与 WalletButton 一致）
   const handleConnectWallet = async () => {
     try {
@@ -318,6 +295,30 @@ const MarketDetail = () => {
       setIsTradingOpen(true);
     }
   };
+
+  // 移动端渲染：在所有 hooks 执行后使用条件渲染
+  if (isMobile && id) {
+    if (allMarketIds.length === 0) {
+      return (
+        <div className="min-h-screen bg-background flex flex-col">
+          <Header />
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+              <p className="text-muted-foreground">{t("loadingMarket")}</p>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    // 渲染移动端组件
+    return (
+      <>
+        <Header />
+        <MobileMarketView marketId={id} allMarketIds={allMarketIds} />
+      </>
+    );
+  }
 
   // 桌面端：加载中状态
   if (isLoading && !currentMarket) {

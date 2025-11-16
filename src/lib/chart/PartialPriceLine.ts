@@ -127,7 +127,20 @@ export class PartialPriceLine implements ISeriesPrimitive<Time> {
     const seriesOptions = this._series.options();
     let color = seriesOptions.priceLineColor || (seriesOptions as LineStyleOptions).color || "#f59e0b";
 
-    const lastValue = this._series.dataByIndex(100000, MismatchDirection.NearestLeft);
+    // 获取数据总数，然后获取最后一个数据点（修复移动端位置问题）
+    const dataSize = this._series.data().length;
+    let lastValue: LineData | BarData | WhitespaceData | null = null;
+
+    if (dataSize > 0) {
+      // 从最后一个索引开始查找，确保获取到真实的数据点
+      for (let i = dataSize - 1; i >= 0; i--) {
+        const value = this._series.dataByIndex(i, MismatchDirection.NearestLeft);
+        if (value && (value as LineData).value !== undefined) {
+          lastValue = value;
+          break;
+        }
+      }
+    }
 
     let price: number | null = null;
     let x: number | null = null;
@@ -137,7 +150,9 @@ export class PartialPriceLine implements ISeriesPrimitive<Time> {
         color = (lastValue as BarData).color!;
       }
       price = getValue(lastValue);
-      x = this._chart.timeScale().timeToCoordinate(lastValue.time);
+      if (price !== null && lastValue.time) {
+        x = this._chart.timeScale().timeToCoordinate(lastValue.time);
+      }
     }
 
     const priceY = price !== null ? (this._series.priceToCoordinate(price) as number) : null;

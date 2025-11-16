@@ -19,7 +19,7 @@ interface Position {
 }
 
 const PositionTabs = () => {
-  const { t } = useTranslation('market');
+  const { t } = useTranslation("market");
   const {
     positions,
     orders,
@@ -78,56 +78,54 @@ const PositionTabs = () => {
     const marketTrades = userAllTrades.filter((t) => t.marketId === currentMarketId);
 
     // 使用用户所有订单记录来判断是买方还是卖方
-    return marketTrades
-      .slice(0, 20)
-      .map((t) => {
-        // 判断用户是买方还是卖方（订单一定属于当前用户）
-        const isBuyer = userAllOrders.some((o) => o.orderId === t.buyOrderId);
-        const isSeller = userAllOrders.some((o) => o.orderId === t.sellOrderId);
+    return marketTrades.slice(0, 20).map((t) => {
+      // 判断用户是买方还是卖方（订单一定属于当前用户）
+      const isBuyer = userAllOrders.some((o) => o.orderId === t.buyOrderId);
+      const isSeller = userAllOrders.some((o) => o.orderId === t.sellOrderId);
 
-        // trade.direction 表示成交发生在哪个子市场（YES 或 NO）
-        const tradeDirection = t.direction === 1 ? "YES" : "NO";
+      // trade.direction 表示成交发生在哪个子市场（YES 或 NO）
+      const tradeDirection = t.direction === 1 ? "YES" : "NO";
 
-        let userAction: string;
-        let userDirection: string;
+      let userAction: string;
+      let userDirection: string;
 
-        // 简化：买单 → Buy，卖单 → Sell，无法识别时标记为 Trade
-        if (isBuyer) {
-          userAction = "Buy";
-        } else if (isSeller) {
-          userAction = "Sell";
-        } else {
-          userAction = "Trade";
-        }
+      // 简化：买单 → Buy，卖单 → Sell，无法识别时标记为 Trade
+      if (isBuyer) {
+        userAction = "Buy";
+      } else if (isSeller) {
+        userAction = "Sell";
+      } else {
+        userAction = "Trade";
+      }
 
-        userDirection = tradeDirection; // 显示交易发生的市场方向
+      userDirection = tradeDirection; // 显示交易发生的市场方向
 
-        const priceBps = parseInt(t.price); // 0-10000
-        const pricePercent = priceBps / 100; // 0-100
-        const priceDecimal = pricePercent / 100; // 0-1
-        const shares = fromUSDCPrecision(t.amount);
-        const tradeCost = shares * priceDecimal;
+      const priceBps = parseInt(t.price); // 0-10000
+      const pricePercent = priceBps / 100; // 0-100
+      const priceDecimal = pricePercent / 100; // 0-1
+      const shares = fromUSDCPrecision(t.amount);
+      const tradeCost = shares * priceDecimal;
 
-        // createdAt 为秒级时间戳字符串
-        const createdAtMs = Number(t.createdAt) * 1000;
+      // createdAt 为秒级时间戳字符串
+      const createdAtMs = Number(t.createdAt) * 1000;
 
-        return {
-          tradeId: t.tradeId,
-          price: pricePercent.toFixed(2) + "%",
-          amount: shares.toFixed(2),
-          cost: formatCurrency(tradeCost),
-          side: `${userAction} ${userDirection}`,
-          action: userAction,
-          direction: userDirection,
-          time: new Date(createdAtMs).toLocaleString("en-US", {
-            month: "short",
-            day: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-            hour12: false,
-          }),
-        };
-      });
+      return {
+        tradeId: t.tradeId,
+        price: pricePercent.toFixed(2) + "%",
+        amount: shares.toFixed(2),
+        cost: formatCurrency(tradeCost),
+        side: `${userAction} ${userDirection}`,
+        action: userAction,
+        direction: userDirection,
+        time: new Date(createdAtMs).toLocaleString("en-US", {
+          month: "short",
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+        }),
+      };
+    });
   }, [userAllTrades, userAllOrders, currentMarket?.marketId]);
 
   // 从 userTrades 计算份额、成本和平均价格
@@ -303,13 +301,13 @@ const PositionTabs = () => {
     try {
       await cancelOrder(BigInt(orderId));
       toast({
-        title: t('orderCancelled'),
-        description: t('orderCancelledDesc'),
+        title: t("orderCancelled"),
+        description: t("orderCancelledDesc"),
       });
     } catch (error) {
       toast({
-        title: t('cancelFailed'),
-        description: error instanceof Error ? error.message : t('cancelFailedDesc'),
+        title: t("cancelFailed"),
+        description: error instanceof Error ? error.message : t("cancelFailedDesc"),
         variant: "destructive",
       });
     } finally {
@@ -325,25 +323,19 @@ const PositionTabs = () => {
             value="positions"
             className="rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent px-6 py-3"
           >
-            {t('position')}({displayPositions.length})
+            {t("position")}({displayPositions.length})
           </TabsTrigger>
           <TabsTrigger
             value="orders"
             className="rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent px-6 py-3"
           >
-            {t('openOrders')}({displayOrders.length})
+            {t("openOrders")}({displayOrders.length})
           </TabsTrigger>
           <TabsTrigger
             value="history"
             className="rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent px-6 py-3"
           >
-            {t('history')}
-          </TabsTrigger>
-          <TabsTrigger
-            value="claimed"
-            className="hidden md:block rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent px-6 py-3"
-          >
-            Claimed
+            {t("history")}
           </TabsTrigger>
         </TabsList>
 
@@ -352,13 +344,13 @@ const PositionTabs = () => {
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-xs text-muted-foreground border-b border-border">
-                  <th className="text-left pb-2 font-medium">{t('side')}</th>
-                  <th className="text-right pb-2 font-medium">{t('shares')}</th>
-                  <th className="text-right pb-2 font-medium">{t('avg')}</th>
-                  <th className="text-right pb-2 font-medium">{t('now')}</th>
-                  <th className="text-right pb-2 font-medium">{t('cost')}</th>
-                  <th className="text-right pb-2 font-medium">{t('estValue')}</th>
-                  <th className="text-right pb-2 font-medium">{t('pnl')}</th>
+                  <th className="text-left pb-2 font-medium">{t("side")}</th>
+                  <th className="text-right pb-2 font-medium">{t("shares")}</th>
+                  <th className="text-right pb-2 font-medium">{t("avg")}</th>
+                  <th className="text-right pb-2 font-medium">{t("now")}</th>
+                  <th className="text-right pb-2 font-medium">{t("cost")}</th>
+                  <th className="text-right pb-2 font-medium">{t("estValue")}</th>
+                  <th className="text-right pb-2 font-medium">{t("pnl")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -366,12 +358,8 @@ const PositionTabs = () => {
                   <tr>
                     <td colSpan={7} className="py-12 text-center">
                       <div className="flex flex-col items-center gap-3">
-                        <img 
-                          src="/favicon.png" 
-                          alt="No positions" 
-                          className="w-16 h-16 opacity-30"
-                        />
-                        <p className="text-muted-foreground text-sm">{t('noPositionsInMarket')}</p>
+                        <img src="/favicon.png" alt="No positions" className="w-16 h-16 opacity-30" />
+                        <p className="text-muted-foreground text-sm">{t("noPositionsInMarket")}</p>
                       </div>
                     </td>
                   </tr>
@@ -416,12 +404,12 @@ const PositionTabs = () => {
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-xs text-muted-foreground border-b border-border">
-                  <th className="text-left pb-2 font-medium">{t('side')}</th>
-                  <th className="text-right pb-2 font-medium">{t('price')}</th>
-                  <th className="text-right pb-2 font-medium">{t('shares')}</th>
-                  <th className="text-right pb-2 font-medium">{t('filled')}</th>
-                  <th className="text-right pb-2 font-medium">{t('totalCost')}</th>
-                  <th className="text-right pb-2 font-medium">{t('action')}</th>
+                  <th className="text-left pb-2 font-medium">{t("side")}</th>
+                  <th className="text-right pb-2 font-medium">{t("price")}</th>
+                  <th className="text-right pb-2 font-medium">{t("shares")}</th>
+                  <th className="text-right pb-2 font-medium">{t("filled")}</th>
+                  <th className="text-right pb-2 font-medium">{t("totalCost")}</th>
+                  <th className="text-right pb-2 font-medium">{t("action")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -429,12 +417,8 @@ const PositionTabs = () => {
                   <tr>
                     <td colSpan={6} className="py-12 text-center">
                       <div className="flex flex-col items-center gap-3">
-                        <img 
-                          src="/favicon.png" 
-                          alt="No orders" 
-                          className="w-16 h-16 opacity-30"
-                        />
-                        <p className="text-muted-foreground text-sm">{t('noOpenOrders')}</p>
+                        <img src="/favicon.png" alt="No orders" className="w-16 h-16 opacity-30" />
+                        <p className="text-muted-foreground text-sm">{t("noOpenOrders")}</p>
                       </div>
                     </td>
                   </tr>
@@ -468,7 +452,7 @@ const PositionTabs = () => {
                           onClick={() => handleCancelOrder(order.orderId)}
                           disabled={cancellingOrderId === order.orderId}
                         >
-                          {cancellingOrderId === order.orderId ? t('cancelling') : t('cancel')}
+                          {cancellingOrderId === order.orderId ? t("cancelling") : t("cancel")}
                         </Button>
                       </td>
                     </tr>
@@ -482,23 +466,19 @@ const PositionTabs = () => {
         <TabsContent value="history" className="p-4 m-0">
           {userTrades.length === 0 ? (
             <div className="flex flex-col items-center gap-3 py-12">
-              <img 
-                src="/favicon.png" 
-                alt="No history" 
-                className="w-16 h-16 opacity-30"
-              />
-              <p className="text-muted-foreground text-sm">{t('noTradingHistory')}</p>
+              <img src="/favicon.png" alt="No history" className="w-16 h-16 opacity-30" />
+              <p className="text-muted-foreground text-sm">{t("noTradingHistory")}</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-xs text-muted-foreground border-b border-border">
-                    <th className="text-left pb-2 font-medium">{t('side')}</th>
-                    <th className="text-right pb-2 font-medium">{t('price')}</th>
-                    <th className="text-right pb-2 font-medium">{t('amount')}</th>
-                    <th className="text-right pb-2 font-medium">{t('cost')}</th>
-                    <th className="text-right pb-2 font-medium">{t('timeAgo')}</th>
+                    <th className="text-left pb-2 font-medium">{t("side")}</th>
+                    <th className="text-right pb-2 font-medium">{t("price")}</th>
+                    <th className="text-right pb-2 font-medium">{t("amount")}</th>
+                    <th className="text-right pb-2 font-medium">{t("cost")}</th>
+                    <th className="text-right pb-2 font-medium">{t("timeAgo")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -528,19 +508,6 @@ const PositionTabs = () => {
               </table>
             </div>
           )}
-        </TabsContent>
-
-        <TabsContent value="claimed" className="p-4 m-0">
-          <div className="flex flex-col items-center gap-3 py-12">
-            <img 
-              src="/favicon.png" 
-              alt="No claimed" 
-              className="w-16 h-16 opacity-30"
-            />
-            <p className="text-muted-foreground text-sm">
-              No claimed positions yet
-            </p>
-          </div>
         </TabsContent>
       </Tabs>
     </div>
