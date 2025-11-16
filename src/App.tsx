@@ -3,7 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { PredictionMarketProvider, MarketProvider, SoundProvider, WalletProvider } from "./contexts";
+import { PredictionMarketProvider, MarketProvider, SoundProvider, WalletProvider, FavoritesProvider } from "./contexts";
 import { API_CONFIG } from "./config/api";
 import ErrorBoundary from "./components/ErrorBoundary";
 import Index from "./pages/Index";
@@ -37,7 +37,8 @@ const App = () => (
         <BrowserRouter>
           <SoundProvider>
             <MarketProvider>
-              <TooltipProvider>
+              <FavoritesProvider>
+                <TooltipProvider>
                 <Toaster />
                 <Sonner />
                 <ErrorBoundary>
@@ -61,7 +62,8 @@ const App = () => (
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </ErrorBoundary>
-              </TooltipProvider>
+                </TooltipProvider>
+              </FavoritesProvider>
             </MarketProvider>
           </SoundProvider>
         </BrowserRouter>

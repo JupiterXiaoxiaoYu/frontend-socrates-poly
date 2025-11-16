@@ -2,7 +2,7 @@ import Header from "@/components/Header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Eye, EyeOff, Download, Upload, ChevronLeft, ChevronRight, Copy, Check } from "lucide-react";
+import { Eye, EyeOff, Download, Upload, ChevronLeft, ChevronRight } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useMarket } from "../contexts";
@@ -20,25 +20,11 @@ const Wallet = () => {
   const { toast } = useToast();
   const [hideBalance, setHideBalance] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [copiedPid, setCopiedPid] = useState(false);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [showDepositDialog, setShowDepositDialog] = useState(false);
   const [showWithdrawDialog, setShowWithdrawDialog] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const itemsPerPage = 6;
-
-  // 复制 Player ID
-  const handleCopyPid = () => {
-    if (!playerId) return;
-    const pidString = `[${playerId[0]}, ${playerId[1]}]`;
-    navigator.clipboard.writeText(pidString);
-    setCopiedPid(true);
-    toast({
-      title: t("copied"),
-      description: t("playerIdCopied"),
-    });
-    setTimeout(() => setCopiedPid(false), 2000);
-  };
 
   // 加载财务活动
   useEffect(() => {
@@ -151,63 +137,42 @@ const Wallet = () => {
       <main className="container mx-auto px-4 py-6 max-w-4xl">
         <h1 className="text-2xl font-bold mb-6 text-foreground">{t("title")}</h1>
 
-        {/* Player ID Card */}
-        {playerId && (
-          <Card className="p-4 border border-border mb-4 bg-muted/20">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-xs text-muted-foreground mb-1">{t("playerId")}</div>
-                <div className="font-mono text-sm text-foreground">
-                  [{playerId[0]}, {playerId[1]}]
-                </div>
-              </div>
-              <Button variant="ghost" size="sm" onClick={handleCopyPid} className="h-8">
-                {copiedPid ? <Check className="w-4 h-4 text-success" /> : <Copy className="w-4 h-4" />}
-              </Button>
-            </div>
-          </Card>
-        )}
-
         {/* Balance Card */}
-        <Card className="p-6 border border-border mb-6">
-          <div className="flex items-start justify-between mb-4">
+        <Card className="p-4 md:p-6 border border-border mb-6">
+          <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
             <div>
               <div className="flex items-center gap-2 mb-2">
-                <span className="text-sm text-muted-foreground">{t("usdcBalance")}</span>
+                <span className="text-xs md:text-sm text-muted-foreground">{t("usdcBalance")}</span>
                 <button
                   onClick={() => setHideBalance(!hideBalance)}
                   className="text-muted-foreground hover:text-foreground"
                 >
-                  {hideBalance ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  {hideBalance ? <EyeOff className="w-3 h-3 md:w-4 md:h-4" /> : <Eye className="w-3 h-3 md:w-4 md:h-4" />}
                 </button>
               </div>
-              <div className="text-3xl font-bold text-foreground">
+              <div className="text-2xl md:text-3xl font-bold text-foreground">
                 {hideBalance ? "****" : formatCurrency(usdcBalance, 2)}
               </div>
             </div>
 
-            <div className="flex gap-3">
+            <div className="flex gap-2 md:gap-3">
               <Button
-                className="flex flex-col items-center gap-1 h-auto py-3 px-4 bg-foreground text-background hover:bg-foreground/90"
+                className="flex flex-col items-center gap-0.5 md:gap-1 h-auto py-2 px-3 md:py-3 md:px-4 bg-foreground text-background hover:bg-foreground/90"
                 onClick={() => setShowDepositDialog(true)}
                 disabled={!playerId}
               >
-                <Download className="w-5 h-5" />
-                <span className="text-xs">{t("deposit")}</span>
+                <Download className="w-4 h-4 md:w-5 md:h-5" />
+                <span className="text-[10px] md:text-xs">{t("deposit")}</span>
               </Button>
               <Button
                 variant="outline"
-                className="flex flex-col items-center gap-1 h-auto py-3 px-4"
+                className="flex flex-col items-center gap-0.5 md:gap-1 h-auto py-2 px-3 md:py-3 md:px-4"
                 onClick={() => setShowWithdrawDialog(true)}
                 disabled={!playerId || usdcBalance === 0}
               >
-                <Upload className="w-5 h-5" />
-                <span className="text-xs">{t("withdraw")}</span>
+                <Upload className="w-4 h-4 md:w-5 md:h-5" />
+                <span className="text-[10px] md:text-xs">{t("withdraw")}</span>
               </Button>
-              {/* <Button variant="outline" className="flex flex-col items-center gap-1 h-auto py-3 px-4">
-                <FileText className="w-5 h-5" />
-                <span className="text-xs">History</span>
-              </Button> */}
             </div>
           </div>
         </Card>

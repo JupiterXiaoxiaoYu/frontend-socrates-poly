@@ -341,7 +341,7 @@ const PositionTabs = () => {
           </TabsTrigger>
           <TabsTrigger
             value="claimed"
-            className="rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent px-6 py-3"
+            className="hidden md:block rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent px-6 py-3"
           >
             Claimed
           </TabsTrigger>

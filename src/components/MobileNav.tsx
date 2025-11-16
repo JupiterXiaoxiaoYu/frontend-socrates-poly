@@ -44,8 +44,12 @@ const MobileNav = ({ isOpen, onClose }: MobileNavProps) => {
       `}
       >
         <div className="flex flex-col h-full overflow-y-auto">
-          {/* 个人信息区域 */}
-          <div className="flex items-center gap-2 px-4 py-4 border-b border-border cursor-pointer hover:bg-muted/30 transition-colors">
+          {/* 个人信息区域 - 点击进入 Settings */}
+          <Link
+            to="/settings"
+            onClick={onClose}
+            className="flex items-center gap-2 px-4 py-4 border-b border-border cursor-pointer hover:bg-muted/30 transition-colors"
+          >
             <div className="flex items-center gap-2 flex-1">
               {/* 头像 */}
               <div className="w-11 h-11 rounded-full bg-muted flex items-center justify-center overflow-hidden">
@@ -57,7 +61,11 @@ const MobileNav = ({ isOpen, onClose }: MobileNavProps) => {
                 <div className="flex items-center gap-1.5 mt-0.5">
                   <p className="text-sm text-muted-foreground">@Eddy</p>
                   <button 
-                    onClick={handleCopyAddress}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      handleCopyAddress();
+                    }}
                     className="p-0.5 hover:bg-muted rounded transition-colors"
                   >
                     <Copy className="w-3.5 h-3.5 text-muted-foreground" />
@@ -67,7 +75,7 @@ const MobileNav = ({ isOpen, onClose }: MobileNavProps) => {
             </div>
             {/* 右箭头 */}
             <ChevronRight className="w-5 h-5 text-muted-foreground" />
-          </div>
+          </Link>
 
           {/* 导航菜单 */}
           <nav className="flex-1 py-2">
@@ -130,11 +138,15 @@ const MobileNav = ({ isOpen, onClose }: MobileNavProps) => {
             <div className="my-2 border-t border-border" />
 
             {/* Settings */}
-            <div className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-foreground cursor-pointer hover:bg-muted/50 transition-colors">
+            <Link
+              to="/settings"
+              onClick={onClose}
+              className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted/50 transition-colors"
+            >
               <Settings className="w-5 h-5" />
               <span className="flex-1">{t('nav.settings')}</span>
               <ChevronRight className="w-5 h-5 text-muted-foreground" />
-            </div>
+            </Link>
 
             {/* Language */}
             <LanguageSwitcher variant="mobile" />

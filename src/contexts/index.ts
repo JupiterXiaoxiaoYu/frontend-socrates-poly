@@ -21,3 +21,6 @@ export { SoundProvider, useSound } from "./SoundContext";
 
 // Balance Context - DEPRECATED: Use MarketContext.balance instead
 // export { BalanceProvider, useBalance } from "./BalanceContext";
+
+// Favorites Context
+export { FavoritesProvider, useFavorites } from "./FavoritesContext";

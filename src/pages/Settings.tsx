@@ -14,10 +14,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useTheme } from "next-themes";
-import { Camera, Save } from "lucide-react";
+import { Camera, Save, Copy, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "react-i18next";
 import { useSound } from "@/contexts";
+import { useMarket } from "@/contexts";
 import { loadLanguageResources } from "@/i18n/config";
 
 // 语言列表配置（与 LanguageSwitcher 保持一致）
@@ -35,10 +36,12 @@ const Settings = () => {
   const { theme, setTheme } = useTheme();
   const { toast } = useToast();
   const { isEnabled: isSoundEnabled, toggleSound } = useSound();
+  const { playerId } = useMarket();
 
   const [username, setUsername] = useState("User");
   const [email, setEmail] = useState("");
   const [avatarUrl] = useState("");
+  const [copiedPid, setCopiedPid] = useState(false);
 
   const handleSave = () => {
     // Save settings logic here
@@ -64,6 +67,18 @@ const Settings = () => {
       title: "Coming Soon",
       description: "Avatar upload feature will be available soon",
     });
+  };
+
+  const handleCopyPid = () => {
+    if (!playerId) return;
+    const pidString = `${playerId[0]}:${playerId[1]}`;
+    navigator.clipboard.writeText(pidString);
+    setCopiedPid(true);
+    toast({
+      title: "Copied!",
+      description: "User ID copied to clipboard",
+    });
+    setTimeout(() => setCopiedPid(false), 2000);
   };
 
   return (
@@ -117,6 +132,24 @@ const Settings = () => {
                   placeholder="Enter your email"
                 />
               </div>
+
+              {/* User ID */}
+              {playerId && (
+                <div className="space-y-2">
+                  <Label htmlFor="pid">User ID</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="pid"
+                      value={`${playerId[0]}:${playerId[1]}`}
+                      readOnly
+                      className="font-mono"
+                    />
+                    <Button variant="outline" size="sm" onClick={handleCopyPid} className="px-3">
+                      {copiedPid ? <Check className="w-4 h-4 text-success" /> : <Copy className="w-4 h-4" />}
+                    </Button>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 

@@ -287,7 +287,7 @@ const Portfolio = () => {
                   </TabsTrigger>
                   <TabsTrigger
                     value="claimed"
-                    className="border-b-2 border-transparent data-[state=active]:border-primary rounded-none bg-transparent px-4 py-3"
+                    className="hidden md:block border-b-2 border-transparent data-[state=active]:border-primary rounded-none bg-transparent px-4 py-3"
                   >
                     Claimed
                   </TabsTrigger>
