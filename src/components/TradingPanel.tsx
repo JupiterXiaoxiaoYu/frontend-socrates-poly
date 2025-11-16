@@ -73,33 +73,10 @@ const TradingPanel = ({
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [orderBook, setOrderBook] = useState<any>(null);
   const [priceImpact, setPriceImpact] = useState(0);
-  const { playerId, apiClient } = useMarket();
-  const [availableBalance, setAvailableBalance] = useState<number | null>(null);
+  const { balance } = useMarket();
 
-  // Load USDC balance from gateway, fallback to prop if unavailable
-  useEffect(() => {
-    if (!playerId || !apiClient) return;
-    const uid = `${playerId[0]}:${playerId[1]}`;
-    let cancelled = false;
-    const load = async () => {
-      try {
-        const b = await apiClient.getBalance(uid, "USDC");
-        if (cancelled) return;
-        // Gateway API now returns actual amount (not 2-decimal precision)
-        setAvailableBalance(parseFloat(b.available));
-      } catch (_e) {
-        // ignore and keep fallback balance
-      }
-    };
-    load();
-    const interval = setInterval(load, 10000);
-    return () => {
-      cancelled = true;
-      clearInterval(interval);
-    };
-  }, [playerId, apiClient]);
-
-  const effectiveBalance = (availableBalance ?? userBalance) || 0;
+  // 使用 Context 中统一管理的余额，避免重复调用
+  const effectiveBalance = balance?.available ?? userBalance ?? 0;
 
   useEffect(() => {
     // Only subscribe if market exists
@@ -574,171 +551,171 @@ const TradingPanel = ({
             </Card>
           ) : (
             /* 市场活跃 - 显示 YES/NO 标签和交易表单 */
-            <Tabs
-              value={direction}
-              onValueChange={(v) => handleDirectionChange(v as "yes" | "no")}
-              className="space-y-4 flex-1 flex flex-col"
-            >
-              <TabsList className="grid w-full grid-cols-2 h-12 bg-muted">
+      <Tabs
+        value={direction}
+        onValueChange={(v) => handleDirectionChange(v as "yes" | "no")}
+        className="space-y-4 flex-1 flex flex-col"
+      >
+        <TabsList className="grid w-full grid-cols-2 h-12 bg-muted">
+          <TabsTrigger
+            value="yes"
+            className="data-[state=active]:bg-success data-[state=active]:text-white font-semibold"
+          >
+            <TrendingUp className="w-4 h-4 mr-2" />
+            YES
+          </TabsTrigger>
+          <TabsTrigger
+            value="no"
+            className="data-[state=active]:bg-danger data-[state=active]:text-white font-semibold"
+          >
+            <TrendingDown className="w-4 h-4 mr-2" />
+            NO
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value={direction} className="space-y-4 flex-1 flex flex-col m-0">
+                {/* 市场活跃 - 显示交易表单 */}
+            <Tabs value={action} onValueChange={(v) => setAction(v as "buy" | "sell")} className="space-y-4">
+              <TabsList className="grid w-full grid-cols-2 h-10">
                 <TabsTrigger
-                  value="yes"
-                  className="data-[state=active]:bg-success data-[state=active]:text-white font-semibold"
+                  value="buy"
+                  className="data-[state=active]:bg-black data-[state=active]:text-white dark:data-[state=active]:bg-white dark:data-[state=active]:text-black font-semibold"
                 >
-                  <TrendingUp className="w-4 h-4 mr-2" />
-                  YES
+                      {t("buy")}
                 </TabsTrigger>
                 <TabsTrigger
-                  value="no"
-                  className="data-[state=active]:bg-danger data-[state=active]:text-white font-semibold"
+                  value="sell"
+                  className="data-[state=active]:bg-black data-[state=active]:text-white dark:data-[state=active]:bg-white dark:data-[state=active]:text-black font-semibold"
                 >
-                  <TrendingDown className="w-4 h-4 mr-2" />
-                  NO
+                      {t("sell")}
                 </TabsTrigger>
               </TabsList>
 
-              <TabsContent value={direction} className="space-y-4 flex-1 flex flex-col m-0">
-                {/* 市场活跃 - 显示交易表单 */}
-                <Tabs value={action} onValueChange={(v) => setAction(v as "buy" | "sell")} className="space-y-4">
-                  <TabsList className="grid w-full grid-cols-2 h-10">
-                    <TabsTrigger
-                      value="buy"
-                      className="data-[state=active]:bg-black data-[state=active]:text-white dark:data-[state=active]:bg-white dark:data-[state=active]:text-black font-semibold"
-                    >
-                      {t("buy")}
-                    </TabsTrigger>
-                    <TabsTrigger
-                      value="sell"
-                      className="data-[state=active]:bg-black data-[state=active]:text-white dark:data-[state=active]:bg-white dark:data-[state=active]:text-black font-semibold"
-                    >
-                      {t("sell")}
-                    </TabsTrigger>
-                  </TabsList>
-
-                  <TabsContent value={action} className="space-y-4 m-0">
-                    {/* Order Type Dropdown */}
-                    <div className="flex items-center justify-between">
+              <TabsContent value={action} className="space-y-4 m-0">
+                {/* Order Type Dropdown */}
+                <div className="flex items-center justify-between">
                       <span className="text-sm text-muted-foreground">{t("orderType")}</span>
-                      <select
-                        value={orderType}
-                        onChange={(e) => setOrderType(e.target.value as "market" | "limit")}
-                        className="px-3 py-1.5 text-sm border border-border rounded-md bg-background"
-                      >
+                  <select
+                    value={orderType}
+                    onChange={(e) => setOrderType(e.target.value as "market" | "limit")}
+                    className="px-3 py-1.5 text-sm border border-border rounded-md bg-background"
+                  >
                         <option value="market">{t("marketType")}</option>
                         <option value="limit">{t("limit")}</option>
-                      </select>
-                    </div>
-                    {/* Price Impact Warning */}
-                    {orderType === "market" && priceImpact > 5 && (
-                      <Alert className="border-orange-200 bg-orange-50">
-                        <AlertTriangle className="h-4 w-4" />
-                        <AlertDescription>
+                  </select>
+                </div>
+                {/* Price Impact Warning */}
+                {orderType === "market" && priceImpact > 5 && (
+                  <Alert className="border-orange-200 bg-orange-50">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertDescription>
                           {t("highPriceImpact", { impact: formatPercent(priceImpact / 100, 1) })}
-                        </AlertDescription>
-                      </Alert>
-                    )}
+                    </AlertDescription>
+                  </Alert>
+                )}
 
-                    {/* Current Price Display - 只在 Limit 模式显示 */}
-                    {orderType === "limit" && (
-                      <div className="text-center p-3 bg-muted/30 rounded-lg">
+                {/* Current Price Display - 只在 Limit 模式显示 */}
+                {orderType === "limit" && (
+                  <div className="text-center p-3 bg-muted/30 rounded-lg">
                         <div className="text-sm text-muted-foreground">{t("yourLimitPrice")}</div>
-                        <div className="text-2xl font-bold">{formatCurrency(limitPrice)}</div>
-                      </div>
-                    )}
+                    <div className="text-2xl font-bold">{formatCurrency(limitPrice)}</div>
+                  </div>
+                )}
 
-                    {/* Limit Price - Only for limit orders */}
-                    {orderType === "limit" && (
-                      <div className="space-y-2">
+                {/* Limit Price - Only for limit orders */}
+                {orderType === "limit" && (
+                  <div className="space-y-2">
                         <label className="text-sm font-medium">{t("yourPrice")}</label>
-                        <div className="relative">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
-                          <Input
-                            type="number"
-                            value={limitPrice}
-                            onChange={(e) => setLimitPrice(Number(e.target.value))}
-                            className="pl-7 h-10"
-                            step="0.01"
-                            min="0.01"
-                            max="0.99"
-                          />
-                        </div>
-                        {orderBook && (
-                          <div className="text-xs text-muted-foreground">
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                      <Input
+                        type="number"
+                        value={limitPrice}
+                        onChange={(e) => setLimitPrice(Number(e.target.value))}
+                        className="pl-7 h-10"
+                        step="0.01"
+                        min="0.01"
+                        max="0.99"
+                      />
+                    </div>
+                    {orderBook && (
+                      <div className="text-xs text-muted-foreground">
                             {t("market")}: {formatCurrency(orderBook.midPrice)} •
                             {limitPrice > orderBook.midPrice ? ` ${t("aboveMarket")}` : ` ${t("belowMarket")}`}
-                          </div>
-                        )}
                       </div>
                     )}
+                  </div>
+                )}
 
-                    {/* Amount Input */}
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between text-sm">
+                {/* Amount Input */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-sm">
                         <label className="font-medium">{t("amount")}</label>
                         <span className="text-muted-foreground">
                           {t("balance")}: ${effectiveBalance.toFixed(2)}
                         </span>
-                      </div>
-                      <div className="relative">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
-                        <Input
-                          type="number"
-                          value={amount || ""}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            if (val === "" || val === ".") {
-                              setAmount(0);
-                            } else {
-                              const numVal = Number(val);
-                              if (!isNaN(numVal)) {
-                                setAmount(numVal);
-                              }
-                            }
-                          }}
-                          onBlur={(e) => {
-                            const val = Number(e.target.value);
-                            if (!isNaN(val) && val > 0) {
-                              setAmount(Number(val.toFixed(2)));
-                            } else if (val === 0 || isNaN(val)) {
-                              setAmount(0);
-                            }
-                          }}
-                          className="pl-7 h-12 text-lg font-semibold"
-                          placeholder="0.00"
-                          min={MIN_ORDER_AMOUNT}
-                          step="0.01"
-                        />
-                      </div>
-                      {amount > 0 && amount < MIN_ORDER_AMOUNT && (
-                        <div className="text-xs text-red-500 flex items-center gap-1">
-                          <AlertTriangle className="w-3 h-3" />
+                  </div>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                    <Input
+                      type="number"
+                      value={amount || ""}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === "" || val === ".") {
+                          setAmount(0);
+                        } else {
+                          const numVal = Number(val);
+                          if (!isNaN(numVal)) {
+                            setAmount(numVal);
+                          }
+                        }
+                      }}
+                      onBlur={(e) => {
+                        const val = Number(e.target.value);
+                        if (!isNaN(val) && val > 0) {
+                          setAmount(Number(val.toFixed(2)));
+                        } else if (val === 0 || isNaN(val)) {
+                          setAmount(0);
+                        }
+                      }}
+                      className="pl-7 h-12 text-lg font-semibold"
+                      placeholder="0.00"
+                      min={MIN_ORDER_AMOUNT}
+                      step="0.01"
+                    />
+                  </div>
+                  {amount > 0 && amount < MIN_ORDER_AMOUNT && (
+                    <div className="text-xs text-red-500 flex items-center gap-1">
+                      <AlertTriangle className="w-3 h-3" />
                           {t("minimumOrder", { amount: MIN_ORDER_AMOUNT })}
-                        </div>
-                      )}
-                      {amount === 0 && (
+                    </div>
+                  )}
+                  {amount === 0 && (
                         <div className="text-xs text-muted-foreground">
                           {t("minimumOrderDesc", { amount: MIN_ORDER_AMOUNT })}
                         </div>
-                      )}
-                    </div>
+                  )}
+                </div>
 
-                    {/* Quick Amount Buttons */}
-                    <div className="flex gap-2 flex-wrap">
-                      {QUICK_AMOUNTS.map((quickAmount) => (
-                        <Button
-                          key={quickAmount}
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleQuickAmount(quickAmount)}
-                          className="text-xs"
-                          disabled={quickAmount > effectiveBalance}
-                        >
-                          ${quickAmount}
-                        </Button>
-                      ))}
-                    </div>
+                {/* Quick Amount Buttons */}
+                <div className="flex gap-2 flex-wrap">
+                  {QUICK_AMOUNTS.map((quickAmount) => (
+                    <Button
+                      key={quickAmount}
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleQuickAmount(quickAmount)}
+                      className="text-xs"
+                      disabled={quickAmount > effectiveBalance}
+                    >
+                      ${quickAmount}
+                    </Button>
+                  ))}
+                </div>
 
-                    {/* Slider */}
-                    <div className="space-y-2">
+                {/* Slider */}
+                <div className="space-y-2">
                       <Slider
                         value={sliderValue}
                         onValueChange={handleSliderChange}
@@ -746,65 +723,65 @@ const TradingPanel = ({
                         step={1}
                         className="py-4"
                       />
-                      <div className="flex gap-2">
-                        {[25, 50, 75, 100].map((percent) => (
-                          <Button
-                            key={percent}
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handlePercentClick(percent)}
-                            className="flex-1 text-xs"
-                          >
-                            {percent}%
-                          </Button>
-                        ))}
-                      </div>
-                    </div>
+                  <div className="flex gap-2">
+                    {[25, 50, 75, 100].map((percent) => (
+                      <Button
+                        key={percent}
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handlePercentClick(percent)}
+                        className="flex-1 text-xs"
+                      >
+                        {percent}%
+                      </Button>
+                    ))}
+                  </div>
+                </div>
 
-                    {/* Potential Win Display */}
-                    {amount > 0 && (
-                      <div className="p-4 rounded-lg bg-success/5 border border-success/20">
-                        <div className="flex items-center justify-between mb-2">
+                {/* Potential Win Display */}
+                {amount > 0 && (
+                  <div className="p-4 rounded-lg bg-success/5 border border-success/20">
+                    <div className="flex items-center justify-between mb-2">
                           <span className="text-sm text-muted-foreground">{t("sharesLabel")}</span>
-                          <span className="text-lg font-bold">{estimatedShares.toFixed(2)}</span>
-                        </div>
-                        <div className="flex items-center justify-between">
+                      <span className="text-lg font-bold">{estimatedShares.toFixed(2)}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
                           <span className="text-sm text-muted-foreground">{t("potentialWin")}</span>
-                          <span className="text-2xl font-bold text-success">${maxWin.toFixed(2)}</span>
-                        </div>
-                      </div>
-                    )}
+                      <span className="text-2xl font-bold text-success">${maxWin.toFixed(2)}</span>
+                    </div>
+                  </div>
+                )}
 
-                    {/* Submit Button */}
-                    <Button
-                      size="lg"
-                      className={cn(
-                        "w-full h-12 font-semibold text-base mt-auto",
-                        direction === "yes"
-                          ? "bg-success hover:bg-success/90 text-white"
-                          : "bg-danger hover:bg-danger/90 text-white"
-                      )}
-                      disabled={!canPlaceOrder || isPlacingOrder}
-                      onClick={handlePlaceOrder}
-                    >
-                      {isPlacingOrder
+                {/* Submit Button */}
+                <Button
+                  size="lg"
+                  className={cn(
+                    "w-full h-12 font-semibold text-base mt-auto",
+                    direction === "yes"
+                      ? "bg-success hover:bg-success/90 text-white"
+                      : "bg-danger hover:bg-danger/90 text-white"
+                  )}
+                  disabled={!canPlaceOrder || isPlacingOrder}
+                  onClick={handlePlaceOrder}
+                >
+                  {isPlacingOrder
                         ? t("placingOrder")
                         : `${action === "buy" ? t("buy") : t("sell")} ${direction.toUpperCase()} ${
                             orderType === "market" ? t("marketOrder") : t("limitOrder")
-                          }`}
-                    </Button>
+                      }`}
+                </Button>
 
-                    {/* Position Info */}
-                    {userPosition && (
+                {/* Position Info */}
+                {userPosition && (
                       <div className="text-xs text-muted-foreground text-center">{t("youHavePosition")}</div>
-                    )}
+                )}
                   </TabsContent>
                 </Tabs>
               </TabsContent>
             </Tabs>
           )}
-        </div>
-      )}
+                </div>
+              )}
     </div>
   );
 };

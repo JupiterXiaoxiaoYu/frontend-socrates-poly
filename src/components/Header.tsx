@@ -7,7 +7,7 @@ import MobileNav from "@/components/MobileNav";
 import ThemeToggle from "@/components/ThemeToggle";
 import { DepositDialog } from "@/components/DepositDialog";
 import { useTranslation } from "react-i18next";
-import { useMarket, useBalance } from "../contexts";
+import { useMarket } from "../contexts";
 import { useToast } from "../hooks/use-toast";
 
 const Header = () => {
@@ -15,8 +15,8 @@ const Header = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showDepositDialog, setShowDepositDialog] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const { playerId, deposit } = useMarket();
-  const { usdcBalance, refreshBalance } = useBalance();
+  const { playerId, deposit, balance } = useMarket();
+  const usdcBalance = balance?.available ?? 0;
   const { toast } = useToast();
 
   // 处理充值
@@ -29,8 +29,7 @@ const Header = () => {
         description: t("depositSuccessDesc") || `Successfully deposited $${amount.toFixed(2)}`,
       });
       setShowDepositDialog(false);
-      // 刷新余额
-      await refreshBalance();
+      // 余额会在 deposit 内部自动刷新
     } catch (error) {
       toast({
         title: t("depositFailed") || "Deposit Failed",

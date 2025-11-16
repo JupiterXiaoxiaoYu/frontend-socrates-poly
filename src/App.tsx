@@ -3,7 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { PredictionMarketProvider, MarketProvider, SoundProvider, WalletProvider, BalanceProvider } from "./contexts";
+import { PredictionMarketProvider, MarketProvider, SoundProvider, WalletProvider } from "./contexts";
 import { API_CONFIG } from "./config/api";
 import ErrorBoundary from "./components/ErrorBoundary";
 import Index from "./pages/Index";
@@ -37,8 +37,7 @@ const App = () => (
         <BrowserRouter>
           <SoundProvider>
             <MarketProvider>
-              <BalanceProvider>
-                <TooltipProvider>
+              <TooltipProvider>
                 <Toaster />
                 <Sonner />
                 <ErrorBoundary>
@@ -63,7 +62,6 @@ const App = () => (
                   </Routes>
                 </ErrorBoundary>
               </TooltipProvider>
-              </BalanceProvider>
             </MarketProvider>
           </SoundProvider>
         </BrowserRouter>

@@ -33,6 +33,7 @@ interface MarketContextType {
   playerId: PlayerId | null;
   marketPrices: Map<string, number>; // 每个市场的最新价格
   orderBooks: Map<string, OrderBookData>; // 订单簿数据 key: "marketId-YES" or "marketId-NO"
+  balance: { available: number; frozen: number } | null; // 用户余额 (USDC)
 
   // 状态
   isLoading: boolean;
@@ -88,6 +89,7 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [playerId, setPlayerId] = useState<PlayerId | null>(null);
   const [marketPrices, setMarketPrices] = useState<Map<string, number>>(new Map()); // 每个市场的最新成交价格
   const [orderBooks, setOrderBooks] = useState<Map<string, OrderBookData>>(new Map()); // 订单簿数据
+  const [balance, setBalance] = useState<{ available: number; frozen: number } | null>(null); // 用户余额
 
   // Status state
   const [isLoading, setIsLoading] = useState(false);
@@ -364,7 +366,7 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return () => clearInterval(interval);
   }, [currentMarketId]);
 
-  // 单独轮询用户数据（需要登录）
+  // 单独轮询用户数据（需要登录）- 持仓和订单每5秒
   useEffect(() => {
     if (!playerId) return;
 
@@ -373,6 +375,47 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }, 5000);
 
     return () => clearInterval(interval);
+  }, [playerId]);
+
+  // 余额单独轮询 - HTTP/2 长连接每2秒查询
+  useEffect(() => {
+    if (!playerId) {
+      setBalance(null);
+      return;
+    }
+
+    const userId = `${playerId[0]}:${playerId[1]}`;
+    let cancelled = false;
+    let isLoading = false; // 防止并发调用
+
+    const loadBalance = async () => {
+      if (cancelled || isLoading) return;
+      
+      isLoading = true;
+      try {
+        const balanceData = await apiClient.getBalance(userId, "USDC");
+        if (cancelled) return;
+        setBalance({
+          available: parseFloat(balanceData.available),
+          frozen: parseFloat(balanceData.frozen),
+        });
+      } catch (error) {
+        console.error("Failed to load balance:", error);
+      } finally {
+        isLoading = false;
+      }
+    };
+
+    // 立即加载一次
+    loadBalance();
+
+    // 每2秒轮询余额
+    const interval = setInterval(loadBalance, 2000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
   }, [playerId]);
 
   // 当 trades 变化时，立即更新当前市场的最新成交价格
@@ -580,7 +623,7 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const userId = `${playerId[0]}:${playerId[1]}`;
 
     try {
-      // 加载用户持仓、订单和成交记录
+      // 加载用户持仓、订单、成交记录（余额单独轮询）
       const [positionsData, userOrdersData, userTradesData] = await Promise.all([
         apiClient.getUserPositions(userId),
         apiClient.getUserOrders(userId, { limit: 100 }),
@@ -878,6 +921,7 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     orderBooks,
     playerId,
     marketPrices,
+    balance,
     isLoading,
     isPlayerInstalled,
     playerClient,

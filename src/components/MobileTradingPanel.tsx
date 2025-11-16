@@ -61,31 +61,10 @@ const MobileTradingPanel = ({
   const [limitPrice, setLimitPrice] = useState(initialLimitPrice);
   const [sliderValue, setSliderValue] = useState([0]);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
-  const { playerId, apiClient } = useMarket();
-  const [availableBalance, setAvailableBalance] = useState<number | null>(null);
+  const { balance } = useMarket();
 
-  useEffect(() => {
-    if (!playerId || !apiClient) return;
-    const uid = `${playerId[0]}:${playerId[1]}`;
-    let cancelled = false;
-    const load = async () => {
-      try {
-        const b = await apiClient.getBalance(uid, "USDC");
-        if (cancelled) return;
-        setAvailableBalance(parseFloat(b.available));
-      } catch (_e) {
-        // ignore
-      }
-    };
-    load();
-    const interval = setInterval(load, 10000);
-    return () => {
-      cancelled = true;
-      clearInterval(interval);
-    };
-  }, [playerId, apiClient]);
-
-  const effectiveBalance = availableBalance !== null ? availableBalance : userBalance;
+  // 使用 Context 中统一管理的余额，避免重复调用
+  const effectiveBalance = balance?.available ?? userBalance ?? 0;
 
   // 统一价格含义：接口返回 currentPrice(0-100)，这里转成 0-1 的小数价格
   const marketPriceDecimal =

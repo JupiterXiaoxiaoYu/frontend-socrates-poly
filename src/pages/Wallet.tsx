@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Eye, EyeOff, Download, Upload, ChevronLeft, ChevronRight, Copy, Check } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { useMarket, useBalance } from "../contexts";
+import { useMarket } from "../contexts";
 import { formatCurrency, fromUSDCPrecision } from "../lib/calculations";
 import { useToast } from "../hooks/use-toast";
 import { DepositDialog } from "../components/DepositDialog";
@@ -15,8 +15,8 @@ import { WithdrawDialog } from "../components/WithdrawDialog";
 
 const Wallet = () => {
   const { t } = useTranslation("wallet");
-  const { playerId, apiClient, deposit, withdraw } = useMarket();
-  const { usdcBalance, refreshBalance } = useBalance();
+  const { playerId, apiClient, deposit, withdraw, balance } = useMarket();
+  const usdcBalance = balance?.available ?? 0;
   const { toast } = useToast();
   const [hideBalance, setHideBalance] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -125,8 +125,7 @@ const Wallet = () => {
       // Convert to precision format (amount * 100)
       const amountWithPrecision = BigInt(Math.round(amount * 100));
       await deposit(amountWithPrecision);
-      // 刷新余额
-      await refreshBalance();
+      // 余额会在 deposit 内部自动刷新
     } finally {
       setIsProcessing(false);
     }
@@ -139,8 +138,7 @@ const Wallet = () => {
       // Convert to precision format (amount * 100)
       const amountWithPrecision = BigInt(Math.round(amount * 100));
       await withdraw(amountWithPrecision);
-      // 刷新余额
-      await refreshBalance();
+      // 余额会在 withdraw 内部自动刷新
     } finally {
       setIsProcessing(false);
     }

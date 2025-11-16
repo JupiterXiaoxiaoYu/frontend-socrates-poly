@@ -7,7 +7,7 @@ import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import PortfolioPnLChart from "@/components/PortfolioPnLChart";
 import TradesHistory from "@/components/TradesHistory";
-import { useMarket, useBalance } from "../contexts";
+import { useMarket } from "../contexts";
 import {
   fromUSDCPrecision,
   parseTokenIdx,
@@ -22,8 +22,8 @@ import { useTranslation } from "react-i18next";
 const Portfolio = () => {
   const { t } = useTranslation("portfolio");
   const navigate = useNavigate();
-  const { positions = [], markets = [], userAllOrders = [], userAllTrades = [], playerId, cancelOrder } = useMarket();
-  const { usdcBalance } = useBalance();
+  const { positions = [], markets = [], userAllOrders = [], userAllTrades = [], playerId, cancelOrder, balance } = useMarket();
+  const usdcBalance = balance?.available ?? 0;
   const { toast } = useToast();
   const [timePeriod, setTimePeriod] = useState("1D");
   const [positionFilter, setPositionFilter] = useState("All");
