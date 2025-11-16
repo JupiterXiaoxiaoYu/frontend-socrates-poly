@@ -287,7 +287,7 @@ const Admin = () => {
                 <div>
                   <Label>Add Fee Exemption</Label>
                   <div className="flex gap-2 mt-2">
-                    <Input placeholder="Player ID or address" />
+                    <Input placeholder="User ID or address" />
                     <Button>Add</Button>
                   </div>
                 </div>

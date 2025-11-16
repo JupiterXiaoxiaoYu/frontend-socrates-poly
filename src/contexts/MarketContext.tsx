@@ -176,14 +176,11 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setIsPlayerInstalled(true);
 
       if (response === null) {
-        toast({
-          title: "Player Connected",
-          description: "Successfully connected to existing player account!",
-        });
+        // 已存在的用户，不显示提示
       } else {
         toast({
-          title: "Player Installed",
-          description: "Successfully created new player account!",
+          title: "User Registered",
+          description: "Successfully registered new user account!",
         });
       }
     } catch (error) {
@@ -198,17 +195,13 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           setPlayerId(generatedPlayerId);
         }
         setIsPlayerInstalled(true);
-
-        toast({
-          title: "Player Connected",
-          description: "Successfully connected to existing player account!",
-        });
+        // 已存在的用户，不显示提示
       } else {
         // 其他错误才显示错误提示
-        console.error("Player installation error:", error);
+        console.error("User registration error:", error);
         toast({
           title: "Connection Failed",
-          description: errorMessage || "Failed to auto-connect player",
+          description: errorMessage || "Failed to auto-connect user",
           variant: "destructive",
         });
       }
@@ -252,11 +245,13 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       setIsPlayerInstalled(true);
 
-      toast({
-        title: response === null ? "Player Connected" : "Player Installed",
-        description:
-          response === null ? "Successfully connected to existing player!" : "Successfully created new player!",
-      });
+      // 只在新建用户时显示提示
+      if (response !== null) {
+        toast({
+          title: "User Created",
+          description: "Successfully created new user account!",
+        });
+      }
     } catch (error) {
       // 检查是否是 PlayerAlreadyExists 错误（不区分大小写）
       const errorMessage = error instanceof Error ? error.message : String(error);
@@ -269,17 +264,13 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           setPlayerId(generatedPlayerId);
         }
         setIsPlayerInstalled(true);
-
-        toast({
-          title: "Player Connected",
-          description: "Successfully connected to existing player account!",
-        });
+        // 已存在的用户，不显示提示
       } else {
         // 其他错误才显示错误提示
-        console.error("Player installation error:", error);
+        console.error("User registration error:", error);
         toast({
           title: "Installation Failed",
-          description: errorMessage || "Failed to install player",
+          description: errorMessage || "Failed to register user",
           variant: "destructive",
         });
         throw error;

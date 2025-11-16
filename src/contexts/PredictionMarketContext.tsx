@@ -214,10 +214,10 @@ export const PredictionMarketProvider: React.FC<PredictionMarketProviderProps> =
       return "You have already claimed your winnings from this market.";
     }
     if (errorMessage.includes("PlayerNotExist")) {
-      return "Player account not found. Please try connecting your wallet again.";
+      return "User account not found. Please try connecting your wallet again.";
     }
     if (errorMessage.includes("PlayerAlreadyExist")) {
-      return "Player account already exists.";
+      return "User account already exists.";
     }
     if (errorMessage.includes("InvalidMarketCreation")) {
       return "Invalid market creation parameters. Please check your inputs.";

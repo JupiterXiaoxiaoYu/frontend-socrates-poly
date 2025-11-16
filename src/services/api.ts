@@ -730,12 +730,12 @@ export class ExchangeAPI {
       limit?: number;
     }
   ): Promise<Order[]> {
-    throw new Error("Player orders not supported via gateway without user_id; use /v1/orders with auth.");
+    throw new Error("User orders not supported via gateway without user_id; use /v1/orders with auth.");
   }
 
   // 查询玩家所有成交记录
   async getPlayerTrades(_pid: PlayerId, _limit = 100): Promise<Trade[]> {
-    throw new Error("Player trades not supported via gateway without user_id; use /v1/trades with auth.");
+    throw new Error("User trades not supported via gateway without user_id; use /v1/trades with auth.");
   }
 
   // ========== 财务活动 ==========
